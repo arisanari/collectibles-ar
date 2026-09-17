@@ -1,0 +1,10 @@
+{
+  "walletA": {
+    "label": "Owner A (demo)",
+    "address": "DEMOwalletA1111111111111111111111111111111"
+  },
+  "walletB": {
+    "label": "Owner B (demo)",
+    "address": "DEMOwalletB2222222222222222222222222222222"
+  }
+}

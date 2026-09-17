@@ -1,0 +1,64 @@
+[
+  {
+    "id": "tf-stamp-001",
+    "network": "devnet",
+    "address": "DEMO-STAMP-0001",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "竜文切手 48文（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/stamp-placeholder.svg",
+      "placeholder": true,
+      "rightsNote": "自作SVG。実物の写真ではない"
+    },
+    "provenance": [
+      {
+        "id": "tf-stamp-001-evt-1",
+        "assetId": "tf-stamp-001",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-01T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-0001",
+        "metadata": {
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）"
+        }
+      },
+      {
+        "id": "tf-stamp-001-evt-2",
+        "assetId": "tf-stamp-001",
+        "kind": "minted",
+        "occurredAt": "2026-09-05T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-0001",
+        "slot": 1,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-stamp-001-evt-3",
+        "assetId": "tf-stamp-001",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-10T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0001",
+      "condition": "軽微な退色、ヒンジ跡あり、目打ち良好",
+      "rights": "物理所有権はVault保管者。図案は著作権消滅。画像はデモ用プレースホルダーで実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-10T04:00:00Z"
+    }
+  }
+]
