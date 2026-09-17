@@ -1,0 +1,22 @@
+# JavaScript
+node_modules/
+.next/
+npm-debug.log*
+
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Rights-unverified third-party reference images (local only; see AGENTS.md)
+apps/images/
+apps/web/public/collection/
