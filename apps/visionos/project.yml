@@ -1,12 +1,20 @@
 name: TwinfoldVision
 options:
   bundleIdPrefix: design.twinfold
+packages:
+  TwinfoldCore:
+    path: ../../packages/TwinfoldCore
 targets:
   TwinfoldVision:
     type: application
     platform: visionOS
     deploymentTarget: "2.0"
     sources: [TwinfoldVision]
+    dependencies:
+      - package: TwinfoldCore
+        product: TwinfoldCore
+      - package: TwinfoldCore
+        product: TwinfoldSpatial
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: design.twinfold.vision

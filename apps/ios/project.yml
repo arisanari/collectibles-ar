@@ -1,0 +1,28 @@
+name: TwinfoldAR
+options:
+  bundleIdPrefix: design.twinfold
+packages:
+  TwinfoldCore:
+    path: ../../packages/TwinfoldCore
+targets:
+  TwinfoldAR:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [TwinfoldAR]
+    dependencies:
+      - package: TwinfoldCore
+        product: TwinfoldCore
+      - package: TwinfoldCore
+        product: TwinfoldSpatial
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: design.twinfold.ar
+        PRODUCT_NAME: TwinfoldAR
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: "AR空間にAssetを配置するためにカメラを使用します"
+        INFOPLIST_KEY_UIRequiredDeviceCapabilities: arkit

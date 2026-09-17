@@ -1,4 +1,5 @@
 import SwiftUI
+import TwinfoldCore
 
 struct CollectionView: View {
     @Environment(GalleryModel.self) private var gallery
@@ -22,12 +23,12 @@ struct CollectionView: View {
                             .foregroundStyle(.secondary)
                         Text("Spatial collection")
                             .font(.system(size: 48, weight: .medium))
-                        Text("原画、トレカ、フィギュアを、あなたの空間に展示します。")
+                        Text("切手Reference Assetを、あなたの空間に展示します。")
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
                     VStack(alignment: .trailing) {
-                        Text("05").font(.system(size: 38, design: .monospaced))
+                        Text("\(gallery.assets.count)").font(.system(size: 38, design: .monospaced))
                         Text("AUTHENTICATED WORKS").font(.caption2.monospaced()).foregroundStyle(.secondary)
                     }
                 }
@@ -36,20 +37,20 @@ struct CollectionView: View {
 
                 ScrollView(.horizontal) {
                     HStack(spacing: 22) {
-                        ForEach(gallery.pieces) { piece in
+                        ForEach(gallery.assets) { asset in
                             Button {
-                                gallery.selectedPieceID = piece.id
+                                gallery.selectedAssetID = asset.id
                             } label: {
                                 VStack(alignment: .leading, spacing: 13) {
-                                    ArtworkView(piece: piece, compact: true)
+                                    ArtworkView(asset: asset, compact: true)
                                         .frame(width: 210, height: 270)
                                         .clipShape(RoundedRectangle(cornerRadius: 3))
-                                    Text(piece.title).font(.title3.weight(.medium))
-                                    Text("\(piece.studio) · \(String(piece.year))")
+                                    Text(asset.title).font(.title3.weight(.medium))
+                                    Text(asset.address)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                                 .padding(13)
-                                .background(gallery.selectedPieceID == piece.id ? .white.opacity(0.14) : .clear)
+                                .background(gallery.selectedAssetID == asset.id ? .white.opacity(0.14) : .clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
                             .buttonStyle(.plain)
@@ -92,7 +93,13 @@ struct CollectionView: View {
             Image(systemName: "rectangle.split.2x1.fill").rotationEffect(.degrees(-8))
             Text("TWINFOLD").font(.headline.monospaced()).tracking(1.5)
             Spacer()
-            Label("7Kp…2mQ", systemImage: "circle.fill").font(.caption.monospaced()).foregroundStyle(.secondary)
+            Text(gallery.provider.isDemoData ? "DEMO DATA" : "DEVNET")
+                .font(.caption2.monospaced().weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.orange.opacity(0.85))
+                .foregroundStyle(.white)
+                .clipShape(Capsule())
         }
         .padding(.horizontal, 36).frame(height: 68)
     }

@@ -1,5 +1,7 @@
 import RealityKit
 import SwiftUI
+import TwinfoldCore
+import TwinfoldSpatial
 
 struct ImmersiveGalleryView: View {
     @Environment(GalleryModel.self) private var gallery
@@ -15,40 +17,48 @@ struct ImmersiveGalleryView: View {
             floor.position = [0, -1.45, -2.6]
             content.add(floor)
 
-            let positions: [SIMD3<Float>] = [
-                [-1.35, 0.15, -1.9],
-                [-0.68, 0.22, -2.05],
-                [0, 0.26, -2.1],
-                [0.68, 0.22, -2.05],
-                [1.35, 0.15, -1.9],
-            ]
+            let positions = layoutPositions(count: gallery.assets.count)
 
-            for (index, piece) in gallery.pieces.enumerated() {
-                if let artwork = attachments.entity(for: piece.id) {
-                    artwork.position = positions[index]
+            for (index, asset) in gallery.assets.enumerated() {
+                let anchor = Entity()
+                anchor.position = positions[index]
+                content.add(anchor)
+
+                if let artwork = attachments.entity(for: asset.id) {
+                    artwork.position = [0, 0.15, 0]
                     artwork.scale = [0.00165, 0.00165, 0.00165]
                     artwork.components.set(HoverEffectComponent())
-                    content.add(artwork)
+                    anchor.addChild(artwork)
                 }
+
+                // Interactive TwinfoldSpatial card: the actual Place/Pull
+                // target, positioned just below the decorative artwork.
+                let card = AssetCardEntity.make(asset: asset)
+                card.position = [0, -0.58, 0.02]
+                anchor.addChild(card)
+                gallery.registerCard(card, for: asset.id)
             }
 
             if let controls = attachments.entity(for: "controls") {
-                controls.position = [0, -0.72, -1.35]
+                controls.position = [0, -1.15, -1.35]
                 controls.scale = [0.00125, 0.00125, 0.00125]
                 content.add(controls)
             }
         } attachments: {
-            ForEach(gallery.pieces) { piece in
-                Attachment(id: piece.id) {
+            ForEach(gallery.assets) { asset in
+                Attachment(id: asset.id) {
                     VStack(spacing: 0) {
-                        ArtworkView(piece: piece)
+                        ArtworkView(asset: asset)
                             .frame(width: 360, height: 460)
                         if gallery.showInformation {
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(piece.title).font(.title2.weight(.medium))
-                                Text("\(piece.studio) · \(String(piece.year))").foregroundStyle(.secondary)
-                                Label(piece.certificate, systemImage: "checkmark.seal.fill")
-                                    .font(.caption.monospaced()).foregroundStyle(.green)
+                                Text(asset.title).font(.title2.weight(.medium))
+                                Text(asset.address).foregroundStyle(.secondary)
+                                Label(
+                                    gallery.provider.isDemoData ? "DEMO DATA" : "DEVNET",
+                                    systemImage: "checkmark.seal.fill"
+                                )
+                                .font(.caption.monospaced()).foregroundStyle(.orange)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(20)
@@ -64,25 +74,91 @@ struct ImmersiveGalleryView: View {
 
             Attachment(id: "controls") {
                 @Bindable var gallery = gallery
-                HStack(spacing: 12) {
-                    Toggle(isOn: $gallery.showInformation) {
-                        Label("作品情報", systemImage: "info.circle")
-                    }
-                    .toggleStyle(.button)
+                VStack(spacing: 10) {
+                    Text(gallery.statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: 480)
 
-                    Button {
-                        Task {
-                            await dismissImmersiveSpace()
-                            gallery.isImmersive = false
-                            openWindow(id: GalleryModel.collectionWindowID)
+                    HStack(spacing: 12) {
+                        Toggle(isOn: $gallery.showInformation) {
+                            Label("作品情報", systemImage: "info.circle")
                         }
-                    } label: {
-                        Label("コレクションへ戻る", systemImage: "rectangle.portrait.and.arrow.right")
+                        .toggleStyle(.button)
+
+                        Button("Reset") {
+                            if let asset = gallery.selectedAsset {
+                                gallery.reset(for: asset)
+                            }
+                        }
+
+                        transferControls
+
+                        Button {
+                            Task {
+                                await dismissImmersiveSpace()
+                                gallery.isImmersive = false
+                                openWindow(id: GalleryModel.collectionWindowID)
+                            }
+                        } label: {
+                            Label("コレクションへ戻る", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
                     }
                 }
                 .padding(12)
                 .glassBackgroundEffect()
             }
+        }
+        .gesture(
+            SpatialTapGesture()
+                .targetedToAnyEntity()
+                .onEnded { value in
+                    gallery.handleTap(on: value.entity)
+                }
+        )
+    }
+
+    @ViewBuilder
+    private var transferControls: some View {
+        switch gallery.selectedTransferState {
+        case .idle:
+            Button("Transfer (demo)") {
+                if let asset = gallery.selectedAsset {
+                    gallery.simulateTransfer(for: asset, outcome: .confirmed)
+                }
+            }
+            Button("Transfer fail (demo)") {
+                if let asset = gallery.selectedAsset {
+                    gallery.simulateTransfer(for: asset, outcome: .failed)
+                }
+            }
+        case .pending:
+            Button("Pending…") {}
+                .disabled(true)
+        case .failed:
+            Button("Retry") {
+                if let asset = gallery.selectedAsset {
+                    gallery.simulateTransfer(for: asset, outcome: .confirmed)
+                }
+            }
+        case .confirmed:
+            Button("Confirmed") {}
+                .disabled(true)
+        }
+    }
+
+    /// Distributes card anchors evenly along a horizontal arc, matching the
+    /// fixed 5-position layout used before the fixture was reduced to a
+    /// single stamp Reference Asset.
+    private func layoutPositions(count: Int) -> [SIMD3<Float>] {
+        guard count > 0 else { return [] }
+        guard count > 1 else { return [[0, 0.15, -2.1]] }
+
+        let spread: Float = 2.7
+        return (0..<count).map { index in
+            let t = Float(index) / Float(count - 1)
+            let x = -spread / 2 + spread * t
+            return SIMD3<Float>(x, 0.15, -2.1)
         }
     }
 }
