@@ -15,11 +15,11 @@ Asset取得 → 空間へPlace → ProvenanceをPull
 → 旧所有者からDisappear → 新所有者へAppear
 ```
 
-Spatial ClientはUnityを共通実装とし、MVPのPrimary ClientはiOS ARとする。platform固有処理をAdapterへ隔離し、Apple Vision ProはHero／secondary clientとして扱う。
+Spatial ClientはSwiftUI + RealityKitを共通実装（Swift Package `TwinfoldCore`／`TwinfoldSpatial`）とし、MVPのPrimary ClientはiPhone ARとする。ARKitなどplatform固有処理は `apps/ios` のAdapterへ隔離し、Apple Vision Pro（`apps/visionos`）は同じPackageを使うHero／secondary clientとして扱う。2026-09-18にUnity + AR FoundationからSwiftUI + RealityKitへ切り替えた。
 
-- P0: Unity + AR Foundation + ARKit XR Plugin + iOS Adapter
-- P1: 既存SwiftUI／RealityKit prototype + Apple Vision Pro
-- Post-MVP: Unity PolySpatial／visionOS Adapter、Meta Quest Adapter、Android ARCore Adapter
+- P0: SwiftUI + RealityKit + ARKit（iPhone、`apps/ios`）
+- P1: 同じSwift Packageを使うvisionOS app（`apps/visionos`）+ Apple Vision Pro
+- Post-MVP: Meta Quest、Android（UnityかWebXRかはその時点で再検討）
 
 Post-MVP対応のための共通化で、iPhoneのPrimary E2Eを遅らせない。
 
@@ -46,7 +46,7 @@ flowchart LR
 
     subgraph Clients["Clients"]
         Web["Next.js Web<br/>connect / buy / transfer / redeem"]
-        Unity["Unity Spatial Experience"]
+        Spatial["Spatial Experience<br/>Swift Package (RealityKit)"]
         IOS["iPhone AR — P0"]
         Vision["Apple Vision Pro — P1"]
         Admin["RWA Admin"]
@@ -68,9 +68,9 @@ flowchart LR
     Auth --> Entitlement
     Core --> Entitlement
     Entitlement --> Web
-    Entitlement --> Unity
-    Unity --> IOS
-    Entitlement -. same Asset .-> Vision
+    Entitlement --> Spatial
+    Spatial --> IOS
+    Spatial -. same package .-> Vision
     Admin --> RWA
     RWA --> Core
     Core --> DB
@@ -143,7 +143,7 @@ flowchart TB
 
 - **登録前半**はOperatorの仕事で、Trust Gateに通るまでmintしない。
 - **取得中央**はWeb、Backend、Phantom、Solanaを通り、chain確定後にだけownerを更新する。
-- **空間体験**はBackendが返すEntitlementを入口にし、UnityからSolanaを直接呼ばない。
+- **空間体験**はBackendが返すEntitlementを入口にし、Spatial ClientからSolanaを直接呼ばない。
 - **保有後**は、Vault保管の継続、別ownerへのtransfer、現物を受け取るredeemの3方向に分かれる。
 
 #### システム間の購入／取得シーケンス
@@ -156,7 +156,7 @@ sequenceDiagram
     participant Phantom
     participant Backend
     participant Solana as Solana / Helius
-    participant Spatial as iPhone AR / Unity
+    participant Spatial as iPhone AR / RealityKit
 
     Collector->>Web: Assetを選択
     Web->>Backend: owner・状態・取引可否を照会
@@ -246,13 +246,13 @@ iPhone ARが端末sessionでBackendへAsset一覧を要求
 → Backendがsession、chain owner、Asset状態、display rightsを検査
 → Entitlementと共通Asset Modelを返す
 → 表示素材は短期署名URLで取得
-→ UnityがAssetを表示
+→ RealityKitがAssetを表示
 → CollectorがPlace
 → UnfoldでOwnership／Provenance／Evidence／Physicalを開く
 → Pullでmint・verification・transfer等のEventを時系列表示
 ```
 
-UnityはBackendだけを参照し、Solana RPCや非公開証拠storageを直接呼ばない。Evidence画面ではオンチェーン事実、オフチェーン証拠、Twinfoldによる解釈を視覚的に区別する。
+Spatial ClientはBackendだけを参照し、Solana RPCや非公開証拠storageを直接呼ばない。Evidence画面ではオンチェーン事実、オフチェーン証拠、Twinfoldによる解釈を視覚的に区別する。
 
 #### E. owner間transfer
 
@@ -339,7 +339,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 | Backend API | TypeScript／Node.js REST API | 技術方針のみ決定 | Hosting serviceは未選定 |
 | Database | PostgreSQL | 技術方針のみ決定 | Providerは未選定 |
 | Private evidence | 非公開object storage | 未選定 | Cloudflare R2は候補。権利資料と高精細原本は公開しない |
-| Primary Spatial client | Unity + AR Foundation + ARKit XR Plugin | 決定 | iOS ARの共通Spatial Experienceを実装する |
+| Primary Spatial client | SwiftUI + RealityKit + ARKit | 決定（2026-09-18にUnityから変更） | `packages/TwinfoldCore` をiOSとvisionOSで共有。`apps/ios` がARKit Adapter |
 | MVP device | iPhone／iOS | 決定 | Primary E2E、第三者テスト、比較検証に使用 |
 | Hero client | Apple Vision Pro + SwiftUI + RealityKit | P1 | 既存 `apps/visionos` prototypeを活用。Primary E2Eを遅らせない |
 | iOS distribution | Development BuildまたはTestFlight | 未決定 | 9月13日までにApple Developer Programを含めて判断 |
@@ -356,7 +356,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - transfer、Vaulted／Physical Ownership、redeem
 - Trust、Physical情報、Passportの表示
 
-### Unity Spatial Experience
+### Spatial Experience（Swift Package）
 
 - Platform非依存のPlace、Unfold、Pull
 - ownership状態に応じたAppear／Disappear
@@ -367,7 +367,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 ### Platform Adapter
 
 - iOS／ARKitのcamera、平面検出、raycast、anchor、touch、Lifecycle
-- Platform固有APIをUnity Spatial Experienceから隔離
+- Platform固有API（ARKit）をSpatial Experienceから隔離
 - MVPではiOS Adapterのみ実装
 - Vision Pro、Quest、Androidは同じCore Modelを使うsecondary／将来の差し替え先
 
@@ -376,7 +376,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - 署名認証とDevice Session
 - Asset／Eventの正規化
 - ownerと表示権の判定
-- Web／Unityへの共通API
+- Web／Spatialへの共通API
 - chain同期、再試行、監査
 
 ### RWA Adapter
@@ -437,6 +437,7 @@ type Entitlement = {
 
 ```ts
 interface AssetProvider {
+  readonly isDemoData: boolean; // fixture由来ならtrue。UIはDEMO DATA／DEVNETをこれで切り替える
   getAssets(wallet: string): Promise<TwinfoldAsset[]>;
   getAsset(assetId: string): Promise<TwinfoldAsset>;
   refreshOwnership(assetId: string): Promise<Entitlement>;
@@ -445,7 +446,7 @@ interface AssetProvider {
 
 - Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う
 - Solana Connectionでは入力元だけを `SolanaAssetProvider` へ差し替える
-- WebとUnityで別々のfixtureやEvent解釈を持たない
+- WebとSpatial Clientで別々のfixtureやEvent解釈を持たない
 - fixtureは `DEMO DATA`、実接続は `DEVNET` と表示する
 
 ## 6. Solana同期
@@ -457,7 +458,7 @@ interface AssetProvider {
 3. transactionを `ProvenanceEvent` へ正規化する
 4. ownerとProvenanceを更新する
 5. Entitlementを再評価する
-6. WebとUnityへ通知する
+6. WebとSpatial Clientへ通知する
 7. 不一致が続くAssetは `exception` として表示停止する
 
 Webhookやcacheは表示高速化に使えるが、所有権判定の正にはしない。transfer後の表示失効は5分以内をMVP基準とする。
@@ -567,7 +568,7 @@ Week 3以降に追加: RWA整合性例外数。Vision Pro Hero Demo成功率はP
 
 MVP外:
 
-- Vision Proの本番品質Unity／PolySpatial Build
+- Vision Proの本番品質Build
 - Meta Quest、Androidの製品Build
 - mainnet、本番決済、実配送、re-vault
 - Discovery Graph、Commerce、オファー
@@ -576,8 +577,8 @@ MVP外:
 実装前に確定する事項:
 
 - Solana transactionから復元するEvent範囲とRPC／DAS provider
-- UnityとBackend間のAPI schemaおよび更新通知方式
-- AR Foundation／ARKitのversion、永続anchor、対応iPhone範囲
+- Spatial ClientとBackend間のAPI schemaおよび更新通知方式
+- ARKitの永続anchor、対応iPhone範囲
 - TestFlightを使うか、対面Development Buildに限定するか
 - Vision Pro Hero Demoへ同じAssetを接続する範囲
 - Passportの記録形式とtransfer不能性

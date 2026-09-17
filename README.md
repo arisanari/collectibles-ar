@@ -48,7 +48,7 @@ Primary Aha momentは、**ownershipの変化が空間の変化になること**�
 
 | Client | 役割 | 優先度 |
 |---|---|---|
-| iPhone AR（Unity + AR Foundation + ARKit） | Place、Pull、Appear／Disappear。第三者テストと比較検証 | P0 |
+| iPhone AR（SwiftUI + RealityKit + ARKit） | Place、Pull、Appear／Disappear。第三者テストと比較検証 | P0 |
 | Web（Next.js） | wallet署名認証、My Collection、比較Timeline、transfer、redeem | P0 |
 | Apple Vision Pro（SwiftUI + RealityKit） | 同じAssetを表示するHero Demo | P1 |
 
@@ -56,7 +56,7 @@ Meta Quest、AndroidはMVP後のAdapter展開先です。
 
 ## 現在の実装状況
 
-現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままです。切手Reference Assetへの差し替えは共通モデル固定後に行います。Unity iPhone ARは未着手です。
+現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままです。切手Reference Assetへの差し替えは共通モデル固定後に行います。iPhone AR（`apps/ios`）は骨組みを実装中です。
 
 ### Web
 
@@ -77,7 +77,7 @@ npm run dev
 ## 実装順序
 
 1. 共通Asset／ProvenanceEvent／Entitlementモデルとfixtureを固定
-2. Unity iOS ARの固定fixtureでPlace、Pull、Disappear
+2. iOS AR（RealityKit）の固定fixtureでPlace、Pull、Disappear
 3. Web wallet署名認証、Metaplex Core devnet mint、Heliusからの履歴取得
 4. 同じ実AssetをiOS ARへ表示し、実transfer後に旧ownerから失効
 5. Reference AssetのTrust Gate、Physical情報、Vaulted／Physical Ownership
@@ -92,7 +92,9 @@ npm run dev
 apps/
   web/       Next.js Webプロトタイプ
   visionos/  SwiftUI + RealityKitプロトタイプ（P1）
-  unity/     Unity iPhone AR（未作成、P0）
+  ios/       SwiftUI + RealityKit + ARKit iPhone AR（P0）
+packages/
+  TwinfoldCore/  iOSとvisionOSで共有する共通モデルとSpatial Entity
 docs/        MVP判定基準、実装順、技術構成（実装側の正本）
 AGENTS.md    AIエージェント共通ガイド（CLAUDE.mdはsymlink）
 ```

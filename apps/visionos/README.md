@@ -1,6 +1,6 @@
 # Twinfold Vision
 
-visionOS 2向けのSwiftUI + RealityKitプロトタイプです。Crypto World's Fair 2026のMVPでは**Hero／secondary client（P1）**であり、Primary ClientはiPhone AR（Unity + AR Foundation）です。iOSの必須E2Eを遅らせない範囲で、同じAssetを表示するHero Demo録画とfallbackに使います。
+visionOS 2向けのSwiftUI + RealityKitプロトタイプです。Crypto World's Fair 2026のMVPでは**Hero／secondary client（P1）**であり、Primary ClientはiPhone AR（`apps/ios`、SwiftUI + RealityKit + ARKit）です。両者は `packages/TwinfoldCore` を共有します。iOSの必須E2Eを遅らせない範囲で、同じAssetを表示するHero Demo録画とfallbackに使います。
 
 役割は [Technical Architecture](../../docs/architecture.md) と [Build Order](../../docs/build-order.md) を正とします。
 
