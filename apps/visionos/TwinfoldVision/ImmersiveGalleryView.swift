@@ -33,7 +33,11 @@ struct ImmersiveGalleryView: View {
 
                 // Interactive TwinfoldSpatial card: the actual Place/Pull
                 // target, positioned just below the decorative artwork.
-                let card = AssetCardEntity.make(asset: asset)
+                // AssetRepresentationEntity dispatches card vs. USDZ twin
+                // per `asset.spatialRepresentation` and always names the
+                // root `AssetCardEntity.entityName`, so `registerCard`/
+                // `handleTap` below don't need to know which it built.
+                let card = AssetRepresentationEntity.make(asset: asset)
                 card.position = [0, -0.58, 0.02]
                 anchor.addChild(card)
                 gallery.registerCard(card, for: asset.id)

@@ -151,6 +151,7 @@ public actor MockAssetProvider: AssetProvider {
             owner: owner,
             title: asset.title,
             display: asset.display,
+            spatialRepresentation: asset.spatialRepresentation,
             provenance: asset.provenance + extra,
             physical: asset.physical
         )

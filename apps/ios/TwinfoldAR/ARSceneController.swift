@@ -50,11 +50,31 @@ final class ARSceneController {
     /// carry the column along with it. See `pullProvenance(from:)`.
     private var provenanceColumn: Entity?
 
+    /// `true` once `handleTap` places the card flush against a detected
+    /// vertical plane (`placeOnWall`), instead of the original
+    /// camera-relative air placement. Changes how `pan` interprets drag
+    /// (`slideOnWall` instead of `rotate`). Reset by `addCard`.
+    private var isWallPlacement = false
+    /// The wall's own right/up basis captured by `placeOnWall`, reused by
+    /// `slideOnWall` so a drag moves the card along the same plane it was
+    /// placed on. `nil` for an air placement.
+    private var wallRight: SIMD3<Float>?
+    private var wallUp: SIMD3<Float>?
+
+    /// This asset's real-world footprint (`AssetCardEntity.size(for:)`),
+    /// computed once since `asset` never changes for this controller.
+    /// Used for `provenanceColumnX` so the column clears a wall-sized card
+    /// the same way it clears the small default-sized one.
+    private let cardSize: (width: Float, height: Float, depth: Float)
+
     /// Distance in front of the camera (meters) a freshly-placed card
     /// appears at. See `place(cameraTransform:)`.
     private static let placementDistance: Float = 0.4
     private static let minScale: Float = 0.5
     private static let maxScale: Float = 3.0
+    /// Meters of on-wall slide per point of one-finger drag. See
+    /// `slideOnWall`.
+    private static let wallDragSensitivity: Float = 0.0015
 
     /// Cumulative pinch scale applied to `cardEntity`, tracked here (not
     /// read back from the entity) because `scale(by:)` receives an
@@ -80,6 +100,7 @@ final class ARSceneController {
     init(asset: TwinfoldAsset, provider: any AssetProvider) {
         self.asset = asset
         self.provider = provider
+        self.cardSize = AssetCardEntity.size(for: asset)
         self.statusMessage = ARSceneController.idleMessage(isARSupported: ARWorldTrackingConfiguration.isSupported)
     }
 
@@ -96,13 +117,44 @@ final class ARSceneController {
 
         guard placement == .notPlaced else { return }
 
+        guard isARSupported else {
+            placeFallback()
+            return
+        }
+
+        // Wall (vertical-plane) placement only applies to the flat `card`
+        // representation (a framed print hung on a wall); a `model` twin
+        // (e.g. the kokeshi USDZ) keeps the original shelf-style air
+        // placement regardless of whether a wall is under the tap.
+        if !AssetRepresentationEntity.isTwin(asset),
+           let wallHit = arView.raycast(from: point, allowing: .estimatedPlane, alignment: .vertical).first {
+            placeOnWall(hitResult: wallHit)
+            return
+        }
+
         // `currentFrame` is nil in the simulator (and briefly before ARKit
         // has a first frame on device), so that case shares the same fixed
         // fallback placement as `!isARSupported`.
-        if isARSupported, let cameraTransform = arView.session.currentFrame?.camera.transform {
+        if let cameraTransform = arView.session.currentFrame?.camera.transform {
             place(cameraTransform: cameraTransform)
         } else {
             placeFallback()
+        }
+    }
+
+    /// Dispatches a one-finger drag based on how the card was placed: a
+    /// wall placement slides the card along the wall's own plane
+    /// (`slideOnWall`) since wall art doesn't spin; an air placement keeps
+    /// the original rotate-in-place behavior (`rotate`). No-op before
+    /// placement (both branches guard on `cardEntity`/`anchorEntity`).
+    func pan(translationX: Float, translationY: Float, viewWidth: Float) {
+        guard cardEntity != nil else { return }
+        if isWallPlacement {
+            slideOnWall(translationX: translationX, translationY: translationY)
+        } else {
+            let yawDelta = translationX / viewWidth * .pi
+            let pitchDelta = translationY / viewWidth * .pi
+            rotate(yawDelta: yawDelta, pitchDelta: pitchDelta)
         }
     }
 
@@ -111,12 +163,26 @@ final class ARSceneController {
     /// regardless of its current tilt), `pitchDelta` around the card's own
     /// local X axis. Any already-Pulled provenance nodes are children of
     /// this Entity, so they rotate along with the card. No-op before
-    /// placement.
-    func rotate(yawDelta: Float, pitchDelta: Float) {
+    /// placement. Used for air placements only; a wall placement slides
+    /// instead (see `pan`/`slideOnWall`).
+    private func rotate(yawDelta: Float, pitchDelta: Float) {
         guard let cardEntity else { return }
         let worldYaw = simd_quatf(angle: yawDelta, axis: SIMD3<Float>(0, 1, 0))
         let localPitch = simd_quatf(angle: pitchDelta, axis: SIMD3<Float>(1, 0, 0))
         cardEntity.orientation = worldYaw * cardEntity.orientation * localPitch
+    }
+
+    /// Slides a wall-placed card along the wall's own plane, using the
+    /// right/up basis `placeOnWall` captured at placement time, so the
+    /// card stays flush against the wall as it moves. No-op before a wall
+    /// placement.
+    private func slideOnWall(translationX: Float, translationY: Float) {
+        guard let anchorEntity, let wallRight, let wallUp else { return }
+        let deltaRight = wallRight * (translationX * Self.wallDragSensitivity)
+        // Screen Y grows downward; negate so an upward drag moves the card
+        // up the wall.
+        let deltaUp = wallUp * (-translationY * Self.wallDragSensitivity)
+        anchorEntity.position += deltaRight + deltaUp
     }
 
     /// Applies an incremental scale `factor` (e.g. a pinch recognizer's
@@ -125,8 +191,14 @@ final class ARSceneController {
     /// No-op before placement. The provenance column (if pulled) is not
     /// scaled — only repositioned, so it stays clear of the card as it
     /// grows or shrinks.
+    ///
+    /// No-op for a `model` (USDZ twin) representation: it's placed at its
+    /// real-world size next to the physical object it twins, and pinch
+    /// would let that size drift from the real thing's, so scaling stays
+    /// disabled to keep it 1:1. The flat `card` representation keeps the
+    /// original pinch-to-scale behavior.
     func scale(by factor: Float) {
-        guard let cardEntity else { return }
+        guard let cardEntity, !AssetRepresentationEntity.isTwin(asset) else { return }
         currentScale = min(max(currentScale * factor, Self.minScale), Self.maxScale)
         cardEntity.scale = SIMD3<Float>(repeating: currentScale)
         provenanceColumn?.position.x = provenanceColumnX
@@ -172,6 +244,9 @@ final class ARSceneController {
         placement = .notPlaced
         isProvenancePulled = false
         transferState = .idle
+        isWallPlacement = false
+        wallRight = nil
+        wallUp = nil
         statusMessage = Self.idleMessage(isARSupported: isARSupported)
 
         // MockAssetProvider only: clear the in-memory transfer overrides,
@@ -223,6 +298,45 @@ final class ARSceneController {
         statusMessage = "配置しました。カードをタップするとprovenanceを引き出せます"
     }
 
+    /// Places the card flush against a detected vertical surface (a wall):
+    /// the card's local +Z (its front, matching `AssetCardEntity`'s title
+    /// side) is aimed along the wall's outward normal so the front faces
+    /// into the room, and its local +Y is kept aligned to world up so the
+    /// title reads right-side up regardless of how the phone was tilted
+    /// when the wall was hit. ARKit plane/raycast transforms always carry
+    /// the surface's normal in their Y column, for both horizontal and
+    /// vertical alignments. The card's center is offset from the wall
+    /// surface by half its own thickness (`cardSize.depth`) plus a small
+    /// buffer, so its back sits just off the wall instead of clipping into
+    /// it. `wallRight`/`wallUp` (the basis used here) are kept so
+    /// `slideOnWall` can drag the card along the same plane afterward.
+    private func placeOnWall(hitResult: ARRaycastResult) {
+        let hitTransform = hitResult.worldTransform
+        let rawNormal = SIMD3<Float>(hitTransform.columns.1.x, hitTransform.columns.1.y, hitTransform.columns.1.z)
+        // Flatten to horizontal: a wall's normal should be level even if
+        // the raycast's estimated-plane normal drifted slightly off-vertical.
+        let flattenedNormal = SIMD3<Float>(rawNormal.x, 0, rawNormal.z)
+        let forward = length(flattenedNormal) > .ulpOfOne ? normalize(flattenedNormal) : SIMD3<Float>(0, 0, 1)
+        let worldUp = SIMD3<Float>(0, 1, 0)
+        let right = normalize(cross(worldUp, forward))
+        let up = cross(forward, right)
+
+        let hitPosition = SIMD3<Float>(hitTransform.columns.3.x, hitTransform.columns.3.y, hitTransform.columns.3.z)
+        let position = hitPosition + forward * (cardSize.depth / 2 + 0.002)
+
+        var transform = matrix_identity_float4x4
+        transform.columns.0 = SIMD4<Float>(right, 0)
+        transform.columns.1 = SIMD4<Float>(up, 0)
+        transform.columns.2 = SIMD4<Float>(forward, 0)
+        transform.columns.3 = SIMD4<Float>(position, 1)
+
+        addCard(anchor: AnchorEntity(world: transform))
+        isWallPlacement = true
+        wallRight = right
+        wallUp = up
+        statusMessage = "壁に配置しました。カードをタップするとprovenanceを引き出せます"
+    }
+
     private func placeFallback() {
         var transform = matrix_identity_float4x4
         transform.columns.3 = SIMD4<Float>(0, -0.05, -0.4, 1)
@@ -232,13 +346,16 @@ final class ARSceneController {
 
     private func addCard(anchor: AnchorEntity) {
         guard let arView else { return }
-        let card = AssetCardEntity.make(asset: asset)
+        let card = AssetRepresentationEntity.make(asset: asset)
         anchor.addChild(card)
         arView.scene.addAnchor(anchor)
         anchorEntity = anchor
         cardEntity = card
         provenanceColumn = nil
         currentScale = 1.0
+        isWallPlacement = false
+        wallRight = nil
+        wallUp = nil
         placement = .placed
     }
 
@@ -247,7 +364,7 @@ final class ARSceneController {
     /// provenance column just to the right of the card's current visible
     /// edge, accounting for `currentScale`.
     private var provenanceColumnX: Float {
-        AssetCardEntity.width / 2 * currentScale + 0.02 + ProvenanceNodeEntity.width / 2
+        cardSize.width / 2 * currentScale + 0.02 + ProvenanceNodeEntity.width / 2
     }
 
     /// Builds the provenance column and adds it as a sibling of `card`
@@ -316,6 +433,9 @@ final class ARSceneController {
         provenanceColumn = nil
         placement = .notPlaced
         isProvenancePulled = false
+        isWallPlacement = false
+        wallRight = nil
+        wallUp = nil
     }
 
     /// Keeps the card and anchor in place (placement stays `.placed`) and

@@ -1,33 +1,36 @@
 [
   {
-    "id": "tf-stamp-001",
+    "id": "tf-ukiyoe-001",
     "network": "devnet",
-    "address": "DEMO-STAMP-0001",
+    "address": "DEMO-UKIYOE-0001",
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
-    "title": "竜文切手 48文（DEMO）",
+    "title": "大判錦絵 山水図（デモ用架空個体）",
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/stamp-placeholder.svg",
+      "imageUrl": "/artworks/ukiyoe-placeholder.svg",
       "placeholder": true,
-      "rightsNote": "自作SVG。実物の写真ではない"
+      "rightsNote": "自作SVG。実物の写真ではない。実在の作品・絵師を特定しない架空個体"
     },
+    "spatialRepresentation": { "kind": "card" },
     "provenance": [
       {
-        "id": "tf-stamp-001-evt-1",
-        "assetId": "tf-stamp-001",
+        "id": "tf-ukiyoe-001-evt-1",
+        "assetId": "tf-ukiyoe-001",
         "kind": "rwa_verified",
         "occurredAt": "2026-09-01T02:00:00Z",
         "source": "offchain_evidence",
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0001",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）"
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "era": "明治期（デモ用架空表記）",
+          "artist": "作者未特定（デモ、実在の絵師ではない）"
         }
       },
       {
-        "id": "tf-stamp-001-evt-2",
-        "assetId": "tf-stamp-001",
+        "id": "tf-ukiyoe-001-evt-2",
+        "assetId": "tf-ukiyoe-001",
         "kind": "minted",
         "occurredAt": "2026-09-05T03:00:00Z",
         "source": "onchain",
@@ -39,8 +42,8 @@
         }
       },
       {
-        "id": "tf-stamp-001-evt-3",
-        "assetId": "tf-stamp-001",
+        "id": "tf-ukiyoe-001-evt-3",
+        "assetId": "tf-ukiyoe-001",
         "kind": "vaulted",
         "occurredAt": "2026-09-10T04:00:00Z",
         "source": "twinfold_interpretation",
@@ -52,13 +55,84 @@
     ],
     "physical": {
       "physicalId": "PHY-DEMO-0001",
-      "condition": "軽微な退色、ヒンジ跡あり、目打ち良好",
-      "rights": "物理所有権はVault保管者。図案は著作権消滅。画像はデモ用プレースホルダーで実物の写真ではない",
+      "condition": "軽微な退色、額装済み、シミなし（デモ用架空表記）",
+      "rights": "物理所有権はVault保管者。木版画の図案は著作権消滅。画像はデモ用プレースホルダーで実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"
       },
-      "lastVerifiedAt": "2026-09-10T04:00:00Z"
+      "lastVerifiedAt": "2026-09-10T04:00:00Z",
+      "dimensions": {
+        "widthCm": 26.5,
+        "heightCm": 39,
+        "depthCm": 3,
+        "label": "大判錦絵 額装 外寸 約26.5×39cm（縦）"
+      }
+    }
+  },
+  {
+    "id": "tf-kokeshi-001",
+    "network": "devnet",
+    "address": "DEMO-KOKESHI-0001",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "伝統こけし 雪笹（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/kokeshi-placeholder.svg",
+      "placeholder": true,
+      "rightsNote": "自作SVG。実物の写真ではない"
+    },
+    "spatialRepresentation": { "kind": "model", "resource": "kokeshi_demo.usdz" },
+    "provenance": [
+      {
+        "id": "tf-kokeshi-001-evt-1",
+        "assetId": "tf-kokeshi-001",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-15T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-KOKESHI-0001",
+        "metadata": {
+          "note": "Trust Gate通過。産地・工人・来歴を確認（デモ）",
+          "region": "東北地方（デモ用架空表記）",
+          "maker": "デモ工房（架空、実在の工人ではない）"
+        }
+      },
+      {
+        "id": "tf-kokeshi-001-evt-2",
+        "assetId": "tf-kokeshi-001",
+        "kind": "minted",
+        "occurredAt": "2026-09-16T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-KOKESHI-0001",
+        "slot": 2,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-kokeshi-001-evt-3",
+        "assetId": "tf-kokeshi-001",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-18T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0002",
+      "condition": "彩色良好、経年による艶引けわずか",
+      "rights": "物理所有権はVault保管者。造形・図案の著作権は工人に帰属し得るため二次利用不可。画像はデモ用プレースホルダーで実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-18T04:00:00Z"
     }
   }
 ]

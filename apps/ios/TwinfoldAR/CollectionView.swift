@@ -34,7 +34,7 @@ struct CollectionView: View {
             List {
                 Section {
                     if assets.isEmpty, errorMessage == nil {
-                        Text("このwalletにAssetはありません。上の Owner を切り替えると届いた切手が見えます（DEMO DATA）")
+                        Text("このwalletにAssetはありません。上の Owner を切り替えると届いた作品が見えます（DEMO DATA）")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(assets) { asset in

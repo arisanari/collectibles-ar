@@ -36,6 +36,15 @@ function shortAddress(address: string) {
   return address.length > 10 ? `${address.slice(0, 4)}…${address.slice(-4)}` : address;
 }
 
+/** Short label for `TwinfoldAsset.spatialRepresentation`, so the Web UI can
+ * hint which client experience an asset gets: the flat image card, or a
+ * real-world-scale USDZ twin placed next to the physical item in AR. */
+function spatialLabel(asset: TwinfoldAsset) {
+  return asset.spatialRepresentation.kind === "model"
+    ? `3D twin · ${asset.spatialRepresentation.resource}`
+    : "Card";
+}
+
 export default function Home() {
   const [view, setView] = useState<View>("discover");
   const [walletConnected, setWalletConnected] = useState(false);
@@ -120,16 +129,16 @@ export default function Home() {
         <section className="hero shell">
           <div className="eyebrow">PHYSICAL × DIGITAL TWIN</div>
           <h1>Own the provenance.<br /><em>Keep it real.</em></h1>
-          <p>戦前・戦後の日本切手をReference Assetとして登録し、来歴・現物状態・保管をSolana devnet上で追跡する。<br className="desktop" />表示中のデータはすべてfixtureです。</p>
+          <p>壁に掛ける浮世絵・古版画をReference Assetとして登録し、来歴・現物状態・保管をSolana devnet上で追跡する。棚のコレクティブル（郷土玩具・こけし等）にも対応。<br className="desktop" />表示中のデータはすべてfixtureです。</p>
           <button className="primary" onClick={() => document.getElementById("works")?.scrollIntoView({ behavior: "smooth" })}>
             Explore the assets <span>↘</span>
           </button>
           <div className="heroArt" aria-hidden="true">
-            <div className="frame front"><Image src="/artworks/stamp-placeholder.svg" alt="" fill priority sizes="360px" /></div>
+            <div className="frame front"><Image src="/artworks/ukiyoe-placeholder.svg" alt="" fill priority sizes="360px" /></div>
             <div className="seal">DEMO<br /><b>DATA</b><br />NOT ON CHAIN</div>
           </div>
           <div className="proofRow">
-            <span>切手 Reference Asset</span><span>Vault保管</span><span>Solana devnet接続は未実装</span><span>XRギャラリー対応</span>
+            <span>浮世絵 Reference Asset</span><span>Vault保管</span><span>Solana devnet接続は未実装</span><span>XRギャラリー対応</span>
           </div>
         </section>
       ) : (
@@ -158,7 +167,7 @@ export default function Home() {
             {items.map((item) => (
               <article className="card" key={item.id} onClick={() => setSelected(item)}>
                 <div className="cardImage"><Image className="contain" src={item.display.imageUrl} alt={item.title} fill sizes="(max-width: 700px) 100vw, 33vw" /></div>
-                <div className="cardMeta"><span>{item.standard} · {item.network}</span><span className={isOwnedByMe(item) ? "owned" : ""}>{isOwnedByMe(item) ? "所蔵中" : "Reference"}</span></div>
+                <div className="cardMeta"><span>{item.standard} · {item.network} · {spatialLabel(item)}</span><span className={isOwnedByMe(item) ? "owned" : ""}>{isOwnedByMe(item) ? "所蔵中" : "Reference"}</span></div>
                 <h3>{item.title}</h3>
                 <div className="price"><span>{item.address}</span><strong>{item.provenance.length} events</strong></div>
               </article>
@@ -184,6 +193,7 @@ export default function Home() {
                 <div><dt>Asset ID</dt><dd>{selected.id}</dd></div>
                 <div><dt>Standard</dt><dd>{selected.standard}</dd></div>
                 <div><dt>Network</dt><dd>{selected.network}</dd></div>
+                <div><dt>Spatial</dt><dd>{spatialLabel(selected)}</dd></div>
               </dl>
 
               {selected.physical && (

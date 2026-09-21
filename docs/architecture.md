@@ -1,7 +1,9 @@
 # Twinfold Technical Architecture
 
 > ステータス: Colosseum MVP技術ベースライン
-> 最終更新: 2026-09-08
+> 最終更新: 2026-09-21
+>
+> beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21、同日中に見直し）→ 壁に掛ける浮世絵・版画（2026-09-21確定、最初の供給とデモは江戸・明治の浮世絵・古版画）。**提出までのbeachhead変更はこれが最後で、以後は変更しない。**切手は履歴にだけ残り、棚（フィギュア・こけし・郷土玩具）は拡張カテゴリとして残る。
 
 この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準は [MVP Acceptance Criteria](./mvp.md)、実装順と日程は [Build Order](./build-order.md) を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。
 
@@ -88,7 +90,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    Start([実物の切手])
+    Start([実物のコレクティブル（例: 浮世絵）])
 
     subgraph Register[1. 実物を登録する]
         Admin[RWA Adminで<br/>実物・来歴・状態・権利を入力]
@@ -361,12 +363,14 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - Platform非依存のPlace、Unfold、Pull
 - ownership状態に応じたAppear／Disappear
 - `pending`、`confirmed`、`failed` の表現
+- 主役（浮世絵）は高解像スキャンと額の厚みを持つ実寸1:1の額装カードを表示。拡張（棚カテゴリ、こけし等）はVault入庫時のObject Captureによる実寸1:1のUSDZ twinを表示（いずれもscaleを触らない）
 - Backendの共通モデルだけを解釈し、Solana RPCを直接呼ばない
 - 購入、秘密鍵管理、配送先入力を行わない
 
 ### Platform Adapter
 
 - iOS／ARKitのcamera、camera-relative anchor、touch（tap／drag／pinch）、Lifecycle
+- 額装カードでは壁（垂直面）への配置と額の影、USDZ twinではLiDARによる遮蔽（手前の実物が虚像を隠す）と接地影。共通して環境光の一致
 - Platform固有API（ARKit）をSpatial Experienceから隔離
 - MVPではiOS Adapterのみ実装
 - Vision Pro、Quest、Androidは同じCore Modelを使うsecondary／将来の差し替え先
@@ -385,7 +389,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - Trust Gate、redeem、Asset失効、Passport
 - オンチェーン事実とオフチェーン証拠の分離
 
-切手などvertical固有の保存・鑑定書・画像権利要件はRWA Adapter内に置き、Coreへ埋め込まない。
+浮世絵・こけしなどvertical固有の保存・鑑定書・画像権利要件はRWA Adapter内に置き、Coreへ埋め込まない。
 
 ## 4. 共通モデル
 
@@ -582,4 +586,4 @@ MVP外:
 - TestFlightを使うか、対面Development Buildに限定するか
 - Vision Pro Hero Demoへ同じAssetを接続する範囲
 - Passportの記録形式とtransfer不能性
-- 切手の画像利用可否、鑑定書の扱い、保管、配送の運用責任
+- 浮世絵・こけしの画像・Object Capture利用可否、鑑定書の扱い、保管、配送の運用責任

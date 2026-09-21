@@ -92,12 +92,12 @@ struct AROverlayView: View {
         case .failed:
             return "送信に失敗。Retryを押す"
         case .confirmed:
-            return "送信完了。切手はこの空間から消えました。← 戻って My Collection の \(controller.destinationLabel) を開くと現れます"
+            return "送信完了。作品はこの空間から消えました。← 戻って My Collection の \(controller.destinationLabel) を開くと現れます"
         case .idle:
             if controller.placement == .notPlaced {
-                return "1/3　画面をタップして切手を出す"
+                return "1/3　壁に向けて画面をタップして作品を掛ける"
             } else if !controller.isProvenancePulled {
-                return "2/3　切手をタップして来歴を引き出す"
+                return "2/3　作品をタップして来歴を引き出す"
             } else {
                 return "3/3　「\(controller.destinationLabel)へ送る」を押す"
             }

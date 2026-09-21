@@ -3,9 +3,11 @@ import RealityKit
 import SwiftUI
 
 /// Wraps `ARView` for SwiftUI. Owns the only ARKit/UIKit-specific code in
-/// the app: session configuration (world tracking, no plane detection —
-/// the card is placed camera-relative, not on a detected surface) and the
-/// tap (place/pull), pan (rotate), and pinch (scale) gestures. All
+/// the app: session configuration (world tracking with vertical-plane
+/// detection, so a `card` asset — a framed print — can be placed flush
+/// against a detected wall; falls back to the original camera-relative air
+/// placement when no wall is hit) and the tap (place/pull), pan
+/// (rotate-in-air / slide-on-wall), and pinch (scale) gestures. All
 /// Twinfold entity creation and transform math is delegated to
 /// `TwinfoldSpatial` / `ARSceneController`.
 struct ARContainerView: UIViewRepresentable {
@@ -21,7 +23,32 @@ struct ARContainerView: UIViewRepresentable {
 
         if controller.isARSupported {
             let configuration = ARWorldTrackingConfiguration()
-            configuration.planeDetection = []
+            // Vertical only: walls are where a `card` (framed print) can be
+            // placed at true scale (`ARSceneController.handleTap`). No
+            // horizontal detection — a `model` (USDZ twin, e.g. the kokeshi)
+            // keeps the original camera-relative air placement, which
+            // already reads as "resting in front of you" without needing a
+            // detected shelf surface.
+            configuration.planeDetection = [.vertical]
+            // Environment texturing + light estimation: reflections and
+            // shading on the placed card/twin pick up the room's real
+            // lighting instead of a flat/generic light, so it reads as
+            // sitting in the room rather than pasted on top of the camera
+            // feed.
+            configuration.environmentTexturing = .automatic
+            configuration.isLightEstimationEnabled = true
+
+            // LiDAR-only: scene mesh drives occlusion (real furniture in
+            // front of the twin hides it) and lets the twin receive
+            // shadows/lighting cast by the real room mesh. Non-LiDAR
+            // devices skip this; the twin still renders, just without
+            // real-world occlusion.
+            if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+                configuration.sceneReconstruction = .mesh
+                arView.environment.sceneUnderstanding.options.insert(.occlusion)
+                arView.environment.sceneUnderstanding.options.insert(.receivesLighting)
+            }
+
             arView.session.run(configuration)
         }
 
@@ -72,19 +99,19 @@ struct ARContainerView: UIViewRepresentable {
             controller.handleTap(at: point)
         }
 
-        /// One-finger drag: horizontal movement rotates the card about the
-        /// world Y axis (yaw), vertical movement rotates it about its own
-        /// local X axis (pitch). Sensitivity is tuned so a full screen
-        /// width of drag is about 180 degrees. `translation` is reset to
-        /// zero after each `.changed` callback, so each call only carries
-        /// the incremental movement since the previous one.
+        /// One-finger drag. `ARSceneController.pan` dispatches on how the
+        /// card was placed: an air-placed card rotates (horizontal movement
+        /// is yaw about the world Y axis, vertical movement is pitch about
+        /// the card's own local X axis, tuned so a full screen width of
+        /// drag is about 180 degrees); a wall-placed card instead slides
+        /// along the wall's own plane. `translation` is reset to zero after
+        /// each `.changed` callback, so each call only carries the
+        /// incremental movement since the previous one.
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             guard recognizer.state == .changed, let view = recognizer.view else { return }
             let translation = recognizer.translation(in: view)
             let width = max(Float(view.bounds.width), 1)
-            let yawDelta = Float(translation.x) / width * .pi
-            let pitchDelta = Float(translation.y) / width * .pi
-            controller.rotate(yawDelta: yawDelta, pitchDelta: pitchDelta)
+            controller.pan(translationX: Float(translation.x), translationY: Float(translation.y), viewWidth: width)
             recognizer.setTranslation(.zero, in: view)
         }
 

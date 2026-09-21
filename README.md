@@ -1,6 +1,6 @@
 # Twinfold
 
-**The ownership layer for real-world collectibles, starting with vintage Japanese postage stamps.**
+**The ownership layer for real-world collectibles. Beachhead: display collectibles, starting with ukiyo-e prints on your wall.**
 
 Twinfoldは、保管された現物コレクティブルを、検証可能なオンチェーン所有権、来歴、空間体験、現物受取へ接続します。
 
@@ -18,9 +18,9 @@ Crypto World's Fair 2026（Colosseum）。開催期間 2026-09-14〜2026-10-12�
 |---|---|
 | Ownership Layer | 現物、証拠、保管、オンチェーンAsset、owner、redeemを接続する |
 | Spatial Ownership Experience | 所有・来歴・移転をPlace、Pull、Appear／Disappearとして体験させる |
-| Vintage Postage Stamp Vertical | 実物、顧客、供給者、運用、収益仮説を最初に検証する |
+| Wall Display Collectibles Vertical | 実物、顧客、供給者、運用、収益仮説を最初に検証する |
 
-最初のReference Assetはクラシック切手、または著作権が消滅した図案の記念切手です。Twinfoldは「切手NFTサービス」ではなく、切手はreal-world collectibles全体へ展開するための最初の市場です。Twinfoldは鑑定機関を名乗らず、現物所有権と既存の鑑定機関が発行する鑑定書を分けて記録します。
+最初のReference Assetは江戸・明治の浮世絵・古版画です（著作権消滅、国際的なディーラー・オークション・状態評価〈摺り、退色、裏打ち、トリミング〉が確立、原摺りは新規供給がなく、退色リスクがあるのでVault保管と壁での鑑賞がトレードオフになり、贋作・後摺りが多いので来歴と状態の記録を分けて残す価値があります）。拡張として棚に飾るカテゴリを想定し、メーカー公認3Dを前提としたフィギュア（Metaplex Coreのroyaltyで二次流通からメーカーへ還元できるという仮説は未検証です）と、3D twinの例としての郷土玩具・伝統こけしを含みます。切手は履歴（かつてのbeachhead）としてのみ残ります。アニメ原画・セルは権利上除外しています。Twinfoldは「コレクティブルNFTサービス」ではなく、これらはreal-world collectibles全体へ展開するための最初の市場です。Twinfoldは鑑定機関を名乗らず、現物所有権と既存の鑑定機関が発行する鑑定書を分けて記録します。
 
 ## Core Experience
 
@@ -36,11 +36,13 @@ Crypto World's Fair 2026（Colosseum）。開催期間 2026-09-14〜2026-10-12�
 → 流通Assetをlock／retireしPassportを残す
 ```
 
-Primary Aha momentは、**ownershipの変化が空間の変化になること**です。
+Primary Aha momentは、**ownershipの変化が空間の変化になること**です。買った瞬間に、自分の壁に掛かる。現物はVaultのまま。売れば壁から消える。保管中に買った物が、手元の実物コレクション（本物の額装作品）の隣に違和感なく並ぶのが中核体験です。
 
 - **Acquire → Appear**: 取得すると自分の空間に現れる
 - **Transfer → Disappear**: 移転すると旧所有者の空間から消え、新所有者の空間に現れる
 - **Redeem → Fold**: 現物を受け取ると流通Assetが失効し、来歴はRedeemed Provenance Passportへ残る
+
+空間表現は、主役の浮世絵では高解像スキャンと額の厚みを持つ実寸1:1の額装カードです。壁（垂直面）への配置、環境光の一致、額の影を条件とし、Object Captureは不要です。拡張の棚カテゴリ（フィギュア・こけし）では、入庫時にVault側がObject Captureで作る実寸1:1のUSDZ twinを使い、LiDAR遮蔽（手前の実物が虚像を隠す）と接地影を条件とします。どちらのスキャンも状態記録（off-chain evidence）と表示データを兼ね、買い手はスキャンしません。
 
 購入者は、現物をVaultに置いたままXR鑑賞とオンチェーン流通を続ける `Vaulted Ownership` と、現物を配送する `Physical Ownership` を選べます。Passportは配送後の現在所有者・現在状態・真正性を継続保証しません。
 
@@ -56,7 +58,7 @@ Meta Quest、AndroidはMVP後のAdapter展開先です。
 
 ## 現在の実装状況
 
-現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままです。切手Reference Assetへの差し替えは共通モデル固定後に行います。iPhone AR（`apps/ios`）は骨組みを実装中です。
+現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままです。浮世絵（DEMO DATA、主役、額装カード表現）＋こけし（棚の拡張例、USDZ twin表現）の2点構成への差し替えは共通モデル固定後に行います。iPhone AR（`apps/ios`）は骨組みを実装中です。
 
 ### Web
 

@@ -25,6 +25,51 @@ public enum ProvenanceStatus: String, Codable, Sendable {
     case failed
 }
 
+/// Spatial表現の種別。`apps/web/lib/contract.ts`の`SpatialRepresentation`の写し。
+/// `.card`は既存の画像付きカード（`AssetCardEntity`）、`.model`は実寸USDZ
+/// twin（`resource`はPackageのResources/models配下のファイル名。例:
+/// "kokeshi_demo.usdz"）。JSONは`{"kind":"card"}`または
+/// `{"kind":"model","resource":"..."}`の形（discriminated union）。未知の
+/// `kind`はdecode失敗として明示的にthrowする（黙って読み飛ばさない）。
+public enum SpatialRepresentation: Codable, Sendable, Equatable {
+    case card
+    case model(resource: String)
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case resource
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(String.self, forKey: .kind)
+        switch kind {
+        case "card":
+            self = .card
+        case "model":
+            let resource = try container.decode(String.self, forKey: .resource)
+            self = .model(resource: resource)
+        default:
+            throw DecodingError.dataCorruptedError(
+                forKey: .kind,
+                in: container,
+                debugDescription: "Unknown SpatialRepresentation.kind: \(kind)"
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .card:
+            try container.encode("card", forKey: .kind)
+        case .model(let resource):
+            try container.encode("model", forKey: .kind)
+            try container.encode(resource, forKey: .resource)
+        }
+    }
+}
+
 public struct DisplayDescriptor: Codable, Sendable, Equatable {
     public let kind: String
     public let imageUrl: String
@@ -50,24 +95,46 @@ public struct PhysicalDescriptor: Codable, Sendable, Equatable {
         }
     }
 
+    /// Real-world outer dimensions of a framed `card` asset, so
+    /// `AssetCardEntity` can build the RealityKit mesh at true scale for
+    /// wall placement. Mirrors `PhysicalDescriptor["dimensions"]` in
+    /// `apps/web/lib/contract.ts`. `model` (USDZ twin) assets don't carry
+    /// this — the scan itself is already real-world scale.
+    public struct Dimensions: Codable, Sendable, Equatable {
+        public let widthCm: Double
+        public let heightCm: Double
+        public let depthCm: Double?
+        public let label: String
+
+        public init(widthCm: Double, heightCm: Double, depthCm: Double? = nil, label: String) {
+            self.widthCm = widthCm
+            self.heightCm = heightCm
+            self.depthCm = depthCm
+            self.label = label
+        }
+    }
+
     public let physicalId: String
     public let condition: String
     public let rights: String
     public let custody: Custody
     public let lastVerifiedAt: String
+    public let dimensions: Dimensions?
 
     public init(
         physicalId: String,
         condition: String,
         rights: String,
         custody: Custody,
-        lastVerifiedAt: String
+        lastVerifiedAt: String,
+        dimensions: Dimensions? = nil
     ) {
         self.physicalId = physicalId
         self.condition = condition
         self.rights = rights
         self.custody = custody
         self.lastVerifiedAt = lastVerifiedAt
+        self.dimensions = dimensions
     }
 }
 
@@ -116,6 +183,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let owner: String?
     public let title: String
     public let display: DisplayDescriptor
+    public let spatialRepresentation: SpatialRepresentation
     public let provenance: [ProvenanceEvent]
     public let physical: PhysicalDescriptor?
 
@@ -127,6 +195,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         owner: String?,
         title: String,
         display: DisplayDescriptor,
+        spatialRepresentation: SpatialRepresentation,
         provenance: [ProvenanceEvent],
         physical: PhysicalDescriptor? = nil
     ) {
@@ -137,6 +206,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.owner = owner
         self.title = title
         self.display = display
+        self.spatialRepresentation = spatialRepresentation
         self.provenance = provenance
         self.physical = physical
     }

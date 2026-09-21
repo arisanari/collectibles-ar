@@ -23,7 +23,7 @@ struct CollectionView: View {
                             .foregroundStyle(.secondary)
                         Text("Spatial collection")
                             .font(.system(size: 48, weight: .medium))
-                        Text("切手Reference Assetを、あなたの空間に展示します。")
+                        Text("浮世絵Reference Assetを、あなたの空間に展示します。")
                             .foregroundStyle(.secondary)
                     }
                     Spacer()

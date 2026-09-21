@@ -15,7 +15,7 @@ visionOS 2向けのSwiftUI + RealityKitプロトタイプです。Crypto World's
 
 ## 現在の実装
 
-固定データ（DEMO DATA）を使った空間ギャラリーです。ウォレット、Solana Asset、Provenance Event、表示権失効は未接続です。fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままで、切手Reference Assetへの差し替えは共通モデル固定後に行います。
+固定データ（DEMO DATA）を使った空間ギャラリーです。ウォレット、Solana Asset、Provenance Event、表示権失効は未接続です。fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままで、共通Package（TwinfoldCore）の浮世絵1点（主役、額装カード）＋こけし1点（棚の拡張例、USDZ twin）への差し替えは共通モデル固定後に行います。
 
 ## Xcodeプロジェクトの生成
 

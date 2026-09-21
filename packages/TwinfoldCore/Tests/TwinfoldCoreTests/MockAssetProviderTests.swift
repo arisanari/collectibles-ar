@@ -4,15 +4,20 @@ import XCTest
 final class MockAssetProviderTests: XCTestCase {
     private let walletA = "DEMOwalletA1111111111111111111111111111111"
     private let walletB = "DEMOwalletB2222222222222222222222222222222"
-    private let assetId = "tf-stamp-001"
+    private let assetId = "tf-ukiyoe-001"
 
+    /// Owner A's fixture wallet owns two assets: the ukiyo-e print
+    /// (`assetId`, a `card` representation, real-world sized via
+    /// `physical.dimensions` for wall placement) and a kokeshi twin
+    /// (`model` representation), the shelf-collectible extension example.
     func testGetAssetsReturnsFixtureForOwningWallet() async throws {
         let provider = try MockAssetProvider()
         XCTAssertTrue(provider.isDemoData)
 
         let assets = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assets.count, 1)
-        XCTAssertEqual(assets.first?.id, assetId)
+        XCTAssertEqual(assets.count, 2)
+        XCTAssertTrue(assets.contains { $0.id == assetId })
+        XCTAssertTrue(assets.contains { $0.id == "tf-kokeshi-001" })
     }
 
     /// (a) transfer後にOwner Aの getAssets が空、Owner Bに1件になる。
@@ -25,8 +30,10 @@ final class MockAssetProviderTests: XCTestCase {
         XCTAssertEqual(event.source, .onchain)
         XCTAssertEqual(event.transaction, "DEMO-TX-TRANSFER-req-transfer-1")
 
+        // walletA still owns the kokeshi twin (untouched by this transfer).
         let assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertTrue(assetsForA.isEmpty)
+        XCTAssertEqual(assetsForA.count, 1)
+        XCTAssertEqual(assetsForA.first?.id, "tf-kokeshi-001")
 
         let assetsForB = try await provider.getAssets(wallet: walletB)
         XCTAssertEqual(assetsForB.count, 1)
@@ -75,12 +82,13 @@ final class MockAssetProviderTests: XCTestCase {
 
         _ = try await provider.simulateTransfer(assetId: assetId, to: walletB, requestId: "req-transfer-4")
         var assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertTrue(assetsForA.isEmpty)
+        XCTAssertEqual(assetsForA.count, 1)
+        XCTAssertEqual(assetsForA.first?.id, "tf-kokeshi-001")
 
         await provider.resetDemoState()
 
         assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assetsForA.count, 1)
-        XCTAssertEqual(assetsForA.first?.provenance.count, originalCount)
+        XCTAssertEqual(assetsForA.count, 2)
+        XCTAssertEqual(assetsForA.first { $0.id == assetId }?.provenance.count, originalCount)
     }
 }

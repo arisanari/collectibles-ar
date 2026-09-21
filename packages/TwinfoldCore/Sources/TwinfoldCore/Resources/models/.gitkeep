@@ -1,0 +1,6 @@
+Drop rights-cleared Object Capture USDZ exports here (e.g. kokeshi_demo.usdz).
+File name must match spatialRepresentation.resource in fixtures/demo/assets.json.
+No USDZ file ships in this repo yet; AssetRepresentationEntity falls back to
+the card representation and logs the reason when the file is missing.
+This placeholder only keeps the directory tracked by git; delete it once a
+real file is added if you want, it is not read at runtime.

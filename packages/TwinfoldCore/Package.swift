@@ -16,7 +16,11 @@ let package = Package(
         .target(
             name: "TwinfoldCore",
             resources: [
-                .copy("Resources/fixtures")
+                .copy("Resources/fixtures"),
+                // USDZ twins for `SpatialRepresentation.model`. See
+                // Sources/TwinfoldCore/Resources/models/.gitkeep and
+                // Sources/TwinfoldSpatial/AssetRepresentationEntity.swift.
+                .copy("Resources/models"),
             ]
         ),
         .target(
