@@ -68,10 +68,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!walletConnected) {
-      setMyAssets([]);
-      return;
-    }
+    if (!walletConnected) return;
     let cancelled = false;
     provider.getAssets(primaryWallet.address).then((list) => {
       if (!cancelled) setMyAssets(list);
@@ -95,6 +92,7 @@ export default function Home() {
       setNotice("Phantomデモウォレットを接続しました");
     } else {
       provider.disconnect();
+      setMyAssets([]);
       setNotice("ウォレットを切断しました");
     }
     window.setTimeout(() => setNotice(""), 2600);
