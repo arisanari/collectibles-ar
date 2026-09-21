@@ -13,16 +13,21 @@ public enum AssetCardEntity {
     static let frameName = "twinfold.assetCard.frame"
     static let titleName = "twinfold.assetCard.title"
 
-    static let width: Float = 0.12
+    public static let width: Float = 0.12
     static let height: Float = 0.16
+    /// Card body thickness. Small enough to read as a flat card, thick
+    /// enough that the box's back face is a visible plain-white back side
+    /// when the user rotates the card 180 degrees.
+    static let depth: Float = 0.002
 
     public static func make(asset: TwinfoldAsset) -> Entity {
         let root = Entity()
         root.name = entityName
 
-        let frameMesh = MeshResource.generatePlane(
+        let frameMesh = MeshResource.generateBox(
             width: width + 0.012,
             height: height + 0.012,
+            depth: 0.0015,
             cornerRadius: 0.008
         )
         let frame = ModelEntity(
@@ -34,7 +39,10 @@ public enum AssetCardEntity {
         frame.isEnabled = false
         root.addChild(frame)
 
-        let cardMesh = MeshResource.generatePlane(width: width, height: height, cornerRadius: 0.006)
+        // Box, not plane, so the card has a real back face: rotating it
+        // shows a plain white back rather than nothing (a plane is
+        // invisible from behind).
+        let cardMesh = MeshResource.generateBox(width: width, height: height, depth: depth, cornerRadius: 0.006)
         let card = ModelEntity(
             mesh: cardMesh,
             materials: [SimpleMaterial(color: .white, roughness: 0.6, isMetallic: false)]
@@ -65,7 +73,9 @@ public enum AssetCardEntity {
         )
         let title = ModelEntity(mesh: textMesh, materials: [UnlitMaterial(color: .black)])
         title.name = titleName
-        title.position.z = 0.001
+        // Front face only: just in front of the card's front surface
+        // (depth / 2), not centered inside the box.
+        title.position.z = depth / 2 + 0.0015
         root.addChild(title)
 
         apply(state: .confirmed, to: root)

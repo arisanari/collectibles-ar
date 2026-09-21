@@ -95,9 +95,7 @@ struct AROverlayView: View {
             return "送信完了。切手はこの空間から消えました。← 戻って My Collection の \(controller.destinationLabel) を開くと現れます"
         case .idle:
             if controller.placement == .notPlaced {
-                return controller.isARSupported
-                    ? "1/3　床や机をタップして切手を置く"
-                    : "1/3　画面をタップして切手を置く"
+                return "1/3　画面をタップして切手を出す"
             } else if !controller.isProvenancePulled {
                 return "2/3　切手をタップして来歴を引き出す"
             } else {
@@ -106,17 +104,26 @@ struct AROverlayView: View {
         }
     }
 
-    /// `controller.statusMessage`, shown only when it adds information
-    /// beyond `stepText` (e.g. how many provenance events were pulled, or
-    /// the specific failure reason). Redundant states (not yet placed,
-    /// placed-but-not-pulled, pending, confirmed) already say everything
-    /// in `stepText`, so no footnote is shown there.
+    /// Once placed and idle, always hints at the drag-to-rotate /
+    /// pinch-to-scale gestures (they work regardless of whether provenance
+    /// has been Pulled yet). Once Pulled, that hint is combined with
+    /// `controller.statusMessage`'s provenance count onto one line rather
+    /// than showing two footnotes. Other states (not yet placed, pending,
+    /// confirmed) already say everything in `stepText`; `.failed` shows
+    /// `controller.statusMessage`'s specific failure reason.
     private var footnoteMessage: String? {
         switch controller.transferState {
         case .idle:
-            return (controller.placement == .placed && controller.isProvenancePulled)
-                ? controller.statusMessage
-                : nil
+            guard controller.placement == .placed else {
+                // Before placement, on a simulator or other non-AR device,
+                // note that the tap will use a fixed position rather than
+                // tracking the live camera.
+                return controller.isARSupported ? nil : "AR非対応のため固定位置に配置します"
+            }
+            let gestureHint = "ドラッグで回転、ピンチで拡大縮小"
+            return controller.isProvenancePulled
+                ? "\(controller.statusMessage)　\(gestureHint)"
+                : gestureHint
         case .failed:
             return controller.statusMessage
         case .pending, .confirmed:

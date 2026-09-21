@@ -366,7 +366,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 
 ### Platform Adapter
 
-- iOS／ARKitのcamera、平面検出、raycast、anchor、touch、Lifecycle
+- iOS／ARKitのcamera、camera-relative anchor、touch（tap／drag／pinch）、Lifecycle
 - Platform固有API（ARKit）をSpatial Experienceから隔離
 - MVPではiOS Adapterのみ実装
 - Vision Pro、Quest、Androidは同じCore Modelを使うsecondary／将来の差し替え先
