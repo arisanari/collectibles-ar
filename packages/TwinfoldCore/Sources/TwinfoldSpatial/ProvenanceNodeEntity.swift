@@ -40,9 +40,13 @@ public enum ProvenanceNodeEntity {
         text.position.z = 0.0007
         node.addChild(text)
 
-        // Places node index above the card it was pulled from; caller is
-        // free to reposition once attached to the scene.
-        node.position.y = Float(index + 1) * verticalSpacing
+        // Stacks nodes above the card it was pulled from. The card is
+        // centered on its own origin, so start from its top edge
+        // (AssetCardEntity.height / 2) plus a gap; index 0 is the oldest
+        // event, closest to the card. Caller is free to reposition once
+        // attached to the scene.
+        let baseY = AssetCardEntity.height / 2 + 0.015 + height / 2
+        node.position.y = baseY + Float(index) * verticalSpacing
         return node
     }
 

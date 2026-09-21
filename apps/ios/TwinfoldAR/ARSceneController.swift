@@ -46,6 +46,21 @@ final class ARSceneController {
     private var anchorEntity: AnchorEntity?
     private var cardEntity: Entity?
 
+    /// Whichever of the two demo wallets (`DemoWallet`, defined in
+    /// CollectionView.swift — the single place those addresses are
+    /// hardcoded per docs/architecture.md section 5 / core-contract skill)
+    /// does *not* currently own this asset. `runConfirmedTransfer` sends
+    /// the simulated transfer here.
+    var destinationWallet: String {
+        asset.owner == DemoWallet.ownerA.id ? DemoWallet.ownerB.id : DemoWallet.ownerA.id
+    }
+
+    /// Short display label for `destinationWallet`, used in
+    /// `AROverlayView`'s step copy and primary button.
+    var destinationLabel: String {
+        asset.owner == DemoWallet.ownerA.id ? "Owner B" : "Owner A"
+    }
+
     init(asset: TwinfoldAsset, provider: any AssetProvider) {
         self.asset = asset
         self.provider = provider
@@ -75,9 +90,12 @@ final class ARSceneController {
     }
 
     /// Starts (or retries, from `.failed`) a simulated transfer: `pending`
-    /// for ~2s, then either `confirmed` (card and anchor Disappear) or
+    /// immediately, then either `confirmed` (card and anchor Disappear) or
     /// `failed` (card and anchor are kept, with a red frame and a Retry
-    /// affordance in `AROverlayView`).
+    /// affordance in `AROverlayView`). `.confirmed` drives the real
+    /// Provider round trip via `runConfirmedTransfer`; `.failed` (the
+    /// "Transfer fail (demo)" button) stays UI-only and never calls
+    /// `provider`.
     func simulateTransfer(outcome: TransferOutcome) {
         guard placement == .placed,
               transferState == .idle || transferState == .failed,
@@ -86,9 +104,18 @@ final class ARSceneController {
         AssetCardEntity.apply(state: .pending, to: card)
         statusMessage = "transfer pending..."
 
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self.completeTransfer(outcome: outcome) }
+        switch outcome {
+        case .failed:
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run { self.failTransfer(message: "transfer failed。Retryしてください") }
+            }
+        case .confirmed:
+            // A fresh requestId per attempt; Retry (which also calls this
+            // method with `.confirmed`) gets its own id rather than reusing
+            // a stale one.
+            let requestId = UUID().uuidString
+            Task { await self.runConfirmedTransfer(requestId: requestId) }
         }
     }
 
@@ -102,6 +129,15 @@ final class ARSceneController {
         isProvenancePulled = false
         transferState = .idle
         statusMessage = Self.idleMessage(isARSupported: isARSupported)
+
+        // MockAssetProvider only: clear the in-memory transfer overrides,
+        // so a repeated demo starts clean. The session wallet is owned by
+        // CollectionView's Picker, not touched here. Other AssetProvider
+        // implementations don't yet expose a demo-state reset, so there's
+        // nothing to undo there.
+        if let mock = provider as? MockAssetProvider {
+            Task { await mock.resetDemoState() }
+        }
     }
 
     // MARK: - Private
@@ -138,12 +174,45 @@ final class ARSceneController {
         statusMessage = "provenanceを引き出しました（\(asset.provenance.count)件）"
     }
 
-    private func completeTransfer(outcome: TransferOutcome) {
-        switch outcome {
-        case .confirmed:
-            confirmTransfer()
-        case .failed:
-            failTransfer()
+    /// Drives the real transfer round trip for the `.confirmed` outcome:
+    /// asks the provider to move ownership (`MockAssetProvider`), or falls
+    /// back to a timed pseudo-wait for any other `AssetProvider`
+    /// implementation (`as? MockAssetProvider`, not a type switch, because
+    /// only `MockAssetProvider` implements `simulateTransfer`; a future
+    /// `ApiAssetProvider` would need its own real transfer call, but until
+    /// then this keeps the pending -> confirmed UI working). Either way,
+    /// it then asks the provider whether *this* session can still display
+    /// the asset. Only a `false` Entitlement makes the card Disappear:
+    /// `simulateTransfer` changes who owns the asset, but never changes
+    /// which wallet this session is connected to, so the old owner's
+    /// session should lose entitlement once the transfer confirms.
+    private func runConfirmedTransfer(requestId: String) async {
+        if let mock = provider as? MockAssetProvider {
+            do {
+                _ = try await mock.simulateTransfer(assetId: asset.id, to: destinationWallet, requestId: requestId)
+            } catch {
+                await MainActor.run {
+                    self.failTransfer(message: "transfer failed: \(error)")
+                }
+                return
+            }
+        } else {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+
+        do {
+            let entitlement = try await provider.refreshOwnership(assetId: asset.id)
+            await MainActor.run {
+                if entitlement.canDisplay {
+                    self.failTransfer(message: "transfer confirmedですが、このwalletはentitlementを維持しています: \(entitlement.reason)")
+                } else {
+                    self.confirmTransfer()
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.failTransfer(message: "entitlement確認に失敗しました: \(error)")
+            }
         }
     }
 
@@ -160,11 +229,11 @@ final class ARSceneController {
 
     /// Keeps the card and anchor in place (placement stays `.placed`) and
     /// shows a red frame, so `AROverlayView` can offer Retry.
-    private func failTransfer() {
+    private func failTransfer(message: String) {
         guard let card = cardEntity else { return }
         transferState = .failed
         AssetCardEntity.apply(state: .failed, to: card)
-        statusMessage = "transfer failed。Retryしてください"
+        statusMessage = message
     }
 
     private static func idleMessage(isARSupported: Bool) -> String {
