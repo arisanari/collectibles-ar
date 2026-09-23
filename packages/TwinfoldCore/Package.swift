@@ -21,6 +21,11 @@ let package = Package(
                 // Sources/TwinfoldCore/Resources/models/.gitkeep and
                 // Sources/TwinfoldSpatial/AssetRepresentationEntity.swift.
                 .copy("Resources/models"),
+                // Reference artwork PNGs for `DisplayDescriptor.imageUrl`,
+                // synced from fixtures/demo/artworks/ by
+                // scripts/sync-fixtures.sh. See
+                // Sources/TwinfoldSpatial/AssetCardEntity.swift.
+                .copy("Resources/artworks"),
             ]
         ),
         .target(

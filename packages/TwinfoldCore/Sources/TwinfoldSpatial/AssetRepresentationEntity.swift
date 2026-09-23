@@ -19,8 +19,10 @@ import TwinfoldCore
 /// package resource in `Package.swift` (currently holding only a
 /// `.gitkeep` placeholder) — with a filename matching
 /// `spatialRepresentation.resource` in `fixtures/demo/assets.json` (e.g.
-/// `kokeshi_demo.usdz`). Until a matching file exists, `make(asset:)`
-/// falls back to `AssetCardEntity` and logs why.
+/// `kokeshi_demo.usdz`). Until a matching file exists, `make(asset:)` falls
+/// back to `AssetCardEntity.makeThinPlate(asset:)` — a single thin image
+/// plane with no backing box, using the fixture's `display.imageUrl` PNG —
+/// and logs why.
 ///
 /// Both branches tag the returned root `Entity.name` as
 /// `AssetCardEntity.entityName`, so callers that find "the placed asset
@@ -39,9 +41,10 @@ public enum AssetRepresentationEntity {
         guard let twin = loadTwin(resource: resource) else {
             print(
                 "[TwinfoldSpatial] \(asset.id): could not load twin resource "
-                    + "\"\(resource)\" from TwinfoldCore Resources/models — falling back to card"
+                    + "\"\(resource)\" from TwinfoldCore Resources/models — falling back to "
+                    + "a thin image plate"
             )
-            return AssetCardEntity.make(asset: asset)
+            return AssetCardEntity.makeThinPlate(asset: asset)
         }
 
         twin.name = AssetCardEntity.entityName

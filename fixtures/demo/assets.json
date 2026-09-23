@@ -8,9 +8,9 @@
     "title": "大判錦絵 山水図（デモ用架空個体）",
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-placeholder.svg",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "自作SVG。実物の写真ではない。実在の作品・絵師を特定しない架空個体"
+      "rightsNote": "自作SVGから変換したPNG。実物の写真ではない。実在の作品・絵師を特定しない架空個体"
     },
     "spatialRepresentation": { "kind": "card" },
     "provenance": [
@@ -79,9 +79,9 @@
     "title": "伝統こけし 雪笹（DEMO）",
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/kokeshi-placeholder.svg",
+      "imageUrl": "/artworks/kokeshi-placeholder.png",
       "placeholder": true,
-      "rightsNote": "自作SVG。実物の写真ではない"
+      "rightsNote": "自作SVGから変換したPNG。実物の写真ではない"
     },
     "spatialRepresentation": { "kind": "model", "resource": "kokeshi_demo.usdz" },
     "provenance": [
