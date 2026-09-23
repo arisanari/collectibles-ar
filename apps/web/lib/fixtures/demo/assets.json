@@ -5,12 +5,12 @@
     "address": "DEMO-UKIYOE-0001",
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
-    "title": "大判錦絵 山水図（デモ用架空個体）",
+    "title": "歌川広重「名所江戸百景 真間の紅葉手古那の社継はし」（DEMO）",
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-placeholder.png",
+      "imageUrl": "/artworks/ukiyoe-demo.png",
       "placeholder": true,
-      "rightsNote": "自作SVGから変換したPNG。実物の写真ではない。実在の作品・絵師を特定しない架空個体"
+      "rightsNote": "画像: 歌川広重「名所江戸百景 真間の紅葉手古那の社継はし」（1857、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/ukiyo-e-utagawa-hiroshige-0081175/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-24確認）。Twinfoldが保有する実物の写真ではない"
     },
     "spatialRepresentation": { "kind": "card" },
     "provenance": [
@@ -24,8 +24,8 @@
         "evidenceHash": "DEMO-HASH-RWA-0001",
         "metadata": {
           "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
-          "era": "明治期（デモ用架空表記）",
-          "artist": "作者未特定（デモ、実在の絵師ではない）"
+          "era": "図柄は安政4年（1857）の版行。デモ用個体の摺り時期は未確認",
+          "artist": "歌川広重（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
       },
       {
@@ -56,7 +56,7 @@
     "physical": {
       "physicalId": "PHY-DEMO-0001",
       "condition": "軽微な退色、額装済み、シミなし（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。木版画の図案は著作権消滅。画像はデモ用プレースホルダーで実物の写真ではない",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"

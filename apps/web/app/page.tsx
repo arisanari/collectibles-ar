@@ -132,7 +132,7 @@ export default function Home() {
             Explore the assets <span>↘</span>
           </button>
           <div className="heroArt" aria-hidden="true">
-            <div className="frame front"><Image src="/artworks/ukiyoe-placeholder.png" alt="" fill priority sizes="360px" /></div>
+            <div className="frame front"><Image src="/artworks/ukiyoe-demo.png" alt="" fill priority sizes="360px" /></div>
             <div className="seal">DEMO<br /><b>DATA</b><br />NOT ON CHAIN</div>
           </div>
           <div className="proofRow">
