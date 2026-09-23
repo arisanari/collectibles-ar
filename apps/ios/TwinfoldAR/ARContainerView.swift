@@ -3,13 +3,14 @@ import RealityKit
 import SwiftUI
 
 /// Wraps `ARView` for SwiftUI. Owns the only ARKit/UIKit-specific code in
-/// the app: session configuration (world tracking with vertical-plane
-/// detection, so a `card` asset — a framed print — can be placed flush
-/// against a detected wall; falls back to the original camera-relative air
-/// placement when no wall is hit) and the tap (place/pull), pan
-/// (rotate-in-air / slide-on-wall), and pinch (scale) gestures. All
-/// Twinfold entity creation and transform math is delegated to
-/// `TwinfoldSpatial` / `ARSceneController`.
+/// the app: session configuration (world tracking with both vertical- and
+/// horizontal-plane detection — vertical so a `card` asset, a framed print,
+/// can be placed flush against a detected wall; horizontal so a `model`
+/// twin can be stood on a detected floor/table/shelf; both fall back to the
+/// original camera-relative air placement when no matching plane is hit)
+/// and the tap (place/pull), pan (rotate-in-air / slide-on-wall), and pinch
+/// (scale) gestures. All Twinfold entity creation and transform math is
+/// delegated to `TwinfoldSpatial` / `ARSceneController`.
 struct ARContainerView: UIViewRepresentable {
     let controller: ARSceneController
 
@@ -23,13 +24,14 @@ struct ARContainerView: UIViewRepresentable {
 
         if controller.isARSupported {
             let configuration = ARWorldTrackingConfiguration()
-            // Vertical only: walls are where a `card` (framed print) can be
-            // placed at true scale (`ARSceneController.handleTap`). No
-            // horizontal detection — a `model` (USDZ twin, e.g. the kokeshi)
-            // keeps the original camera-relative air placement, which
-            // already reads as "resting in front of you" without needing a
-            // detected shelf surface.
-            configuration.planeDetection = [.vertical]
+            // Vertical: walls are where a `card` (framed print) can be
+            // placed at true scale. Horizontal: floors/tables/shelves are
+            // where a `model` (USDZ twin, e.g. the kokeshi) is stood at its
+            // real-world size next to the physical object it twins. Both
+            // dispatch from `ARSceneController.handleTap`; either falls back
+            // to the original camera-relative air placement when no
+            // matching plane is hit.
+            configuration.planeDetection = [.vertical, .horizontal]
             // Environment texturing + light estimation: reflections and
             // shading on the placed card/twin pick up the room's real
             // lighting instead of a flat/generic light, so it reads as

@@ -1,5 +1,6 @@
 import SwiftUI
 import TwinfoldCore
+import TwinfoldSpatial
 
 /// AR screen chrome: DEMO DATA/DEVNET badge, a large numbered step line
 /// (Place → Pull → transfer) that lets a first-time visitor complete the
@@ -95,7 +96,9 @@ struct AROverlayView: View {
             return "送信完了。作品はこの空間から消えました。← 戻って My Collection の \(controller.destinationLabel) を開くと現れます"
         case .idle:
             if controller.placement == .notPlaced {
-                return "1/3　壁に向けて画面をタップして作品を掛ける"
+                return AssetRepresentationEntity.isTwin(controller.asset)
+                    ? "1/3　床や机に向けて画面をタップして作品を置く"
+                    : "1/3　壁に向けて画面をタップして作品を掛ける"
             } else if !controller.isProvenancePulled {
                 return "2/3　作品をタップして来歴を引き出す"
             } else {
@@ -104,9 +107,9 @@ struct AROverlayView: View {
         }
     }
 
-    /// Once placed and idle, always hints at the drag-to-rotate /
-    /// pinch-to-scale gestures (they work regardless of whether provenance
-    /// has been Pulled yet). Once Pulled, that hint is combined with
+    /// Once placed and idle, always hints at the gestures available for the
+    /// current placement (they work regardless of whether provenance has
+    /// been Pulled yet). Once Pulled, that hint is combined with
     /// `controller.statusMessage`'s provenance count onto one line rather
     /// than showing two footnotes. Other states (not yet placed, pending,
     /// confirmed) already say everything in `stepText`; `.failed` shows
@@ -120,7 +123,6 @@ struct AROverlayView: View {
                 // tracking the live camera.
                 return controller.isARSupported ? nil : "AR非対応のため固定位置に配置します"
             }
-            let gestureHint = "ドラッグで回転、ピンチで拡大縮小"
             return controller.isProvenancePulled
                 ? "\(controller.statusMessage)　\(gestureHint)"
                 : gestureHint
@@ -128,6 +130,23 @@ struct AROverlayView: View {
             return controller.statusMessage
         case .pending, .confirmed:
             return nil
+        }
+    }
+
+    /// Matches `ARSceneController.pan`/`scale(by:)`'s actual behavior for
+    /// the current placement: a wall placement only slides (no rotate, no
+    /// scale — see `ARSceneController.scale(by:)`'s doc comment); an
+    /// air-placed `card` (the no-wall-found fallback) keeps rotate and
+    /// scale; an air-placed `model` twin has neither drag nor pinch (see
+    /// `ARSceneController.pan`) since it's shown at real-world size and
+    /// meant to be walked around instead.
+    private var gestureHint: String {
+        if controller.isWallPlacement {
+            return "ドラッグで壁に沿って動かす"
+        } else if AssetRepresentationEntity.isTwin(controller.asset) {
+            return "周りを歩いて色々な角度から見る"
+        } else {
+            return "ドラッグで回転、ピンチで拡大縮小"
         }
     }
 

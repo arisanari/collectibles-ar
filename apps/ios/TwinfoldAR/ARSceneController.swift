@@ -53,18 +53,38 @@ final class ARSceneController {
     /// `true` once `handleTap` places the card flush against a detected
     /// vertical plane (`placeOnWall`), instead of the original
     /// camera-relative air placement. Changes how `pan` interprets drag
-    /// (`slideOnWall` instead of `rotate`). Reset by `addCard`.
-    private var isWallPlacement = false
+    /// (`slideOnWall` instead of `rotate`) and disables `scale(by:)` (wall
+    /// art is shown at its real-world size, not resized by pinch). Reset by
+    /// `addCard`. Exposed read-only so `AROverlayView` can pick the matching
+    /// gesture hint.
+    private(set) var isWallPlacement = false
     /// The wall's own right/up basis captured by `placeOnWall`, reused by
     /// `slideOnWall` so a drag moves the card along the same plane it was
     /// placed on. `nil` for an air placement.
     private var wallRight: SIMD3<Float>?
     private var wallUp: SIMD3<Float>?
 
+    /// `true` once `handleTap` stands a `model` twin on a detected
+    /// horizontal plane (`placeOnFloor`), instead of falling back to the
+    /// camera-relative air placement. Only used to pick the provenance
+    /// column's vertical offset (`provenanceColumnY`) — drag/pinch stay
+    /// disabled for a twin either way (see `pan`/`scale(by:)`). Reset by
+    /// `addCard`.
+    private(set) var isFloorPlacement = false
+    /// The settled twin's own width/height (meters), read from
+    /// `visualBounds` by `settleTwinOnFloor` right after placement. `nil`
+    /// for a `card` representation, which uses `cardSize` instead. A twin
+    /// has no `asset.physical?.dimensions` (unlike a framed print), so its
+    /// on-screen footprint is only known once its actual mesh (USDZ, or
+    /// the `makeThinPlate` fallback) is loaded — `cardSize` would be wrong
+    /// for it. Used by `provenanceColumnX`/`provenanceColumnY`.
+    private var twinFootprint: (width: Float, height: Float)?
+
     /// This asset's real-world footprint (`AssetCardEntity.size(for:)`),
     /// computed once since `asset` never changes for this controller.
     /// Used for `provenanceColumnX` so the column clears a wall-sized card
-    /// the same way it clears the small default-sized one.
+    /// the same way it clears the small default-sized one. Not used for a
+    /// `model` twin — see `twinFootprint`.
     private let cardSize: (width: Float, height: Float, depth: Float)
 
     /// Distance in front of the camera (meters) a freshly-placed card
@@ -122,20 +142,39 @@ final class ARSceneController {
             return
         }
 
+        // `currentFrame` is nil in the simulator (and briefly before ARKit
+        // has a first frame on device); every air-placement path below
+        // needs it for its camera-facing yaw, so fetch it once up front.
+        let cameraTransform = arView.session.currentFrame?.camera.transform
+
+        // A `model` twin (e.g. the kokeshi USDZ) stands on a detected
+        // horizontal surface (floor/table/shelf) so it reads as resting
+        // next to the real object it twins, at its real-world size. The
+        // flat `card` representation (a framed print) never uses this
+        // branch — see below for its own vertical-plane (wall) placement.
+        if AssetRepresentationEntity.isTwin(asset) {
+            if let floorHit = arView.raycast(from: point, allowing: .estimatedPlane, alignment: .horizontal).first,
+               let cameraTransform {
+                placeOnFloor(hitResult: floorHit, cameraTransform: cameraTransform)
+            } else if let cameraTransform {
+                place(
+                    cameraTransform: cameraTransform,
+                    message: "水平面が見つからないため空中に置きました。作品をタップすると来歴を引き出せます"
+                )
+            } else {
+                placeFallback()
+            }
+            return
+        }
+
         // Wall (vertical-plane) placement only applies to the flat `card`
-        // representation (a framed print hung on a wall); a `model` twin
-        // (e.g. the kokeshi USDZ) keeps the original shelf-style air
-        // placement regardless of whether a wall is under the tap.
-        if !AssetRepresentationEntity.isTwin(asset),
-           let wallHit = arView.raycast(from: point, allowing: .estimatedPlane, alignment: .vertical).first {
+        // representation (a framed print hung on a wall).
+        if let wallHit = arView.raycast(from: point, allowing: .estimatedPlane, alignment: .vertical).first {
             placeOnWall(hitResult: wallHit)
             return
         }
 
-        // `currentFrame` is nil in the simulator (and briefly before ARKit
-        // has a first frame on device), so that case shares the same fixed
-        // fallback placement as `!isARSupported`.
-        if let cameraTransform = arView.session.currentFrame?.camera.transform {
+        if let cameraTransform {
             place(cameraTransform: cameraTransform)
         } else {
             placeFallback()
@@ -144,11 +183,17 @@ final class ARSceneController {
 
     /// Dispatches a one-finger drag based on how the card was placed: a
     /// wall placement slides the card along the wall's own plane
-    /// (`slideOnWall`) since wall art doesn't spin; an air placement keeps
-    /// the original rotate-in-place behavior (`rotate`). No-op before
-    /// placement (both branches guard on `cardEntity`/`anchorEntity`).
+    /// (`slideOnWall`) since wall art doesn't spin; an air placement of the
+    /// flat `card` representation keeps the original rotate-in-place
+    /// behavior (`rotate`). No-op before placement (both branches guard on
+    /// `cardEntity`/`anchorEntity`).
+    ///
+    /// No-op for a `model` (USDZ twin) representation: it's placed at its
+    /// real-world size next to the physical object it twins, and the
+    /// intended way to see it from other angles is walking around it, not
+    /// dragging it.
     func pan(translationX: Float, translationY: Float, viewWidth: Float) {
-        guard cardEntity != nil else { return }
+        guard cardEntity != nil, !AssetRepresentationEntity.isTwin(asset) else { return }
         if isWallPlacement {
             slideOnWall(translationX: translationX, translationY: translationY)
         } else {
@@ -195,10 +240,15 @@ final class ARSceneController {
     /// No-op for a `model` (USDZ twin) representation: it's placed at its
     /// real-world size next to the physical object it twins, and pinch
     /// would let that size drift from the real thing's, so scaling stays
-    /// disabled to keep it 1:1. The flat `card` representation keeps the
-    /// original pinch-to-scale behavior.
+    /// disabled to keep it 1:1.
+    ///
+    /// No-op for a wall placement too, regardless of representation: per
+    /// docs/mvp.md Spatial Fidelity, the framed print on the wall is shown
+    /// at its real-world size and scale isn't user-adjustable. Only an air
+    /// placement of the flat `card` (the fallback when no wall was found)
+    /// keeps pinch-to-scale.
     func scale(by factor: Float) {
-        guard let cardEntity, !AssetRepresentationEntity.isTwin(asset) else { return }
+        guard let cardEntity, !AssetRepresentationEntity.isTwin(asset), !isWallPlacement else { return }
         currentScale = min(max(currentScale * factor, Self.minScale), Self.maxScale)
         cardEntity.scale = SIMD3<Float>(repeating: currentScale)
         provenanceColumn?.position.x = provenanceColumnX
@@ -247,6 +297,8 @@ final class ARSceneController {
         isWallPlacement = false
         wallRight = nil
         wallUp = nil
+        isFloorPlacement = false
+        twinFootprint = nil
         statusMessage = Self.idleMessage(isARSupported: isARSupported)
 
         // MockAssetProvider only: clear the in-memory transfer overrides,
@@ -268,8 +320,13 @@ final class ARSceneController {
     /// horizontal heading) so the card is always upright and its front
     /// (+Z) faces back at the camera, regardless of phone pitch/roll.
     /// `AnchorEntity(world:)` fixes the result in world space, so it stays
-    /// put as the device (and thus the camera) moves afterward.
-    private func place(cameraTransform: simd_float4x4) {
+    /// put as the device (and thus the camera) moves afterward. Also the
+    /// twin's fallback when `handleTap` finds no horizontal plane to stand
+    /// it on — `message` lets that caller note why in `statusMessage`.
+    private func place(
+        cameraTransform: simd_float4x4,
+        message: String = "配置しました。カードをタップするとprovenanceを引き出せます"
+    ) {
         let cameraPosition = SIMD3<Float>(
             cameraTransform.columns.3.x,
             cameraTransform.columns.3.y,
@@ -282,20 +339,30 @@ final class ARSceneController {
             cameraTransform.columns.2.z
         )
         let position = cameraPosition + cameraForward * Self.placementDistance
-
-        let headingXZ = SIMD3<Float>(cameraForward.x, 0, cameraForward.z)
-        // The card's local +Z axis, rotated only about world Y, should
-        // point back toward the camera: the opposite of the camera's
-        // (flattened) heading.
-        let facing = length(headingXZ) > .ulpOfOne ? -normalize(headingXZ) : SIMD3<Float>(0, 0, 1)
-        let yaw = atan2(facing.x, facing.z)
-        let rotation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+        let rotation = simd_quatf(angle: Self.yawFacingCamera(cameraTransform: cameraTransform), axis: SIMD3<Float>(0, 1, 0))
 
         var transform = simd_float4x4(rotation)
         transform.columns.3 = SIMD4<Float>(position, 1)
 
         addCard(anchor: AnchorEntity(world: transform))
-        statusMessage = "配置しました。カードをタップするとprovenanceを引き出せます"
+        statusMessage = message
+    }
+
+    /// Yaw (radians, about world Y) that orients an entity's local +Z axis
+    /// (the front of both `AssetCardEntity`'s card and a loaded twin, per
+    /// `AssetRepresentationEntity`) to face back toward the camera, using
+    /// only the camera's horizontal heading so phone pitch/roll doesn't
+    /// tilt the result. Shared by `place(cameraTransform:)` (air placement)
+    /// and `placeOnFloor` (standing a twin on a detected horizontal plane).
+    private static func yawFacingCamera(cameraTransform: simd_float4x4) -> Float {
+        let cameraForward = -SIMD3<Float>(
+            cameraTransform.columns.2.x,
+            cameraTransform.columns.2.y,
+            cameraTransform.columns.2.z
+        )
+        let headingXZ = SIMD3<Float>(cameraForward.x, 0, cameraForward.z)
+        let facing = length(headingXZ) > .ulpOfOne ? -normalize(headingXZ) : SIMD3<Float>(0, 0, 1)
+        return atan2(facing.x, facing.z)
     }
 
     /// Places the card flush against a detected vertical surface (a wall):
@@ -337,6 +404,44 @@ final class ARSceneController {
         statusMessage = "壁に配置しました。カードをタップするとprovenanceを引き出せます"
     }
 
+    /// Stands a `model` twin (e.g. the kokeshi USDZ) upright on a detected
+    /// horizontal surface (floor, table, shelf): the anchor sits at the
+    /// raycast hit's position with only a camera-facing yaw applied — never
+    /// the hit's own normal — so the twin stays plumb (world-up) even on a
+    /// tilted plane estimate, matching `place(cameraTransform:)`'s
+    /// convention of orienting by camera yaw alone. `settleTwinOnFloor`
+    /// then lifts the twin so its lowest visible point (not necessarily its
+    /// own origin) rests on that surface instead of clipping through it.
+    private func placeOnFloor(hitResult: ARRaycastResult, cameraTransform: simd_float4x4) {
+        let hitTransform = hitResult.worldTransform
+        let hitPosition = SIMD3<Float>(hitTransform.columns.3.x, hitTransform.columns.3.y, hitTransform.columns.3.z)
+        let rotation = simd_quatf(angle: Self.yawFacingCamera(cameraTransform: cameraTransform), axis: SIMD3<Float>(0, 1, 0))
+
+        var transform = simd_float4x4(rotation)
+        transform.columns.3 = SIMD4<Float>(hitPosition, 1)
+
+        addCard(anchor: AnchorEntity(world: transform))
+        settleTwinOnFloor()
+        isFloorPlacement = true
+        statusMessage = "床や机に置きました。作品をタップすると来歴を引き出せます"
+    }
+
+    /// Shifts the just-placed twin straight up so its lowest visible point
+    /// sits at the anchor's own y = 0 (the floor/table surface
+    /// `placeOnFloor` anchored to) rather than the entity's own origin,
+    /// since neither a loaded USDZ's origin nor `AssetCardEntity
+    /// .makeThinPlate`'s centered fallback plate is guaranteed to be its
+    /// base. Also records the settled footprint (`twinFootprint`) so
+    /// `provenanceColumnX`/`provenanceColumnY` can clear the twin's actual
+    /// visible edges instead of `cardSize`'s fixed default footprint. Scale
+    /// stays untouched — a twin is always shown at real-world size (1).
+    private func settleTwinOnFloor() {
+        guard let anchorEntity, let cardEntity else { return }
+        let bounds = cardEntity.visualBounds(relativeTo: anchorEntity)
+        cardEntity.position.y -= bounds.min.y
+        twinFootprint = (width: bounds.extents.x, height: bounds.extents.y)
+    }
+
     private func placeFallback() {
         var transform = matrix_identity_float4x4
         transform.columns.3 = SIMD4<Float>(0, -0.05, -0.4, 1)
@@ -356,25 +461,46 @@ final class ARSceneController {
         isWallPlacement = false
         wallRight = nil
         wallUp = nil
+        isFloorPlacement = false
+        twinFootprint = nil
         placement = .placed
     }
 
-    /// x offset (from the anchor's origin, i.e. the card's own center —
-    /// `cardEntity` is placed at its anchor's origin) that keeps the
-    /// provenance column just to the right of the card's current visible
-    /// edge, accounting for `currentScale`.
+    /// x offset (from the anchor's origin) that keeps the provenance column
+    /// just clear of the placed asset's current visible right edge. A
+    /// `model` twin uses its settled `twinFootprint` (its actual mesh
+    /// width, read from `visualBounds` — it has no
+    /// `asset.physical?.dimensions` for `cardSize` to reflect); a `card`
+    /// uses `cardSize` (the card's own center is the anchor's origin),
+    /// accounting for `currentScale`.
     private var provenanceColumnX: Float {
-        cardSize.width / 2 * currentScale + 0.02 + ProvenanceNodeEntity.width / 2
+        if let twinFootprint {
+            return twinFootprint.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
+        }
+        return cardSize.width / 2 * currentScale + 0.02 + ProvenanceNodeEntity.width / 2
+    }
+
+    /// y offset (from the anchor's origin) for the provenance column. A
+    /// wall or air `card` placement centers the column on the anchor's own
+    /// origin (y = 0), which is already the card's own center. A
+    /// floor-placed twin instead anchors its origin at the *floor*
+    /// (`settleTwinOnFloor` lifts the twin so its base, not its center,
+    /// sits at y = 0), so the column is centered on the twin's own
+    /// vertical middle instead — otherwise it would read half-buried in
+    /// the floor.
+    private var provenanceColumnY: Float {
+        guard isFloorPlacement, let twinFootprint else { return 0 }
+        return twinFootprint.height / 2
     }
 
     /// Builds the provenance column and adds it as a sibling of `card`
-    /// under `anchorEntity` (not a child of the card), positioned to the
-    /// card's right, so rotating or scaling the card (`rotate`/`scale`,
+    /// under `anchorEntity` (not a child of the card), positioned beside
+    /// the card/twin, so rotating or scaling the card (`rotate`/`scale`,
     /// which only touch `cardEntity`) leaves the column fixed in place.
     private func pullProvenance(from card: Entity) {
         guard !isProvenancePulled, let anchorEntity else { return }
         let column = ProvenanceNodeEntity.makeColumn(events: asset.provenance)
-        column.position = SIMD3<Float>(provenanceColumnX, 0, 0)
+        column.position = SIMD3<Float>(provenanceColumnX, provenanceColumnY, 0)
         anchorEntity.addChild(column)
         provenanceColumn = column
         isProvenancePulled = true
@@ -436,6 +562,8 @@ final class ARSceneController {
         isWallPlacement = false
         wallRight = nil
         wallUp = nil
+        isFloorPlacement = false
+        twinFootprint = nil
     }
 
     /// Keeps the card and anchor in place (placement stays `.placed`) and
