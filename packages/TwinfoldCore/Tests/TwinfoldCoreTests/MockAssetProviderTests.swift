@@ -6,17 +6,22 @@ final class MockAssetProviderTests: XCTestCase {
     private let walletB = "DEMOwalletB2222222222222222222222222222222"
     private let assetId = "tf-ukiyoe-001"
 
-    /// Owner A's fixture wallet owns two assets: the ukiyo-e print
-    /// (`assetId`, a `card` representation, real-world sized via
-    /// `physical.dimensions` for wall placement) and a kokeshi twin
-    /// (`model` representation), the shelf-collectible extension example.
+    /// Owner A's fixture wallet owns six assets: five ukiyo-e prints
+    /// (`card` representation, real-world sized via `physical.dimensions`
+    /// for wall placement, `assetId` is the first of the five) and a
+    /// kokeshi twin (`model` representation), the shelf-collectible
+    /// extension example.
     func testGetAssetsReturnsFixtureForOwningWallet() async throws {
         let provider = try MockAssetProvider()
         XCTAssertTrue(provider.isDemoData)
 
         let assets = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assets.count, 2)
+        XCTAssertEqual(assets.count, 6)
         XCTAssertTrue(assets.contains { $0.id == assetId })
+        XCTAssertTrue(assets.contains { $0.id == "tf-ukiyoe-002" })
+        XCTAssertTrue(assets.contains { $0.id == "tf-ukiyoe-003" })
+        XCTAssertTrue(assets.contains { $0.id == "tf-ukiyoe-004" })
+        XCTAssertTrue(assets.contains { $0.id == "tf-ukiyoe-005" })
         XCTAssertTrue(assets.contains { $0.id == "tf-kokeshi-001" })
     }
 
@@ -30,10 +35,11 @@ final class MockAssetProviderTests: XCTestCase {
         XCTAssertEqual(event.source, .onchain)
         XCTAssertEqual(event.transaction, "DEMO-TX-TRANSFER-req-transfer-1")
 
-        // walletA still owns the kokeshi twin (untouched by this transfer).
+        // walletA still owns the other four ukiyo-e prints and the kokeshi
+        // twin (untouched by this transfer).
         let assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assetsForA.count, 1)
-        XCTAssertEqual(assetsForA.first?.id, "tf-kokeshi-001")
+        XCTAssertEqual(assetsForA.count, 5)
+        XCTAssertFalse(assetsForA.contains { $0.id == assetId })
 
         let assetsForB = try await provider.getAssets(wallet: walletB)
         XCTAssertEqual(assetsForB.count, 1)
@@ -82,13 +88,13 @@ final class MockAssetProviderTests: XCTestCase {
 
         _ = try await provider.simulateTransfer(assetId: assetId, to: walletB, requestId: "req-transfer-4")
         var assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assetsForA.count, 1)
-        XCTAssertEqual(assetsForA.first?.id, "tf-kokeshi-001")
+        XCTAssertEqual(assetsForA.count, 5)
+        XCTAssertFalse(assetsForA.contains { $0.id == assetId })
 
         await provider.resetDemoState()
 
         assetsForA = try await provider.getAssets(wallet: walletA)
-        XCTAssertEqual(assetsForA.count, 2)
+        XCTAssertEqual(assetsForA.count, 6)
         XCTAssertEqual(assetsForA.first { $0.id == assetId }?.provenance.count, originalCount)
     }
 }

@@ -42,7 +42,7 @@ Primary Aha momentは、**ownershipの変化が空間の変化になること**�
 - **Transfer → Disappear**: 移転すると旧所有者の空間から消え、新所有者の空間に現れる
 - **Redeem → Fold**: 現物を受け取ると流通Assetが失効し、来歴はRedeemed Provenance Passportへ残る
 
-空間表現は、主役の浮世絵では高解像スキャンと額の厚みを持つ実寸1:1の額装カードです。壁（垂直面）への配置、環境光の一致、額の影を条件とし、Object Captureは不要です。拡張の棚カテゴリ（フィギュア・こけし）では、入庫時にVault側がObject Captureで作る実寸1:1のUSDZ twinを使い、LiDAR遮蔽（手前の実物が虚像を隠す）と接地影を条件とします。どちらのスキャンも状態記録（off-chain evidence）と表示データを兼ね、買い手はスキャンしません。
+空間表現は、主役の浮世絵では高解像スキャンによる実寸1:1の紙の表示です。厚みや額は付けず、壁（垂直面）への密着配置と環境光の一致を条件とし、Object Captureは不要です。拡張の棚カテゴリ（フィギュア・こけし）では、入庫時にVault側がObject Captureで作る実寸1:1のUSDZ twinを使い、LiDAR遮蔽（手前の実物が虚像を隠す）と接地影を条件とします。どちらのスキャンも状態記録（off-chain evidence）と表示データを兼ね、買い手はスキャンしません。
 
 購入者は、現物をVaultに置いたままXR鑑賞とオンチェーン流通を続ける `Vaulted Ownership` と、現物を配送する `Physical Ownership` を選べます。Passportは配送後の現在所有者・現在状態・真正性を継続保証しません。
 
@@ -58,7 +58,7 @@ Meta Quest、AndroidはMVP後のAdapter展開先です。
 
 ## 現在の実装状況
 
-現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままです。浮世絵（DEMO DATA、主役、額装カード表現）＋こけし（棚の拡張例、USDZ twin表現）の2点構成への差し替えは共通モデル固定後に行います。iPhone AR（`apps/ios`）は骨組みを実装中です。
+現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは浮世絵5点（パブリックドメインの複製画像、紙の表示）とこけし1点（棚の拡張例、USDZ twin表現）です。iPhone AR（`apps/ios`）では、My Roomで複数の作品を壁や机に置き、transferに応じたDisappear／Appearまでfixtureで動きます。
 
 ### Web
 

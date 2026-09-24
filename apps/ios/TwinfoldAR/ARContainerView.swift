@@ -1,4 +1,5 @@
 import ARKit
+import Combine
 import RealityKit
 import SwiftUI
 
@@ -6,13 +7,12 @@ import SwiftUI
 /// the app: session configuration (world tracking with both vertical- and
 /// horizontal-plane detection — vertical so a `card` asset, a framed print,
 /// can be placed flush against a detected wall; horizontal so a `model`
-/// twin can be stood on a detected floor/table/shelf; both fall back to the
-/// original camera-relative air placement when no matching plane is hit)
-/// and the tap (place/pull), pan (rotate-in-air / slide-on-wall), and pinch
-/// (scale) gestures. All Twinfold entity creation and transform math is
-/// delegated to `TwinfoldSpatial` / `ARSceneController`.
+/// twin can be stood on a detected floor/table/shelf), the per-frame
+/// holding-preview update, and the tap (select / confirm placement)
+/// gesture. All Twinfold entity creation and transform math is delegated
+/// to `TwinfoldSpatial` / `RoomController`.
 struct ARContainerView: UIViewRepresentable {
-    let controller: ARSceneController
+    let controller: RoomController
 
     func makeUIView(context: Context) -> ARView {
         let arView = ARView(
@@ -24,27 +24,10 @@ struct ARContainerView: UIViewRepresentable {
 
         if controller.isARSupported {
             let configuration = ARWorldTrackingConfiguration()
-            // Vertical: walls are where a `card` (framed print) can be
-            // placed at true scale. Horizontal: floors/tables/shelves are
-            // where a `model` (USDZ twin, e.g. the kokeshi) is stood at its
-            // real-world size next to the physical object it twins. Both
-            // dispatch from `ARSceneController.handleTap`; either falls back
-            // to the original camera-relative air placement when no
-            // matching plane is hit.
             configuration.planeDetection = [.vertical, .horizontal]
-            // Environment texturing + light estimation: reflections and
-            // shading on the placed card/twin pick up the room's real
-            // lighting instead of a flat/generic light, so it reads as
-            // sitting in the room rather than pasted on top of the camera
-            // feed.
             configuration.environmentTexturing = .automatic
             configuration.isLightEstimationEnabled = true
 
-            // LiDAR-only: scene mesh drives occlusion (real furniture in
-            // front of the twin hides it) and lets the twin receive
-            // shadows/lighting cast by the real room mesh. Non-LiDAR
-            // devices skip this; the twin still renders, just without
-            // real-world occlusion.
             if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
                 configuration.sceneReconstruction = .mesh
                 arView.environment.sceneUnderstanding.options.insert(.occlusion)
@@ -61,22 +44,12 @@ struct ARContainerView: UIViewRepresentable {
         tapGesture.delegate = context.coordinator
         arView.addGestureRecognizer(tapGesture)
 
-        let panGesture = UIPanGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handlePan(_:))
-        )
-        // One finger only, so a two-finger pinch's centroid drift doesn't
-        // also rotate the card.
-        panGesture.maximumNumberOfTouches = 1
-        panGesture.delegate = context.coordinator
-        arView.addGestureRecognizer(panGesture)
-
-        let pinchGesture = UIPinchGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handlePinch(_:))
-        )
-        pinchGesture.delegate = context.coordinator
-        arView.addGestureRecognizer(pinchGesture)
+        // Drives the holding-preview raycast every frame so the
+        // translucent preview tracks the wall/floor under the screen
+        // center while the user walks around before tapping to confirm.
+        context.coordinator.updateSubscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak controller] _ in
+            controller?.updateHoldingPreview()
+        }
 
         return arView
     }
@@ -89,9 +62,10 @@ struct ARContainerView: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        let controller: ARSceneController
+        let controller: RoomController
+        var updateSubscription: Cancellable?
 
-        init(controller: ARSceneController) {
+        init(controller: RoomController) {
             self.controller = controller
         }
 
@@ -101,37 +75,6 @@ struct ARContainerView: UIViewRepresentable {
             controller.handleTap(at: point)
         }
 
-        /// One-finger drag. `ARSceneController.pan` dispatches on how the
-        /// card was placed: an air-placed card rotates (horizontal movement
-        /// is yaw about the world Y axis, vertical movement is pitch about
-        /// the card's own local X axis, tuned so a full screen width of
-        /// drag is about 180 degrees); a wall-placed card instead slides
-        /// along the wall's own plane. `translation` is reset to zero after
-        /// each `.changed` callback, so each call only carries the
-        /// incremental movement since the previous one.
-        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            guard recognizer.state == .changed, let view = recognizer.view else { return }
-            let translation = recognizer.translation(in: view)
-            let width = max(Float(view.bounds.width), 1)
-            controller.pan(translationX: Float(translation.x), translationY: Float(translation.y), viewWidth: width)
-            recognizer.setTranslation(.zero, in: view)
-        }
-
-        /// Pinch: `recognizer.scale` is the cumulative scale since the
-        /// gesture began, so it's passed to the controller as an
-        /// incremental factor and then reset to 1 after each `.changed`
-        /// callback (the controller keeps its own clamped cumulative
-        /// scale).
-        @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
-            guard recognizer.state == .changed else { return }
-            controller.scale(by: Float(recognizer.scale))
-            recognizer.scale = 1
-        }
-
-        /// Lets pan and pinch run at the same time (e.g. rotating while
-        /// pinching), and lets the tap recognizer coexist with both — tap
-        /// only fires on a short, stationary touch, so it doesn't compete
-        /// with pan's movement threshold or pinch's two-finger requirement.
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer

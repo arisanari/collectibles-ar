@@ -19,7 +19,7 @@ struct CollectionRootView: View {
     var body: some View {
         Group {
             if let provider {
-                CollectionView(provider: provider)
+                MyRoomView(provider: provider)
             } else if let loadError {
                 Text("fixtureの読み込みに失敗しました: \(loadError)")
                     .multilineTextAlignment(.center)

@@ -363,14 +363,14 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - Platform非依存のPlace、Unfold、Pull
 - ownership状態に応じたAppear／Disappear
 - `pending`、`confirmed`、`failed` の表現
-- 主役（浮世絵）は高解像スキャンと額の厚みを持つ実寸1:1の額装カードを表示。拡張（棚カテゴリ、こけし等）はVault入庫時のObject Captureによる実寸1:1のUSDZ twinを表示（いずれもscaleを触らない）
+- 主役（浮世絵）は高解像スキャンによる実寸1:1の紙の表示（厚みや額を付けない）。拡張（棚カテゴリ、こけし等）はVault入庫時のObject Captureによる実寸1:1のUSDZ twinを表示（いずれもscaleを触らない）
 - Backendの共通モデルだけを解釈し、Solana RPCを直接呼ばない
 - 購入、秘密鍵管理、配送先入力を行わない
 
 ### Platform Adapter
 
 - iOS／ARKitのcamera、camera-relative anchor、touch（tap／drag／pinch）、Lifecycle
-- 額装カードでは壁（垂直面）への配置と額の影、USDZ twinではLiDARによる遮蔽（手前の実物が虚像を隠す）と接地影。共通して環境光の一致
+- 浮世絵の紙の表示では壁（垂直面）への密着配置、USDZ twinではLiDARによる遮蔽（手前の実物が虚像を隠す）と接地影。共通して環境光の一致
 - Platform固有API（ARKit）をSpatial Experienceから隔離
 - MVPではiOS Adapterのみ実装
 - Vision Pro、Quest、Androidは同じCore Modelを使うsecondary／将来の差し替え先

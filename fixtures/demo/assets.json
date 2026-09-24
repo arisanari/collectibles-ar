@@ -55,7 +55,7 @@
     ],
     "physical": {
       "physicalId": "PHY-DEMO-0001",
-      "condition": "軽微な退色、額装済み、シミなし（デモ用架空表記）",
+      "condition": "軽微な退色、シミなし（デモ用架空表記）",
       "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
@@ -66,7 +66,291 @@
         "widthCm": 26.5,
         "heightCm": 39,
         "depthCm": 3,
-        "label": "大判錦絵 額装 外寸 約26.5×39cm（縦）"
+        "label": "大判錦絵 約26.5×39cm（縦）"
+      }
+    }
+  },
+  {
+    "id": "tf-ukiyoe-002",
+    "network": "devnet",
+    "address": "DEMO-UKIYOE-0002",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "歌川広重「近江八景之内 三井晩鐘」（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/ukiyoe-hiroshige-mii.png",
+      "placeholder": true,
+      "rightsNote": "画像: 歌川広重「近江八景之内 三井晩鐘」（天保期頃、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/painting-utagawa-hiroshige-0080957/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
+    },
+    "spatialRepresentation": { "kind": "card" },
+    "provenance": [
+      {
+        "id": "tf-ukiyoe-002-evt-1",
+        "assetId": "tf-ukiyoe-002",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-20T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-0002",
+        "metadata": {
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "era": "図柄は天保期頃の版行。デモ用個体の摺り時期は未確認",
+          "artist": "歌川広重（図柄の作者。デモ用個体の真贋・摺りは未確認）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-002-evt-2",
+        "assetId": "tf-ukiyoe-002",
+        "kind": "minted",
+        "occurredAt": "2026-09-20T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-0002",
+        "slot": 3,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-002-evt-3",
+        "assetId": "tf-ukiyoe-002",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-20T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0003",
+      "condition": "軽微な退色、シミなし（デモ用架空表記）",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-20T04:00:00Z",
+      "dimensions": {
+        "widthCm": 39,
+        "heightCm": 26.5,
+        "depthCm": 3,
+        "label": "大判錦絵 約39×26.5cm（横）"
+      }
+    }
+  },
+  {
+    "id": "tf-ukiyoe-003",
+    "network": "devnet",
+    "address": "DEMO-UKIYOE-0003",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/ukiyoe-hokusai-yatsuhashi.png",
+      "placeholder": true,
+      "rightsNote": "画像: 葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（天保4〜5年頃〈1833–34〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/katsushika-hokusai-0070448/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
+    },
+    "spatialRepresentation": { "kind": "card" },
+    "provenance": [
+      {
+        "id": "tf-ukiyoe-003-evt-1",
+        "assetId": "tf-ukiyoe-003",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-21T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-0003",
+        "metadata": {
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "era": "図柄は天保4〜5年頃（1833–34）の版行。デモ用個体の摺り時期は未確認",
+          "artist": "葛飾北斎（図柄の作者。デモ用個体の真贋・摺りは未確認）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-003-evt-2",
+        "assetId": "tf-ukiyoe-003",
+        "kind": "minted",
+        "occurredAt": "2026-09-21T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-0003",
+        "slot": 4,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-003-evt-3",
+        "assetId": "tf-ukiyoe-003",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-21T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0004",
+      "condition": "軽微な退色、小さなトリミング痕（デモ用架空表記）",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-21T04:00:00Z",
+      "dimensions": {
+        "widthCm": 39,
+        "heightCm": 26.5,
+        "depthCm": 3,
+        "label": "大判錦絵 約39×26.5cm（横）"
+      }
+    }
+  },
+  {
+    "id": "tf-ukiyoe-004",
+    "network": "devnet",
+    "address": "DEMO-UKIYOE-0004",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "楊洲周延「二十四孝見立画合 第二十三号 孟宗」（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/ukiyoe-chikanobu-moso.png",
+      "placeholder": true,
+      "rightsNote": "画像: 楊洲周延「二十四孝見立画合 第二十三号 孟宗」（明治23年〈1890〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/toyohara-chikanobu-0049601/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
+    },
+    "spatialRepresentation": { "kind": "card" },
+    "provenance": [
+      {
+        "id": "tf-ukiyoe-004-evt-1",
+        "assetId": "tf-ukiyoe-004",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-22T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-0004",
+        "metadata": {
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "era": "図柄は明治23年（1890）の版行。デモ用個体の摺り時期は未確認",
+          "artist": "楊洲周延（図柄の作者。デモ用個体の真贋・摺りは未確認）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-004-evt-2",
+        "assetId": "tf-ukiyoe-004",
+        "kind": "minted",
+        "occurredAt": "2026-09-22T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-0004",
+        "slot": 5,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-004-evt-3",
+        "assetId": "tf-ukiyoe-004",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-22T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0005",
+      "condition": "退色少なく発色良好（デモ用架空表記）",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-22T04:00:00Z",
+      "dimensions": {
+        "widthCm": 26.5,
+        "heightCm": 39,
+        "depthCm": 3,
+        "label": "大判錦絵 約26.5×39cm（縦）"
+      }
+    }
+  },
+  {
+    "id": "tf-ukiyoe-005",
+    "network": "devnet",
+    "address": "DEMO-UKIYOE-0005",
+    "standard": "metaplex-core",
+    "owner": "DEMOwalletA1111111111111111111111111111111",
+    "title": "高橋松亭「根方の桜」（DEMO）",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/ukiyoe-shotei-sakura.png",
+      "placeholder": true,
+      "rightsNote": "画像: 高橋松亭「根方の桜」（大正11年〈1922〉、新版画。松亭は1945年没で著作権消滅）。パブリックドメインQ（https://publicdomainq.net/takahashi-shotei-0048450/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
+    },
+    "spatialRepresentation": { "kind": "card" },
+    "provenance": [
+      {
+        "id": "tf-ukiyoe-005-evt-1",
+        "assetId": "tf-ukiyoe-005",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-23T02:00:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "evidenceHash": "DEMO-HASH-RWA-0005",
+        "metadata": {
+          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "era": "図柄は大正11年（1922）の版行。デモ用個体の摺り時期は未確認",
+          "artist": "高橋松亭（図柄の作者。デモ用個体の真贋・摺りは未確認）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-005-evt-2",
+        "assetId": "tf-ukiyoe-005",
+        "kind": "minted",
+        "occurredAt": "2026-09-23T03:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-MINT-0005",
+        "slot": 6,
+        "metadata": {
+          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
+        }
+      },
+      {
+        "id": "tf-ukiyoe-005-evt-3",
+        "assetId": "tf-ukiyoe-005",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-23T04:00:00Z",
+        "source": "twinfold_interpretation",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+        }
+      }
+    ],
+    "physical": {
+      "physicalId": "PHY-DEMO-0006",
+      "condition": "発色良好、経年による軽微な焼け（デモ用架空表記）",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
+      "custody": {
+        "vault": "TYO-DEMO-01",
+        "status": "vaulted"
+      },
+      "lastVerifiedAt": "2026-09-23T04:00:00Z",
+      "dimensions": {
+        "widthCm": 26.5,
+        "heightCm": 39,
+        "depthCm": 3,
+        "label": "新版画 大判相当 約26.5×39cm（縦）"
       }
     }
   },
