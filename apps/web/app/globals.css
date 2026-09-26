@@ -49,6 +49,13 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .statusTag.pending { background:#e8d68a; color:var(--ink); }
 .statusTag.failed { background:#a94332; color:white; }
 .confirm { width:min(500px,95vw); background:var(--paper); padding:50px; text-align:center; }.confirm h2 { font-size:32px; margin:15px 0; }.confirm>p { font-size:12px; line-height:1.8; color:var(--muted); }.warning { width:45px; height:45px; margin:0 auto 25px; border:1px solid #b34e3b; color:#b34e3b; border-radius:50%; display:grid; place-items:center; font:500 20px DM Mono; }.redeemItem { display:flex; text-align:left; gap:14px; align-items:center; padding:14px; border:1px solid var(--line); margin:25px 0; }.redeemItem span { display:flex; flex-direction:column; gap:5px; }.redeemItem b { font-size:12px; }.redeemItem small { font:400 9px DM Mono; color:var(--muted); }.danger { width:100%; padding:14px; background:#a94332; color:white; border:0; font:500 10px DM Mono; cursor:pointer; }.textButton { margin-top:15px; background:none; border:0; font-size:11px; text-decoration:underline; cursor:pointer; }
+.devnetSection { border-top:1px solid var(--ink); padding-top:60px; }
+.devnetSection .sectionTitle p.demoBadge { margin:0; }
+.emptyState.small { padding:0 0 20px; font-size:11px; }
+.devnetGrid { grid-template-columns:repeat(2,1fr); }
+.devnetCard { border:1px solid var(--line); padding:20px; display:flex; flex-direction:column; gap:6px; }
+.devnetCard h3 { font-size:20px; margin:6px 0; letter-spacing:-.03em; }
+.devnetCard .workName a,.devnetCard .provenanceDetail a { color:inherit; word-break:break-all; }
 .toast { position:fixed; z-index:50; left:50%; bottom:30px; transform:translateX(-50%); background:var(--ink); color:white; padding:15px 22px; font:400 11px DM Mono; box-shadow:0 10px 30px #0004; animation:rise .25s ease; }
 @keyframes fade { from{opacity:0} } @keyframes rise { from{opacity:0;transform:translate(-50%,15px)} }
 @media(max-width:900px){.shell{width:min(100% - 32px,700px)}.nav{grid-template-columns:1fr auto}.nav nav{display:none}.hero{padding-top:70px;min-height:880px}.heroArt{top:395px;right:calc(50% - 220px)}.grid{grid-template-columns:1fr}.cardImage{height:520px}.collectionHead{grid-template-columns:1fr 1fr;gap:30px}.collectionHead>div:first-child{grid-column:1/-1}.detail{grid-template-columns:1fr;max-height:92vh;overflow:auto}.detailImage{min-height:370px}.detailBody{padding:40px 28px}.proofRow{gap:20px;overflow:auto}.proofRow span{white-space:nowrap}}@media(max-width:520px){.hero h1{font-size:52px}.heroArt{transform:scale(.8);transform-origin:center}.cardImage{height:430px}.collectionHead h1{font-size:52px}.collectionStat{min-width:0}.detailBody h2{font-size:36px}.desktop{display:none}footer p{display:none}}

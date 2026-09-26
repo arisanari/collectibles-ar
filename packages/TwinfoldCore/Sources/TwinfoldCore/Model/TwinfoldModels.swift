@@ -87,7 +87,7 @@ public struct DisplayDescriptor: Codable, Sendable, Equatable {
 public struct PhysicalDescriptor: Codable, Sendable, Equatable {
     public struct Custody: Codable, Sendable, Equatable {
         public let vault: String
-        public let status: String // "vaulted" | "released" | "exception"
+        public let status: String // "vaulted" | "released" | "exception" | "pending_intake"
 
         public init(vault: String, status: String) {
             self.vault = vault

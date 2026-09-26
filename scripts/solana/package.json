@@ -1,0 +1,26 @@
+{
+  "name": "twinfold-solana-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Devnet-only Metaplex Core mint/transfer tooling for Twinfold Reference Assets. Not part of apps/web's dependency tree.",
+  "type": "module",
+  "scripts": {
+    "wallets:generate": "tsx src/generateWallets.ts",
+    "mint": "tsx src/mint.ts",
+    "verify": "tsx src/verify.ts"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-core": "1.10.0",
+    "@metaplex-foundation/umi": "1.6.0",
+    "@metaplex-foundation/umi-bundle-defaults": "1.6.0",
+    "@metaplex-foundation/umi-uploader-irys": "1.6.0",
+    "@metaplex-foundation/umi-web3js-adapters": "1.6.0",
+    "@solana/web3.js": "1.99.0",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}

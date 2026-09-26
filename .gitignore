@@ -25,6 +25,13 @@ packages/**/.build/
 # macOS
 .DS_Store
 
+# Cloudflare Wrangler local state (local D1 database, cache)
+.wrangler/
+
 # Rights-unverified third-party reference images (local only; see AGENTS.md)
 apps/images/
 apps/web/public/collection/
+
+# Next.js 16 `next dev` auto-generates these; the canonical guide is the repo-root AGENTS.md
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

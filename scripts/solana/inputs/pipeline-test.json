@@ -1,0 +1,15 @@
+{
+  "assetId": "tf-pipeline-test-001",
+  "name": "Twinfold pipeline test (not a Reference Asset)",
+  "description": "Devnet-only test mint used to verify the scripts/solana mint pipeline (metadata upload + Metaplex Core create). No relation to any real artwork, artist, provenance, or grading. Not a Twinfold Reference Asset.",
+  "attributes": {
+    "artist": "n/a — pipeline test only",
+    "series_title": "n/a — pipeline test only",
+    "publisher": "n/a — pipeline test only",
+    "era": "n/a — pipeline test only",
+    "dimensions": "n/a — pipeline test only",
+    "condition_notes": "n/a — pipeline test only",
+    "evidence_hash": "n/a — pipeline test only",
+    "verification_status": "unconfirmed"
+  }
+}

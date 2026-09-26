@@ -37,7 +37,11 @@ export type PhysicalDescriptor = {
   physicalId: string;
   condition: string;
   rights: string; // 物理所有権・図案の著作権・画像利用の区別を一文で
-  custody: { vault: string; status: "vaulted" | "released" | "exception" };
+  // "pending_intake": physical item exists and is recorded, but has not yet
+  // been placed in a Twinfold-operated Vault (e.g. self-custody ahead of RWA
+  // intake). Distinct from "exception", which means an active
+  // mismatch/problem needing resolution.
+  custody: { vault: string; status: "vaulted" | "released" | "exception" | "pending_intake" };
   lastVerifiedAt: string; // ISO 8601 UTC
   // 額装カードを壁に実寸で表示するための外寸。cmで持ち、Spatial Client側で
   // メートルへ変換する。`spatialRepresentation.kind === "model"` の

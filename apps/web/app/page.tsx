@@ -3,16 +3,27 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { MockAssetProvider } from "../lib/providers/mockAssetProvider";
-import type { ProvenanceEvent, TwinfoldAsset } from "../lib/contract";
+import { SolanaAssetProvider } from "../lib/providers/solanaAssetProvider";
+import type { PhysicalDescriptor, ProvenanceEvent, TwinfoldAsset } from "../lib/contract";
 import walletsFixture from "../lib/fixtures/demo/wallets.json";
 
 type View = "discover" | "collection";
 type WalletEntry = { label: string; address: string };
+type DevnetStatus = "loading" | "unconfigured" | "error" | "ready";
 
 const wallets = walletsFixture as Record<string, WalletEntry>;
 const primaryWallet = wallets.walletA;
 
 const provider = new MockAssetProvider();
+const solanaProvider = new SolanaAssetProvider();
+
+function explorerAddressUrl(address: string) {
+  return `https://explorer.solana.com/address/${address}?cluster=devnet`;
+}
+
+function explorerTxUrl(signature: string) {
+  return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+}
 
 const kindLabel: Record<ProvenanceEvent["kind"], string> = {
   minted: "Minted",
@@ -20,6 +31,13 @@ const kindLabel: Record<ProvenanceEvent["kind"], string> = {
   rwa_verified: "RWA Verified",
   vaulted: "Vaulted",
   redeemed: "Redeemed",
+};
+
+const custodyStatusLabel: Record<PhysicalDescriptor["custody"]["status"], string> = {
+  vaulted: "Vaulted",
+  released: "Released",
+  exception: "Exception",
+  pending_intake: "Vault登録前（自己保管）",
 };
 
 const sourceLabel: Record<ProvenanceEvent["source"], string> = {
@@ -53,6 +71,9 @@ export default function Home() {
   const [selected, setSelected] = useState<TwinfoldAsset | null>(null);
   const [redeeming, setRedeeming] = useState<TwinfoldAsset | null>(null);
   const [notice, setNotice] = useState("");
+  const [devnetAssets, setDevnetAssets] = useState<TwinfoldAsset[]>([]);
+  const [devnetStatus, setDevnetStatus] = useState<DevnetStatus>("loading");
+  const [devnetError, setDevnetError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +83,43 @@ export default function Home() {
       lists.flat().forEach((asset) => merged.set(asset.id, asset));
       setAllAssets(Array.from(merged.values()));
     });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    solanaProvider
+      .listConfiguredAssetIds()
+      .then(async (assetIds) => {
+        if (cancelled) return;
+        if (assetIds.length === 0) {
+          setDevnetStatus("unconfigured");
+          return;
+        }
+        const results = await Promise.allSettled(assetIds.map((id) => solanaProvider.getAsset(id)));
+        if (cancelled) return;
+        const loaded = results
+          .filter((r): r is PromiseFulfilledResult<TwinfoldAsset> => r.status === "fulfilled")
+          .map((r) => r.value);
+        const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+        setDevnetAssets(loaded);
+        if (loaded.length === 0) {
+          setDevnetStatus("error");
+          setDevnetError(failed[0]?.reason instanceof Error ? failed[0].reason.message : "取得に失敗しました");
+        } else {
+          setDevnetStatus("ready");
+          if (failed.length > 0) {
+            setDevnetError(`${failed.length}件のAssetは取得に失敗しました`);
+          }
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setDevnetStatus("error");
+        setDevnetError(error instanceof Error ? error.message : "取得に失敗しました");
+      });
     return () => {
       cancelled = true;
     };
@@ -136,7 +194,7 @@ export default function Home() {
             <div className="seal">DEMO<br /><b>DATA</b><br />NOT ON CHAIN</div>
           </div>
           <div className="proofRow">
-            <span>浮世絵 Reference Asset</span><span>Vault保管</span><span>Solana devnet接続は未実装</span><span>XRギャラリー対応</span>
+            <span>浮世絵 Reference Asset</span><span>Vault保管</span><span>Solana devnet接続（テストAsset）</span><span>XRギャラリー対応</span>
           </div>
         </section>
       ) : (
@@ -174,6 +232,70 @@ export default function Home() {
         )}
       </section>
 
+      <section className="works shell devnetSection" id="devnet-assets">
+        <div className="sectionTitle">
+          <div>
+            <span>SOLANA DEVNET · ON-CHAIN</span>
+            <h2>Devnet assets</h2>
+          </div>
+          <p className="demoBadge">DEVNET</p>
+        </div>
+
+        {devnetStatus === "loading" && <p className="emptyState">Devnet Assetを読み込み中…</p>}
+        {devnetStatus === "unconfigured" && (
+          <p className="emptyState">
+            SOLANA_ASSET_ADDRESSESが未設定です。apps/web/.env.localに設定するとここにdevnet Assetが表示されます。
+          </p>
+        )}
+        {devnetStatus === "error" && devnetAssets.length === 0 && (
+          <p className="emptyState">Devnet Assetの取得に失敗しました: {devnetError}</p>
+        )}
+        {devnetStatus === "ready" && (
+          <>
+            {devnetError && <p className="emptyState small">{devnetError}</p>}
+            <div className="grid devnetGrid">
+              {devnetAssets.map((asset) => (
+                <article className="devnetCard" key={asset.id}>
+                  <div className="cardMeta">
+                    <span>{asset.standard} · {asset.network}</span>
+                    <span>{asset.owner ? shortAddress(asset.owner) : "unowned"}</span>
+                  </div>
+                  <h3>{asset.title}</h3>
+                  <p className="workName">
+                    <a href={explorerAddressUrl(asset.address)} target="_blank" rel="noreferrer">
+                      {asset.address}
+                    </a>
+                  </p>
+                  <div className="eyebrow">PROVENANCE</div>
+                  <ol className="provenanceList">
+                    {sortedProvenance(asset).map((event) => (
+                      <li className="provenanceItem" key={event.id}>
+                        <div className="provenanceHead">
+                          <strong>{kindLabel[event.kind]}</strong>
+                          <span className={`statusTag ${event.status}`}>{event.status}</span>
+                        </div>
+                        <div className="provenanceMeta">
+                          <span className="sourceTag">{sourceLabel[event.source]}</span>
+                          <span>{event.occurredAt}</span>
+                        </div>
+                        {event.transaction && (
+                          <div className="provenanceDetail">
+                            tx:{" "}
+                            <a href={explorerTxUrl(event.transaction)} target="_blank" rel="noreferrer">
+                              {event.transaction}
+                            </a>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
       <footer className="shell"><span>TWINFOLD / TOKYO</span><p>Real-world provenance, spatially alive.</p><span>© 2026</span></footer>
 
       {selected && (
@@ -200,7 +322,7 @@ export default function Home() {
                   <dl>
                     <div><dt>Physical ID</dt><dd>{selected.physical.physicalId}</dd></div>
                     <div><dt>Condition</dt><dd>{selected.physical.condition}</dd></div>
-                    <div><dt>Custody</dt><dd>{selected.physical.custody.vault} ({selected.physical.custody.status})</dd></div>
+                    <div><dt>Custody</dt><dd>{selected.physical.custody.vault} ({custodyStatusLabel[selected.physical.custody.status]})</dd></div>
                     <div><dt>Last verified</dt><dd>{selected.physical.lastVerifiedAt}</dd></div>
                   </dl>
                   <p className="description small">{selected.physical.rights}</p>

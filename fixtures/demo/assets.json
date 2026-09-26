@@ -5,68 +5,68 @@
     "address": "DEMO-UKIYOE-0001",
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
-    "title": "歌川広重「名所江戸百景 真間の紅葉手古那の社継はし」（DEMO）",
+    "title": "葛飾北斎（推定）「北斎漫画」十三編（推定）挿絵2丁（DEMO）",
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-demo.png",
+      "imageUrl": "/artworks/ukiyoe-hokusai-manga13.png",
       "placeholder": true,
-      "rightsNote": "画像: 歌川広重「名所江戸百景 真間の紅葉手古那の社継はし」（1857、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/ukiyo-e-utagawa-hiroshige-0081175/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-24確認）。Twinfoldが保有する実物の写真ではない"
+      "rightsNote": "作品（図柄）は著作権消滅（推定される刊行から100年以上経過）。画像はTwinfoldが撮影した実物の写真2枚（scan/IMG_6034.JPG、scan/IMG_6035.JPG）を傾き補正し、白いマットの上に左右に配置した合成画像。マットの寸法は推定。店の販売用ラベル（店札）は写っていない"
     },
-    "spatialRepresentation": { "kind": "card" },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
     "provenance": [
       {
         "id": "tf-ukiyoe-001-evt-1",
         "assetId": "tf-ukiyoe-001",
         "kind": "rwa_verified",
-        "occurredAt": "2026-09-01T02:00:00Z",
+        "occurredAt": "2026-09-27T00:00:00Z",
         "source": "offchain_evidence",
         "status": "confirmed",
-        "evidenceHash": "DEMO-HASH-RWA-0001",
+        "evidenceHash": "b4acdc37b796bc1172b07d7aa0abffc8b689369bbc2cd6dd0642eba0a139ba8f",
         "metadata": {
-          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
-          "era": "図柄は安政4年（1857）の版行。デモ用個体の摺り時期は未確認",
-          "artist": "歌川広重（図柄の作者。デモ用個体の真贋・摺りは未確認）"
+          "note": "所蔵館の記録で、揃物名・判型・時代観の存在を確認した（確認日2026-09-27）。この個体の図との一致は未照合",
+          "seriesTitleRecordCheck": "北斎漫画 十三編。東京国立博物館デジタルライブラリー（https://webarchives.tnm.jp/dlib/detail/5225）とInternet Archive（https://archive.org/details/denshinkaishuhov13kats）に該当編の記録あり",
+          "formatRecordCheck": "半紙本。東京国立博物館の記録寸法24.5×16.0cm、江戸東京博物館アーカイブズ（https://www.edohakuarchives.jp/detail-55.html）の記録寸法22.8×15.9cm（いずれも綴じた本の寸法で、ばらした紙の実寸とは別）",
+          "publisherRecordCheck": "江戸東京博物館アーカイブズに永楽屋東四郎版（天保頃）の記録あり。この個体の版元・改印は画像に見当たらず未確認",
+          "eraRecordCheck": "所蔵記録は嘉永2年（1849）説と天保頃（1830〜1844）説に分かれる。この個体の摺り時期（江戸期／明治後摺／1969年芸艸堂版のいずれか）は未確認",
+          "evidenceHashNote": "evidenceHashはTwinfoldが作成した表示用合成画像（fixtures/demo/artworks/ukiyoe-hokusai-manga13.png）のSHA-256"
         }
       },
       {
         "id": "tf-ukiyoe-001-evt-2",
         "assetId": "tf-ukiyoe-001",
-        "kind": "minted",
-        "occurredAt": "2026-09-05T03:00:00Z",
-        "source": "onchain",
-        "status": "confirmed",
-        "transaction": "DEMO-TX-MINT-0001",
-        "slot": 1,
-        "metadata": {
-          "note": "Metaplex Core AssetをSolana devnetへmint（デモ）"
-        }
-      },
-      {
-        "id": "tf-ukiyoe-001-evt-3",
-        "assetId": "tf-ukiyoe-001",
-        "kind": "vaulted",
-        "occurredAt": "2026-09-10T04:00:00Z",
+        "kind": "rwa_verified",
+        "occurredAt": "2026-09-27T00:30:00Z",
         "source": "twinfold_interpretation",
         "status": "confirmed",
         "metadata": {
-          "note": "現物をVaultで保管継続、Assetはactiveのまま（デモ）"
+          "note": "画像からの推定。確度は項目ごとに中〜低。実物での確認前（鑑定ではない）",
+          "artist": "葛飾北斎（推定、確度中）。根拠: 版面の柱の書名と店札の記載。落款はこの2面に見当たらない（北斎漫画は各図に落款を入れない図様のため）",
+          "figureTitles": "振り仮名からの推定（確度中、「猿樂比部」は確度低）。左: 塗附／廟祝／山伏。右: 薩摩守／猿樂比部／業平餅",
+          "sameOpeningNote": "左右2枚は同じ見開きの左右である可能性が高い（推定、確度中）。根拠: 柱の書名の位置（左の紙は左端、右の紙は右端）が袋綴じ本の見開きと一致し、隣接する余白で人物が枠で切れている",
+          "storeDescriptionNote": "店札（購入時のマット左上に貼付）は『北斎 HOKUSAI／北斎漫画 十三編／Hokusai manga (Hokusai sketchbook), vol.13／オリジナル版画／江戸時代』と記載。店の説明であり、Twinfoldが確認した事実ではない。店名・住所・価格はrepoに含めない",
+          "sourceImageHashes": {
+            "scanImg6034": "01721d75e3940b9d55d10ca5345649374316c1db0bd85c9e8fcd6042b3396abb",
+            "scanImg6035": "6e9563d4ff762937094fb479a8f17694afd164c60a9837d4f0773d57c44fd82c"
+          }
         }
       }
     ],
     "physical": {
       "physicalId": "PHY-DEMO-0001",
-      "condition": "軽微な退色、シミなし（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfoldが保有する実物の写真ではない",
+      "condition": "画像からの所見、第三者評価ではない（実物未確認）。摺り: 墨・灰色に薄紅の色版が入る淡彩摺で、当初の色か補彩かは判断不可。色: 2枚とも紙全体に黄変・くすみが見られ、原因は判断不可。紙: 左は上段中央に白い欠損、左上余白と四辺に小さな欠けや虫損らしき穴。右は上段中央に赤い小点、下辺と右上に小さな欠けや穴、右下の枠内に黒っぽい汚れ。裏打ち・補修・補彩の有無、余白の有無（トリミングの可能性）は写真からは判断不可",
+      "rights": "物理所有権は本人（自宅保管、デモ期間中。Twinfold Vaultへは未登録）。図柄は著作権消滅（推定）。表示画像はTwinfoldが実物を撮影し、傾き補正・合成した画像で、店の販売用ラベルは写っていない",
       "custody": {
-        "vault": "TYO-DEMO-01",
-        "status": "vaulted"
+        "vault": "SELF-CUSTODY",
+        "status": "pending_intake"
       },
-      "lastVerifiedAt": "2026-09-10T04:00:00Z",
+      "lastVerifiedAt": "2026-09-27T00:30:00Z",
       "dimensions": {
-        "widthCm": 26.5,
-        "heightCm": 39,
-        "depthCm": 3,
-        "label": "大判錦絵 約26.5×39cm（縦）"
+        "widthCm": 49,
+        "heightCm": 32.5,
+        "depthCm": 0.5,
+        "label": "マット外寸 約49×32.5cm（推定）。本紙は半紙本の半丁2枚（各約24×14cm、推定）を左右に配置"
       }
     }
   },
@@ -83,7 +83,9 @@
       "placeholder": true,
       "rightsNote": "画像: 歌川広重「近江八景之内 三井晩鐘」（天保期頃、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/painting-utagawa-hiroshige-0080957/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
     },
-    "spatialRepresentation": { "kind": "card" },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
     "provenance": [
       {
         "id": "tf-ukiyoe-002-evt-1",
@@ -154,7 +156,9 @@
       "placeholder": true,
       "rightsNote": "画像: 葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（天保4〜5年頃〈1833–34〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/katsushika-hokusai-0070448/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
     },
-    "spatialRepresentation": { "kind": "card" },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
     "provenance": [
       {
         "id": "tf-ukiyoe-003-evt-1",
@@ -225,7 +229,9 @@
       "placeholder": true,
       "rightsNote": "画像: 楊洲周延「二十四孝見立画合 第二十三号 孟宗」（明治23年〈1890〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/toyohara-chikanobu-0049601/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
     },
-    "spatialRepresentation": { "kind": "card" },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
     "provenance": [
       {
         "id": "tf-ukiyoe-004-evt-1",
@@ -296,7 +302,9 @@
       "placeholder": true,
       "rightsNote": "画像: 高橋松亭「根方の桜」（大正11年〈1922〉、新版画。松亭は1945年没で著作権消滅）。パブリックドメインQ（https://publicdomainq.net/takahashi-shotei-0048450/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfoldが保有する実物の写真ではない"
     },
-    "spatialRepresentation": { "kind": "card" },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
     "provenance": [
       {
         "id": "tf-ukiyoe-005-evt-1",
@@ -367,7 +375,10 @@
       "placeholder": true,
       "rightsNote": "自作SVGから変換したPNG。実物の写真ではない"
     },
-    "spatialRepresentation": { "kind": "model", "resource": "kokeshi_demo.usdz" },
+    "spatialRepresentation": {
+      "kind": "model",
+      "resource": "kokeshi_demo.usdz"
+    },
     "provenance": [
       {
         "id": "tf-kokeshi-001-evt-1",

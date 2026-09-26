@@ -1,0 +1,16 @@
+{
+  "assetId": "tf-ukiyoe-001",
+  "name": "Twinfold Reference Asset (example input)",
+  "description": "Example input for scripts/solana/src/mint.ts. Copy this file, fill in real fields once the scan and cataloguing arrive, and never commit a filled-in file that contains unverified rights claims as if verified.",
+  "attributes": {
+    "artist": "未確認",
+    "series_title": "未確認",
+    "publisher": "未確認",
+    "era": "未確認",
+    "dimensions": "未確認",
+    "condition_notes": "未確認",
+    "image_rights": "未確認",
+    "evidence_hash": "未確認",
+    "verification_status": "unconfirmed"
+  }
+}

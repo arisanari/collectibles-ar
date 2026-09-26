@@ -284,6 +284,8 @@ ownerがWebでVaulted Ownershipを選ぶ
 
 現物はVaultから動かさず、オンチェーンownerだけを移転できる。保管状態に例外が出た場合はAssetを `exception` として表示停止し、解消までtransfer／redeemを許可しない。
 
+`PhysicalDescriptor.custody.status` は4値: `vaulted`（Twinfold運用のVaultに預けている）、`released`（redeem完了により現物を出庫し、Passportだけが残る）、`exception`（不一致・要解消の異常状態、表示停止）、`pending_intake`（実物は記録済みだが、まだTwinfold運用のVaultへ登録・移送されていない。個人の自己保管など、RWA登録前の中間状態。異常ではないので`exception`とは区別する）。
+
 #### G. Physical Ownership、redeem、配送ドライラン
 
 ```text
@@ -448,7 +450,7 @@ interface AssetProvider {
 }
 ```
 
-- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う。fixtureは複数Asset（浮世絵5点のパブリックドメイン複製画像＋こけし1点）を含み、第9節のReference Asset（権利確認済みの実物）とは別物
+- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う。fixtureは複数Asset（Reference Asset `tf-ukiyoe-001`の実物記録＋デモ用の浮世絵4点のパブリックドメイン複製画像＋こけし1点）を含む。デモ用の5点は第9節のReference Asset（権利確認済みの実物）とは別物
 - Solana Connectionでは入力元だけを `SolanaAssetProvider` へ差し替える
 - WebとSpatial Clientで別々のfixtureやEvent解釈を持たない
 - fixtureは `DEMO DATA`、実接続は `DEVNET` と表示する
@@ -581,6 +583,7 @@ MVP外:
 実装前に確定する事項:
 
 - Solana transactionから復元するEvent範囲とRPC／DAS provider
+  - 暫定決定（2026-09-26）: Metaplex Coreは`getSignaturesForAsset`が使えない（compressed asset専用でCore assetには`Tree not found`が返る）ため、標準RPCの`getSignaturesForAddress`を使う。最古のtransactionを`minted`、以降をすべて`transferred`とみなす簡易判定で、instruction decodeによるmetadata更新との区別はしていない。実transfer実装時（Issue #29）にinstruction decodeで区別する。
 - Spatial ClientとBackend間のAPI schemaおよび更新通知方式
 - ARKitの永続anchor、対応iPhone範囲
 - TestFlightを使うか、対面Development Buildに限定するか
