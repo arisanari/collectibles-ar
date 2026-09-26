@@ -58,7 +58,7 @@ Meta Quest、AndroidはMVP後のAdapter展開先です。
 
 ## 現在の実装状況
 
-現在はWebとvisionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは浮世絵5点（パブリックドメインの複製画像、紙の表示）とこけし1点（棚の拡張例、USDZ twin表現）です。iPhone AR（`apps/ios`）では、My Roomで複数の作品を壁や机に置き、transferに応じたDisappear／Appearまでfixtureで動きます。
+現在はWeb、iPhone AR（iOS）、visionOSの**UIプロトタイプ**です。ウォレット、Solana、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。画面上の作品・証明番号・所有状態はすべて `DEMO DATA` で、fixtureは浮世絵5点（パブリックドメインの複製画像、紙の表示）とこけし1点（棚の拡張例、USDZ twin表現）です。iPhone AR（`apps/ios`）では、My Roomで複数の作品を壁や机に置き、transferに応じたDisappear／Appearまでfixtureで動きます。
 
 ### Web
 

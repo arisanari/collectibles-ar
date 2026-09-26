@@ -448,7 +448,7 @@ interface AssetProvider {
 }
 ```
 
-- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う
+- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う。fixtureは複数Asset（浮世絵5点のパブリックドメイン複製画像＋こけし1点）を含み、第9節のReference Asset（権利確認済みの実物）とは別物
 - Solana Connectionでは入力元だけを `SolanaAssetProvider` へ差し替える
 - WebとSpatial Clientで別々のfixtureやEvent解釈を持たない
 - fixtureは `DEMO DATA`、実接続は `DEVNET` と表示する

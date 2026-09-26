@@ -23,7 +23,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0001",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
           "era": "図柄は安政4年（1857）の版行。デモ用個体の摺り時期は未確認",
           "artist": "歌川広重（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
@@ -94,7 +94,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0002",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
           "era": "図柄は天保期頃の版行。デモ用個体の摺り時期は未確認",
           "artist": "歌川広重（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
@@ -165,7 +165,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0003",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
           "era": "図柄は天保4〜5年頃（1833–34）の版行。デモ用個体の摺り時期は未確認",
           "artist": "葛飾北斎（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
@@ -236,7 +236,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0004",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
           "era": "図柄は明治23年（1890）の版行。デモ用個体の摺り時期は未確認",
           "artist": "楊洲周延（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
@@ -307,7 +307,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-0005",
         "metadata": {
-          "note": "Trust Gate通過。来歴・状態・権利情報を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の来歴・状態は未確認、画像はパブリックドメインの複製",
           "era": "図柄は大正11年（1922）の版行。デモ用個体の摺り時期は未確認",
           "artist": "高橋松亭（図柄の作者。デモ用個体の真贋・摺りは未確認）"
         }
@@ -378,7 +378,7 @@
         "status": "confirmed",
         "evidenceHash": "DEMO-HASH-RWA-KOKESHI-0001",
         "metadata": {
-          "note": "Trust Gate通過。産地・工人・来歴を確認（デモ）",
+          "note": "Trust Gate通過を想定したデモ記録。実物の産地・工人・来歴は未確認、画像はデモ用プレースホルダー",
           "region": "東北地方（デモ用架空表記）",
           "maker": "デモ工房（架空、実在の工人ではない）"
         }
@@ -410,7 +410,7 @@
     ],
     "physical": {
       "physicalId": "PHY-DEMO-0002",
-      "condition": "彩色良好、経年による艶引けわずか",
+      "condition": "彩色良好、経年による艶引けわずか（デモ用架空表記）",
       "rights": "物理所有権はVault保管者。造形・図案の著作権は工人に帰属し得るため二次利用不可。画像はデモ用プレースホルダーで実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
