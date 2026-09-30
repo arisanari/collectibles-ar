@@ -256,6 +256,11 @@ export default function Home() {
             <div className="grid devnetGrid">
               {devnetAssets.map((asset) => (
                 <article className="devnetCard" key={asset.id}>
+                  {asset.display.imageUrl && (
+                    <div className="devnetCardThumb">
+                      <Image src={asset.display.imageUrl} alt={asset.title} fill sizes="80px" className="contain" />
+                    </div>
+                  )}
                   <div className="cardMeta">
                     <span>{asset.standard} · {asset.network}</span>
                     <span>{asset.owner ? shortAddress(asset.owner) : "unowned"}</span>

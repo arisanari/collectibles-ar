@@ -17,4 +17,9 @@ public enum AssetProviderError: Error, Sendable {
     case assetNotFound(String)
     case fixtureNotFound(String)
     case decodingFailed(String)
+    /// Network-level failure (timeout, no connection, etc.) reaching a
+    /// Backend API, e.g. `SolanaAssetProvider`'s Twinfold API calls.
+    case networkFailed(String)
+    /// Backend API responded with a non-2xx HTTP status.
+    case httpError(status: Int, url: String)
 }

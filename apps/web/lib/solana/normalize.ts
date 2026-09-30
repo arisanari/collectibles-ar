@@ -1,6 +1,9 @@
-import type { ProvenanceEvent, TwinfoldAsset } from "../contract";
+import type { TwinfoldAsset, ProvenanceEvent } from "../contract";
 import type { HeliusAsset, HeliusSignatureInfo } from "./heliusClient";
 import { loadAssetRegistry } from "./assetRegistry";
+import offchainAssetsFixture from "../fixtures/demo/assets.json";
+
+const offchainAssets = offchainAssetsFixture as TwinfoldAsset[];
 
 function attributeValue(asset: HeliusAsset, traitType: string): string | undefined {
   return asset.content.metadata.attributes?.find((a) => a.trait_type === traitType)?.value;
@@ -15,18 +18,63 @@ function reverseRegistryLookup(address: string): string | null {
 }
 
 /**
+ * Looks up Twinfold's own off-chain record for `assetId` in
+ * fixtures/demo/assets.json (the same record Web/iOS/visionOS read via
+ * MockAssetProvider). When a devnet Asset's registry id matches one of
+ * these records, `heliusAssetToTwinfoldAsset` uses it as the source of
+ * `display`, `spatialRepresentation`, and `physical` — none of which live
+ * on-chain (docs/architecture.md section 3: "浮世絵・こけしなどvertical固有の
+ * ...要件はRWA Adapter内に置き、Coreへ埋め込まない"). This is a stand-in for a
+ * real RWA Adapter/DB lookup (Phase 3); reusing the demo fixture keeps a
+ * single source for the Reference Asset's off-chain facts until that
+ * exists.
+ */
+function findOffchainRecord(assetId: string): TwinfoldAsset | undefined {
+  return offchainAssets.find((asset) => asset.id === assetId);
+}
+
+/**
  * Normalizes a Helius DAS getAsset result (Metaplex Core) into a
- * TwinfoldAsset, using the on-chain transaction history for `provenance`.
- * `physical` is intentionally omitted here: Physical/RWA fields come from
- * the RWA Adapter (Phase 3), not from on-chain metadata, per
- * docs/architecture.md section 3 ("浮世絵・こけしなどvertical固有の...要件は
- * RWA Adapter内に置き、Coreへ埋め込まない").
+ * TwinfoldAsset. `owner`, `address`, `network`, and the on-chain
+ * (`source: "onchain"`) provenance always come from chain data. When the
+ * registry id has a matching off-chain record (see `findOffchainRecord`),
+ * `display`, `spatialRepresentation`, and `physical` come from that record
+ * instead of being left empty/`card`-only, and its own
+ * `offchain_evidence`/`twinfold_interpretation` provenance events are merged
+ * in, sorted chronologically alongside the on-chain events. Without a
+ * matching record, `physical` stays omitted and `display`/
+ * `spatialRepresentation` fall back to the previous empty-image/card
+ * defaults.
  */
 export function heliusAssetToTwinfoldAsset(
   heliusAsset: HeliusAsset,
   signatures: HeliusSignatureInfo[]
 ): TwinfoldAsset {
   const assetId = reverseRegistryLookup(heliusAsset.id) ?? `devnet-${heliusAsset.id}`;
+  const onchainProvenance = heliusTransactionsToProvenanceEvents(assetId, signatures);
+  const offchainRecord = findOffchainRecord(assetId);
+
+  if (offchainRecord) {
+    const offchainOnlyProvenance = offchainRecord.provenance.filter(
+      (event) => event.source !== "onchain"
+    );
+    const provenance = [...onchainProvenance, ...offchainOnlyProvenance].sort((a, b) =>
+      a.occurredAt.localeCompare(b.occurredAt)
+    );
+
+    return {
+      id: assetId,
+      network: "devnet",
+      address: heliusAsset.id,
+      standard: "metaplex-core",
+      owner: heliusAsset.ownership.owner,
+      title: heliusAsset.content.metadata.name,
+      display: offchainRecord.display,
+      spatialRepresentation: offchainRecord.spatialRepresentation,
+      provenance,
+      physical: offchainRecord.physical,
+    };
+  }
 
   return {
     id: assetId,
@@ -48,7 +96,7 @@ export function heliusAssetToTwinfoldAsset(
         "画像利用権は未登録（Phase 3のRWA Adapterで追加予定）",
     },
     spatialRepresentation: { kind: "card" },
-    provenance: heliusTransactionsToProvenanceEvents(assetId, signatures),
+    provenance: onchainProvenance,
   };
 }
 

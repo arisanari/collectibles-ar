@@ -26,3 +26,14 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_NSCameraUsageDescription: "AR空間にAssetを配置するためにカメラを使用します"
         INFOPLIST_KEY_UIRequiredDeviceCapabilities: arkit
+    # Devnetモード（SolanaAssetProvider）がTwinfold API（apps/web、既定
+    # http://localhost:3000）へhttpで接続するための追加キー。
+    # NSAllowsLocalNetworkingだけを許可し、任意のhttp接続は許可しない
+    # （Issue #14）。実機ではTWINFOLD_API_BASE_URLをMacのLAN IPに変更する
+    # 必要がある（.claude/skills/ios-realitykit-ar/SKILL.md参照）。
+    info:
+      path: Generated/Info.plist
+      properties:
+        TWINFOLD_API_BASE_URL: "http://localhost:3000"
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true

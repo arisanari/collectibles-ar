@@ -16,8 +16,8 @@ struct MyRoomView: View {
     /// so placing/cancelling can restore it instead of always reopening.
     @State private var trayOpenBeforeHolding: Bool?
 
-    init(provider: any AssetProvider) {
-        _controller = State(initialValue: RoomController(provider: provider))
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider) {
+        _controller = State(initialValue: RoomController(mockProvider: mockProvider, devnetProvider: devnetProvider))
     }
 
     var body: some View {
@@ -54,11 +54,22 @@ struct MyRoomView: View {
         }
         .overlay {
             if let loadErrorMessage = controller.loadErrorMessage {
-                Text(loadErrorMessage)
-                    .foregroundStyle(.red)
-                    .padding()
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
-                    .padding()
+                VStack(spacing: 8) {
+                    Text(loadErrorMessage)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                    // Devnet-only: the API may simply not be running
+                    // (see TWINFOLD_API_BASE_URL in project.yml) — give an
+                    // explicit way back to the always-available fixture
+                    // instead of leaving the room stuck on an error.
+                    if controller.dataMode == .devnet {
+                        Button("Demo dataに戻る") { controller.switchDataMode(to: .demo) }
+                            .buttonStyle(.bordered)
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding()
             }
         }
     }

@@ -5,11 +5,12 @@ import RealityKit
 import TwinfoldCore
 import TwinfoldSpatial
 
-/// One of the two demo wallets from fixtures/demo/wallets.json. Hardcoded
-/// here (not loaded from the fixture bundle) to avoid exposing
-/// wallets.json through TwinfoldCore's public API. Keep in sync with the
-/// JSON file by hand per docs/architecture.md section 5 (core-contract
-/// skill).
+/// One of the demo (fixtures/demo/wallets.json) or devnet public keys this
+/// app can act as. Hardcoded here (not loaded from the fixture bundle) to
+/// avoid exposing wallets.json through TwinfoldCore's public API. Keep in
+/// sync with the JSON file / Issue #14's devnet test wallets by hand per
+/// docs/architecture.md section 5 (core-contract skill). Only the *public*
+/// key is ever hardcoded — no secret key material lives in this repo.
 struct DemoWallet: Identifiable, Hashable {
     let id: String // wallet address
     let label: String
@@ -18,9 +19,31 @@ struct DemoWallet: Identifiable, Hashable {
     static let ownerB = DemoWallet(id: "DEMOwalletB2222222222222222222222222222222", label: "Owner B (demo)")
     static let all: [DemoWallet] = [ownerA, ownerB]
 
-    static func label(forWallet wallet: String) -> String {
-        all.first(where: { $0.id == wallet })?.label ?? wallet
+    /// devnet owner-a / owner-b public keys (Issue #14). Devnet mode's
+    /// wallet switch uses these instead of the DEMOwallet* pairs above.
+    static let ownerADevnet = DemoWallet(id: "21hni5fvVgWm1NVAUBkki5ogTVweYsB7G9uVab9xTLWZ", label: "Owner A (devnet)")
+    static let ownerBDevnet = DemoWallet(id: "6PWqBp82LwA15yrthuN83qJowaqNCmYBMWK5nUNJBLcn", label: "Owner B (devnet)")
+    static let allDevnet: [DemoWallet] = [ownerADevnet, ownerBDevnet]
+
+    static func wallets(for mode: DataMode) -> [DemoWallet] {
+        mode == .demo ? all : allDevnet
     }
+
+    static func label(forWallet wallet: String) -> String {
+        (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
+    }
+}
+
+/// Which `AssetProvider` backs the room: bundled fixture (always available)
+/// or the Twinfold API's devnet-backed routes (may fail if the API isn't
+/// reachable — see `RoomController.loadErrorMessage`). Mirrors
+/// `AssetProvider.isDemoData`'s DEMO DATA / DEVNET label split.
+enum DataMode: String, CaseIterable, Identifiable, Sendable {
+    case demo
+    case devnet
+
+    var id: String { rawValue }
+    var label: String { self == .demo ? "Demo data" : "Devnet" }
 }
 
 enum TransferState: Sendable, Equatable {
@@ -76,7 +99,14 @@ private struct PlacementCoord {
 @MainActor
 @Observable
 final class RoomController {
-    let provider: any AssetProvider
+    private let mockProvider: MockAssetProvider
+    private let devnetProvider: SolanaAssetProvider
+    private(set) var dataMode: DataMode = .demo
+    /// The currently-active `AssetProvider` for `dataMode`. Read-only from
+    /// the outside (screens/tests use this, never `mockProvider`/
+    /// `devnetProvider` directly) so `isDemoData`-driven UI (DEMO
+    /// DATA/DEVNET badges, transfer disabling) always matches `dataMode`.
+    var provider: any AssetProvider { dataMode == .demo ? mockProvider : devnetProvider }
     let isARSupported = ARWorldTrackingConfiguration.isSupported
 
     weak var arView: ARView?
@@ -111,8 +141,9 @@ final class RoomController {
     /// card snaps flush with an already-placed one.
     private static let wallSnapTolerance: Float = 0.03
 
-    init(provider: any AssetProvider) {
-        self.provider = provider
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider) {
+        self.mockProvider = mockProvider
+        self.devnetProvider = devnetProvider
     }
 
     // MARK: - Wallet / ownership
@@ -122,6 +153,8 @@ final class RoomController {
 
     func isPlaced(_ assetId: String) -> Bool { placementCoords[assetId] != nil }
     func transferState(for assetId: String) -> TransferState { transferStates[assetId] ?? .idle }
+
+    var walletOptions: [DemoWallet] { DemoWallet.wallets(for: dataMode) }
 
     func start() async {
         await loadOwnedAssets()
@@ -133,6 +166,30 @@ final class RoomController {
         selectedAssetId = nil
         holdingAssetId = nil
         cancelHolding()
+        Task { await loadOwnedAssets() }
+    }
+
+    /// Switches between the bundled fixture (`DEMO DATA`) and the Twinfold
+    /// API's devnet routes (`DEVNET`), clearing every placed
+    /// entity/selection/pending-transfer first — the two modes' assets and
+    /// wallets are unrelated, so nothing carries over. Defaults are the
+    /// active mode's first wallet (Owner A). Defaults to Demo data at app
+    /// launch; the user must explicitly switch to Devnet each session.
+    func switchDataMode(to mode: DataMode) {
+        guard mode != dataMode else { return }
+
+        for live in liveEntities.values {
+            arView?.scene.removeAnchor(live.anchor)
+        }
+        liveEntities.removeAll()
+        placementCoords.removeAll()
+        transferStates.removeAll()
+        selectedAssetId = nil
+        cancelHolding()
+        toast = nil
+
+        dataMode = mode
+        activeWallet = DemoWallet.wallets(for: mode).first ?? .ownerA
         Task { await loadOwnedAssets() }
     }
 
@@ -417,7 +474,12 @@ final class RoomController {
         transferStates.values.contains(.pending)
     }
 
+    /// Real devnet transfer is tracked separately (Issue #29); in Devnet
+    /// mode this is a no-op so `RoomOverlayView` (which also hides the
+    /// "送る" control there) can't trigger a pseudo-transfer against real
+    /// devnet data.
     func sendSelected() {
+        guard dataMode == .demo else { return }
         guard let assetId = selectedAssetId,
               let live = liveEntities[assetId],
               let asset = ownedAssets.first(where: { $0.id == assetId }) else { return }
@@ -433,6 +495,7 @@ final class RoomController {
 
     /// Overflow menu "失敗をシミュレート (demo)" for the selected asset.
     func simulateFailureForSelected() {
+        guard dataMode == .demo else { return }
         guard let assetId = selectedAssetId,
               let live = liveEntities[assetId],
               transferState(for: assetId) != .pending else { return }
@@ -515,7 +578,7 @@ final class RoomController {
         selectedAssetId = nil
         cancelHolding()
         toast = nil
-        activeWallet = .ownerA
+        activeWallet = walletOptions.first ?? .ownerA
 
         if let mock = provider as? MockAssetProvider {
             Task {

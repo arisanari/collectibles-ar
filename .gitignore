@@ -17,6 +17,7 @@ xcuserdata/
 # XcodeGen output (regenerate with `xcodegen generate` in apps/ios and apps/visionos)
 apps/ios/*.xcodeproj
 apps/visionos/*.xcodeproj
+apps/ios/Generated/
 
 # Swift Package Manager build output
 .build/

@@ -62,7 +62,16 @@ public enum ProvenanceNodeEntity {
         )
         node.addChild(plate)
 
-        let label = "\(event.kind.rawValue)\n\(shortDate(event.occurredAt))"
+        // Distinguishes on-chain fact from off-chain evidence/Twinfold
+        // interpretation per docs/architecture.md section 4 ("UIでは
+        // onchain、offchain_evidence、twinfold_interpretationを混同しない")
+        // and shows a shortened tx signature for on-chain events (Issue
+        // #14: "onchainのmint（tx短縮表示）と、off-chainの記録（source別に
+        // 区別できる表示）が出ること").
+        var label = "\(event.kind.rawValue)\n\(shortDate(event.occurredAt))\n\(sourceAbbrev(event.source))"
+        if let tx = event.transaction {
+            label += "\ntx:\(shortTransaction(tx))"
+        }
         let textMesh = MeshResource.generateText(
             label,
             extrusionDepth: 0.0005,
@@ -97,5 +106,18 @@ public enum ProvenanceNodeEntity {
 
     private static func shortDate(_ isoTimestamp: String) -> String {
         String(isoTimestamp.prefix(10))
+    }
+
+    private static func sourceAbbrev(_ source: ProvenanceSource) -> String {
+        switch source {
+        case .onchain: return "on-chain"
+        case .offchainEvidence: return "evidence"
+        case .twinfoldInterpretation: return "interpretation"
+        }
+    }
+
+    private static func shortTransaction(_ signature: String) -> String {
+        guard signature.count > 8 else { return signature }
+        return "\(signature.prefix(4))…\(signature.suffix(4))"
     }
 }

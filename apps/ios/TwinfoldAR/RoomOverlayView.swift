@@ -87,16 +87,24 @@ struct RoomOverlayView: View {
 
     private var overflowMenu: some View {
         Menu {
+            Menu("データソース: \(controller.dataMode.label)") {
+                ForEach(DataMode.allCases) { mode in
+                    Button(mode.label) { controller.switchDataMode(to: mode) }
+                }
+            }
+
             Menu("Wallet: \(controller.activeWallet.label)") {
-                ForEach(DemoWallet.all) { wallet in
+                ForEach(controller.walletOptions) { wallet in
                     Button(wallet.label) { controller.switchWallet(to: wallet) }
                 }
             }
 
-            Button("失敗をシミュレート (demo)") {
-                controller.simulateFailureForSelected()
+            if controller.provider.isDemoData {
+                Button("失敗をシミュレート (demo)") {
+                    controller.simulateFailureForSelected()
+                }
+                .disabled(controller.selectedAssetId == nil || controller.transferState(for: controller.selectedAssetId ?? "") == .pending)
             }
-            .disabled(controller.selectedAssetId == nil || controller.transferState(for: controller.selectedAssetId ?? "") == .pending)
 
             Button("リセット") {
                 controller.reset()
@@ -136,20 +144,30 @@ struct RoomOverlayView: View {
                     Button("外す") { controller.removeSelected() }
                         .buttonStyle(.bordered)
                     Spacer(minLength: 8)
-                    // "送る" lives in this secondary menu (not a primary
-                    // button) so it isn't the first thing tapped by
-                    // accident, but it's still inside the card — not only
-                    // in the top-right overflow — so a first-time user
-                    // still finds it while looking at the selected asset.
-                    Menu {
-                        Button("\(controller.destinationLabelForSelected)へ送る (demo)") {
-                            controller.sendSelected()
+                    if controller.provider.isDemoData {
+                        // "送る" lives in this secondary menu (not a
+                        // primary button) so it isn't the first thing
+                        // tapped by accident, but it's still inside the
+                        // card — not only in the top-right overflow — so a
+                        // first-time user still finds it while looking at
+                        // the selected asset.
+                        Menu {
+                            Button("\(controller.destinationLabelForSelected)へ送る (demo)") {
+                                controller.sendSelected()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .padding(6)
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                            .padding(6)
+                    } else {
+                        // Real devnet transfer is Issue #29; Place/Pull/
+                        // reset all work against the live devnet data, but
+                        // transfer stays off until that lands.
+                        Text("devnet transferは #29 で対応")
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.6))
                     }
                 }
             case .pending:
