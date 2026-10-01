@@ -93,7 +93,8 @@ export type TwinfoldAsset = {
   address: string; // fixtureは "DEMO-..." で始める
   standard: string; // "metaplex-core"
   owner: string | null;
-  title: string;
+  title: string; // Devnetではon-chain metadata name（onchain fact）
+  titleLocalized?: { ja?: string; en?: string }; // Twinfoldのoff-chain記録。表示言語の選択に使う
   display: DisplayDescriptor;
   spatialRepresentation: SpatialRepresentation;
   provenance: ProvenanceEvent[];

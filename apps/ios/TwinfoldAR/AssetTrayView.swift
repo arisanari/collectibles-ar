@@ -124,7 +124,7 @@ struct AssetTrayView: View {
                         .frame(width: 10, height: 10)
                         .offset(x: 4, y: -4)
                 }
-                Text(asset.title)
+                Text(asset.displayTitle())
                     .font(.caption2)
                     .lineLimit(1)
                     .frame(width: 60)
@@ -144,7 +144,7 @@ struct AssetTrayView: View {
         } else {
             Rectangle()
                 .fill(Color.gray.opacity(0.3))
-                .overlay(Text(String(asset.title.prefix(1))).foregroundStyle(.white))
+                .overlay(Text(String(asset.displayTitle().prefix(1))).foregroundStyle(.white))
         }
     }
 }

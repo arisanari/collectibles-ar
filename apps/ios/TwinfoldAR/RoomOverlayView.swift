@@ -71,7 +71,7 @@ struct RoomOverlayView: View {
                 } else if let error = controller.buybackQuoteError {
                     Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
                 } else if let quote = controller.buybackQuote {
-                    Text(asset?.title ?? "")
+                    Text(asset?.displayTitle() ?? "")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                     Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET — devnetでの実際のtransfer。支払いはありません")
@@ -181,7 +181,7 @@ struct RoomOverlayView: View {
         let state = controller.transferState(for: asset.id)
         return VStack(spacing: 8) {
             VStack(spacing: 2) {
-                Text(asset.title)
+                Text(asset.displayTitle())
                     .font(.headline)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)

@@ -169,7 +169,7 @@ public enum AssetCardEntity {
             // original fixed 0.012).
             let fontSize = max(0.01, cardSize.height * 0.075)
             let textMesh = MeshResource.generateText(
-                asset.title,
+                asset.displayTitle(),
                 extrusionDepth: 0.001,
                 font: .systemFont(ofSize: CGFloat(fontSize)),
                 containerFrame: CGRect(

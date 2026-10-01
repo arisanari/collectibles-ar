@@ -37,7 +37,7 @@ struct CollectionView: View {
                 .frame(width: 10, height: 10)
                 .padding(.top, 6)
             VStack(alignment: .leading, spacing: 4) {
-                Text(asset.title).font(.headline)
+                Text(asset.displayTitle()).font(.headline)
                 Text(asset.address).font(.caption).foregroundStyle(.secondary)
                 if let physical = asset.physical {
                     Text(physical.condition).font(.caption2).foregroundStyle(.secondary)

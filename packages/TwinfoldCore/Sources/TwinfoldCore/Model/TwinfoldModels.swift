@@ -206,6 +206,16 @@ public struct Commerce: Codable, Sendable, Equatable {
     }
 }
 
+public struct LocalizedTitle: Codable, Sendable, Equatable {
+    public let ja: String?
+    public let en: String?
+
+    public init(ja: String? = nil, en: String? = nil) {
+        self.ja = ja
+        self.en = en
+    }
+}
+
 public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let id: String
     public let network: String // "devnet"
@@ -213,6 +223,8 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let standard: String
     public let owner: String?
     public let title: String
+    /// Twinfold off-chain record. `title` stays the on-chain name for Devnet.
+    public let titleLocalized: LocalizedTitle?
     public let display: DisplayDescriptor
     public let spatialRepresentation: SpatialRepresentation
     public let provenance: [ProvenanceEvent]
@@ -226,6 +238,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         standard: String,
         owner: String?,
         title: String,
+        titleLocalized: LocalizedTitle? = nil,
         display: DisplayDescriptor,
         spatialRepresentation: SpatialRepresentation,
         provenance: [ProvenanceEvent],
@@ -238,11 +251,21 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.standard = standard
         self.owner = owner
         self.title = title
+        self.titleLocalized = titleLocalized
         self.display = display
         self.spatialRepresentation = spatialRepresentation
         self.provenance = provenance
         self.physical = physical
         self.commerce = commerce
+    }
+
+    /// ja if the locale's language is Japanese and a ja title exists, else en
+    /// if it exists, else `title`.
+    public func displayTitle(for locale: Locale = .current) -> String {
+        let isJa = locale.language.languageCode?.identifier == "ja"
+        if isJa, let ja = titleLocalized?.ja, !ja.isEmpty { return ja }
+        if let en = titleLocalized?.en, !en.isEmpty { return en }
+        return title
     }
 }
 

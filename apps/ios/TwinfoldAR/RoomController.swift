@@ -750,7 +750,7 @@ final class RoomController {
         transferStates[assetId] = .confirmed
         if selectedAssetId == assetId { selectedAssetId = nil }
         toast = TransferToast(
-            assetTitle: asset.title, destinationWallet: destination,
+            assetTitle: asset.displayTitle(), destinationWallet: destination,
             buybackOfferAmount: destination == MockAssetProvider.vaultWallet ? buybackOfferAmounts[assetId] : nil
         )
         Task { await loadOwnedAssets() }

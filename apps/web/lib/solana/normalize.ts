@@ -87,6 +87,7 @@ export async function heliusAssetToTwinfoldAsset(
       standard: "metaplex-core",
       owner: heliusAsset.ownership.owner,
       title: heliusAsset.content.metadata.name,
+      titleLocalized: offchainRecord.titleLocalized,
       display: offchainRecord.display,
       spatialRepresentation: offchainRecord.spatialRepresentation,
       provenance,

@@ -6,6 +6,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "葛飾北斎（推定）「北斎漫画」十三編（推定）挿絵2丁（DEMO）",
+    "titleLocalized": {
+      "ja": "葛飾北斎（推定）「北斎漫画」十三編（推定）挿絵2丁（DEMO）",
+      "en": "Hokusai Manga vol.13 (attribution unconfirmed) - 2 leaves"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hokusai-manga13.png",
@@ -98,6 +102,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "歌川広重「近江八景之内 三井晩鐘」（DEMO）",
+    "titleLocalized": {
+      "ja": "歌川広重「近江八景之内 三井晩鐘」（DEMO）",
+      "en": "Utagawa Hiroshige, \"Evening Bell at Mii-dera Temple\" from Eight Views of Ōmi (DEMO)"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hiroshige-mii.png",
@@ -180,6 +188,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（DEMO）",
+    "titleLocalized": {
+      "ja": "葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（DEMO）",
+      "en": "Katsushika Hokusai, \"Ancient View of the Eight-Plank Bridge in Mikawa Province\" from Remarkable Views of Bridges in Various Provinces (DEMO)"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hokusai-yatsuhashi.png",
@@ -262,6 +274,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "楊洲周延「二十四孝見立画合 第二十三号 孟宗」（DEMO）",
+    "titleLocalized": {
+      "ja": "楊洲周延「二十四孝見立画合 第二十三号 孟宗」（DEMO）",
+      "en": "Yōshū Chikanobu, \"Mōsō (Meng Zong)\", No. 23 from Nijūshikō mitate e-awase (DEMO)"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-chikanobu-moso.png",
@@ -344,6 +360,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "高橋松亭「根方の桜」（DEMO）",
+    "titleLocalized": {
+      "ja": "高橋松亭「根方の桜」（DEMO）",
+      "en": "Takahashi Shōtei, \"Negata no sakura\" (DEMO)"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-shotei-sakura.png",
@@ -426,6 +446,10 @@
     "standard": "metaplex-core",
     "owner": "DEMOwalletA1111111111111111111111111111111",
     "title": "伝統こけし 雪笹（DEMO）",
+    "titleLocalized": {
+      "ja": "伝統こけし 雪笹（DEMO）",
+      "en": "Traditional Kokeshi \"Yukizasa\" (DEMO)"
+    },
     "display": {
       "kind": "image",
       "imageUrl": "/artworks/kokeshi-placeholder.png",

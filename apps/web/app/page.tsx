@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MockAssetProvider } from "../lib/providers/mockAssetProvider";
 import { SolanaAssetProvider } from "../lib/providers/solanaAssetProvider";
 import type { PhysicalDescriptor, ProvenanceEvent, TwinfoldAsset } from "../lib/contract";
 import { useWalletAuth, type AuthStatus } from "../lib/auth/useWalletAuth";
+import { displayTitle } from "../lib/displayTitle";
 import walletsFixture from "../lib/fixtures/demo/wallets.json";
 
 type View = "discover" | "collection";
@@ -26,6 +27,7 @@ const authLabel: Record<AuthStatus, string> = {
   no_wallet: "Phantomが見つかりません",
   error: "認証エラー",
 };
+const subscribeNoop = () => () => {};
 
 const provider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
@@ -119,6 +121,9 @@ export default function Home() {
       cancelled = true;
     };
   }, [authedWallet]);
+  // Server snapshot is the page language (ja); React swaps to navigator.language after hydration without a mismatch.
+  const lang = useSyncExternalStore(subscribeNoop, () => navigator.language, () => "ja");
+  const title = (asset: TwinfoldAsset) => displayTitle(asset, lang);
 
   useEffect(() => {
     let cancelled = false;
@@ -305,9 +310,9 @@ export default function Home() {
           <div className="grid">
             {items.map((item) => (
               <article className="card" key={item.id} onClick={() => setSelected(item)}>
-                <div className="cardImage"><Image className="contain" src={item.display.imageUrl} alt={item.title} fill sizes="(max-width: 700px) 100vw, 33vw" /></div>
+                <div className="cardImage"><Image className="contain" src={item.display.imageUrl} alt={title(item)} fill sizes="(max-width: 700px) 100vw, 33vw" /></div>
                 <div className="cardMeta"><span>{item.standard} · {item.network} · {spatialLabel(item)}</span><span className={isOwnedByMe(item) ? "owned" : ""}>{isOwnedByMe(item) ? "所蔵中" : "Reference"}</span></div>
-                <h3>{item.title}</h3>
+                <h3>{title(item)}</h3>
                 <div className="price"><span>{item.address}</span><strong>{item.provenance.length} events</strong></div>
               </article>
             ))}
@@ -341,7 +346,7 @@ export default function Home() {
                 <ul className="ownedList">
                   {ownedDevnet.map((asset) => (
                     <li key={asset.id}>
-                      <b>{asset.title}</b> <span className="demoBadge">DEVNET</span>
+                      <b>{title(asset)}</b> <span className="demoBadge">DEVNET</span>
                       <a href={explorerAddressUrl(asset.address)} target="_blank" rel="noreferrer">{asset.address}</a>
                     </li>
                   ))}
@@ -386,14 +391,14 @@ export default function Home() {
                 <article className="devnetCard" key={asset.id}>
                   {asset.display.imageUrl && (
                     <div className="devnetCardThumb">
-                      <Image src={asset.display.imageUrl} alt={asset.title} fill sizes="80px" className="contain" />
+                      <Image src={asset.display.imageUrl} alt={title(asset)} fill sizes="80px" className="contain" />
                     </div>
                   )}
                   <div className="cardMeta">
                     <span>{asset.standard} · {asset.network}</span>
                     <span>{asset.owner ? shortAddress(asset.owner) : "unowned"}</span>
                   </div>
-                  <h3>{asset.title}</h3>
+                  <h3>{title(asset)}</h3>
                   <p className="workName">
                     <a href={explorerAddressUrl(asset.address)} target="_blank" rel="noreferrer">
                       {asset.address}
@@ -435,10 +440,10 @@ export default function Home() {
         <div className="overlay" onMouseDown={() => setSelected(null)}>
           <section className="detail" onMouseDown={(event) => event.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)}>×</button>
-            <div className="detailImage"><Image src={selected.display.imageUrl} alt={selected.title} fill sizes="50vw" /></div>
+            <div className="detailImage"><Image src={selected.display.imageUrl} alt={title(selected)} fill sizes="50vw" /></div>
             <div className="detailBody">
               <div className="eyebrow">{selected.standard.toUpperCase()} / {selected.network.toUpperCase()}</div>
-              <h2>{selected.title}</h2>
+              <h2>{title(selected)}</h2>
               <p className="workName">{selected.address} · owner: {selected.owner ? shortAddress(selected.owner) : "unowned"}</p>
               <p className="description">{selected.display.rightsNote}</p>
 
@@ -496,7 +501,7 @@ export default function Home() {
           <section className="confirm">
             <div className="warning">!</div><div className="eyebrow">PHYSICAL REDEEM</div><h2>物理現物を引き出しますか？</h2>
             <p>Vaultから現物を発送後、対応するAssetはlock／burnされ、XR展示権と二次流通権が失われます。この操作は発送後に取り消せません（デモでは実配送を行いません）。</p>
-            <div className="redeemItem"><Image src={redeeming.display.imageUrl} alt="" width={56} height={70} /><span><b>{redeeming.title}</b><small>{redeeming.physical?.custody.vault ?? redeeming.address}</small></span></div>
+            <div className="redeemItem"><Image src={redeeming.display.imageUrl} alt="" width={56} height={70} /><span><b>{title(redeeming)}</b><small>{redeeming.physical?.custody.vault ?? redeeming.address}</small></span></div>
             <button className="danger" onClick={submitRedeem}>内容を理解して申請する</button><button className="textButton" onClick={() => setRedeeming(null)}>キャンセル</button>
           </section>
         </div>
