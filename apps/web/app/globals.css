@@ -61,3 +61,22 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .toast { position:fixed; z-index:50; left:50%; bottom:30px; transform:translateX(-50%); background:var(--ink); color:white; padding:15px 22px; font:400 11px DM Mono; box-shadow:0 10px 30px #0004; animation:rise .25s ease; }
 @keyframes fade { from{opacity:0} } @keyframes rise { from{opacity:0;transform:translate(-50%,15px)} }
 @media(max-width:900px){.shell{width:min(100% - 32px,700px)}.nav{grid-template-columns:1fr auto}.nav nav{display:none}.hero{padding-top:70px;min-height:880px}.heroArt{top:395px;right:calc(50% - 220px)}.grid{grid-template-columns:1fr}.cardImage{height:520px}.collectionHead{grid-template-columns:1fr 1fr;gap:30px}.collectionHead>div:first-child{grid-column:1/-1}.detail{grid-template-columns:1fr;max-height:92vh;overflow:auto}.detailImage{min-height:370px}.detailBody{padding:40px 28px}.proofRow{gap:20px;overflow:auto}.proofRow span{white-space:nowrap}}@media(max-width:520px){.hero h1{font-size:52px}.heroArt{transform:scale(.8);transform-origin:center}.cardImage{height:430px}.collectionHead h1{font-size:52px}.collectionStat{min-width:0}.detailBody h2{font-size:36px}.desktop{display:none}footer p{display:none}}
+
+.authPanel { border:1px solid var(--ink); border-radius:12px; padding:20px 24px; margin-bottom:32px; }
+.authPanel .authLine { font:500 12px DM Mono; display:flex; gap:10px; align-items:center; margin:8px 0 14px; }
+.authPanel .primary:disabled { opacity:.5; cursor:wait; }
+.ownedList { list-style:none; padding:0; margin:0; font:400 13px Manrope; display:grid; gap:8px; }
+.ownedList li { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.ownedList a { font:400 11px DM Mono; word-break:break-all; }
+
+/* Hero text column must never run under the absolutely-positioned artwork (440px + 40px offset). */
+@media(min-width:901px){.hero>p{max-width:min(520px,calc(100% - 500px))}.hero h1{max-width:min(760px,calc(100% - 500px))}}
+.walletMenuWrap { justify-self:end; position:relative; }
+.walletMenuWrap a.wallet { display:inline-block; text-decoration:none; color:inherit; }
+.wallet:disabled { opacity:.6; cursor:wait; }
+.walletMenu { position:absolute; right:0; top:calc(100% + 8px); background:white; border:1px solid var(--ink); border-radius:12px; padding:10px; display:grid; gap:6px; min-width:200px; z-index:20; }
+.walletMenu button { border:0; background:none; text-align:left; font:500 11px DM Mono; text-transform:uppercase; padding:8px; cursor:pointer; }
+.walletMenu button:hover { background:#f0efe8; }
+.sectionTools { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+.sectionTools p { margin:0; }
+.demoToggle { border:1px dashed var(--muted); background:none; border-radius:999px; padding:6px 12px; font:400 10px DM Mono; color:var(--muted); cursor:pointer; }

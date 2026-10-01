@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MockAssetProvider } from "../lib/providers/mockAssetProvider";
 import { SolanaAssetProvider } from "../lib/providers/solanaAssetProvider";
 import type { PhysicalDescriptor, ProvenanceEvent, TwinfoldAsset } from "../lib/contract";
+import { useWalletAuth, type AuthStatus } from "../lib/auth/useWalletAuth";
 import walletsFixture from "../lib/fixtures/demo/wallets.json";
 
 type View = "discover" | "collection";
@@ -13,6 +14,18 @@ type DevnetStatus = "loading" | "unconfigured" | "error" | "ready";
 
 const wallets = walletsFixture as Record<string, WalletEntry>;
 const primaryWallet = wallets.walletA;
+
+const authLabel: Record<AuthStatus, string> = {
+  disconnected: "未接続",
+  connecting: "接続中…",
+  awaiting_signature: "Phantomで署名してください（費用なし・送金なし）",
+  authenticated: "認証済み",
+  rejected: "署名が拒否されました",
+  expired: "有効期限切れ",
+  switched: "ウォレットが切り替わりました",
+  no_wallet: "Phantomが見つかりません",
+  error: "認証エラー",
+};
 
 const provider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
@@ -74,6 +87,38 @@ export default function Home() {
   const [devnetAssets, setDevnetAssets] = useState<TwinfoldAsset[]>([]);
   const [devnetStatus, setDevnetStatus] = useState<DevnetStatus>("loading");
   const [devnetError, setDevnetError] = useState("");
+  const auth = useWalletAuth();
+  const [ownedResult, setOwnedResult] = useState<{ wallet: string; assets: TwinfoldAsset[]; failed: boolean } | null>(null);
+  const authedWallet = auth.status === "authenticated" ? auth.wallet : null;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const scrollAfterSignIn = useRef(false);
+
+  // After a user-initiated sign-in, reveal the MY DEVNET COLLECTION panel.
+  useEffect(() => {
+    if (authedWallet && scrollAfterSignIn.current) {
+      scrollAfterSignIn.current = false;
+      document.getElementById("devnet-assets")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [authedWallet]);
+  const ownedCurrent = authedWallet && ownedResult?.wallet === authedWallet ? ownedResult : null;
+  const ownedDevnet = ownedCurrent?.assets ?? [];
+  const ownedStatus = !authedWallet ? "idle" : !ownedCurrent ? "loading" : ownedCurrent.failed ? "error" : "ready";
+
+  useEffect(() => {
+    if (!authedWallet) return;
+    let cancelled = false;
+    solanaProvider
+      .getAssets(authedWallet)
+      .then((assets) => {
+        if (!cancelled) setOwnedResult({ wallet: authedWallet, assets, failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setOwnedResult({ wallet: authedWallet, assets: [], failed: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authedWallet]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +187,15 @@ export default function Home() {
     [myAssets],
   );
 
+  function revealDevnetPanel() {
+    document.getElementById("devnet-assets")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function startSignIn() {
+    scrollAfterSignIn.current = true;
+    void auth.connect();
+  }
+
   function connectWallet() {
     const next = !walletConnected;
     setWalletConnected(next);
@@ -176,9 +230,33 @@ export default function Home() {
           <button className={view === "collection" ? "active" : ""} onClick={() => setView("collection")}>Collection</button>
           <span className="demoBadge">{provider.isDemoData ? "DEMO DATA" : "DEVNET"}</span>
         </nav>
-        <button className={walletConnected ? "wallet connected" : "wallet"} onClick={connectWallet}>
-          <span className="statusDot" />{walletConnected ? shortAddress(primaryWallet.address) : "Connect wallet"}
-        </button>
+        <div className="walletMenuWrap">
+          {authedWallet ? (
+            <>
+              <button className="wallet connected" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+                <span className="statusDot" />{shortAddress(authedWallet)} <span aria-hidden="true">▾</span>
+              </button>
+              {menuOpen && (
+                <div className="walletMenu" role="menu">
+                  <span className="demoBadge">DEVNET</span>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); revealDevnetPanel(); }}>My devnet collection</button>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); void auth.logout(); }}>Sign out</button>
+                </div>
+              )}
+            </>
+          ) : auth.status === "no_wallet" ? (
+            <a className="wallet" href="https://phantom.com/download" target="_blank" rel="noreferrer">Install Phantom</a>
+          ) : auth.status === "connecting" || auth.status === "awaiting_signature" ? (
+            <button className="wallet" disabled>
+              <span className="statusDot" />{auth.status === "connecting" ? "Connecting…" : "Sign in Phantom…"}
+            </button>
+          ) : (
+            <button className="wallet" onClick={startSignIn}>
+              <span className="statusDot" />
+              {["rejected", "expired", "switched", "error"].includes(auth.status) ? "Retry" : "Connect Phantom"}
+            </button>
+          )}
+        </div>
       </header>
 
       {view === "discover" ? (
@@ -212,7 +290,12 @@ export default function Home() {
       <section className="works shell" id="works">
         <div className="sectionTitle">
           <div><span>{view === "discover" ? "REFERENCE ASSETS" : "OWNED ASSETS"}</span><h2>{view === "discover" ? "Available assets" : "In your vault"}</h2></div>
-          <p>{items.length.toString().padStart(2, "0")} unique assets</p>
+          <div className="sectionTools">
+            <p>{items.length.toString().padStart(2, "0")} unique assets</p>
+            <button className="demoToggle" onClick={connectWallet} title="Fixtureのデモウォレット（Solanaには接続しません）">
+              DEMO DATA · {walletConnected ? `デモウォレット ${shortAddress(primaryWallet.address)} を切断` : "デモウォレットで表示"}
+            </button>
+          </div>
         </div>
         {view === "collection" && !walletConnected ? (
           <p className="emptyState">ウォレットを接続すると、あなたが所有するAssetが表示されます。</p>
@@ -239,6 +322,51 @@ export default function Home() {
             <h2>Devnet assets</h2>
           </div>
           <p className="demoBadge">DEVNET</p>
+        </div>
+
+        <div className="authPanel">
+          <div className="eyebrow">MY DEVNET COLLECTION</div>
+          {authedWallet ? (
+            <>
+              <p className="authLine">
+                <span className="statusDot" /> {shortAddress(authedWallet)} · {authLabel.authenticated}
+                <button className="textButton" onClick={() => void auth.logout()}>Sign out</button>
+              </p>
+              {ownedStatus === "loading" && <p className="emptyState small">読み込み中…</p>}
+              {ownedStatus === "error" && <p className="emptyState small">所有Assetの取得に失敗しました。</p>}
+              {ownedStatus === "ready" && ownedDevnet.length === 0 && (
+                <p className="emptyState small">このウォレットが所有するdevnet Assetはありません。</p>
+              )}
+              {ownedDevnet.length > 0 && (
+                <ul className="ownedList">
+                  {ownedDevnet.map((asset) => (
+                    <li key={asset.id}>
+                      <b>{asset.title}</b> <span className="demoBadge">DEVNET</span>
+                      <a href={explorerAddressUrl(asset.address)} target="_blank" rel="noreferrer">{asset.address}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="emptyState small">
+                Phantom（devnet）で署名すると、あなたのウォレットが所有するAssetが表示されます。署名は無料で、送金は行われません。
+                未認証の間は下の公開ビューのみ表示します。
+              </p>
+              <p className="authLine">状態: {authLabel[auth.status]}</p>
+              {auth.detail && <p className="emptyState small" role="alert">{auth.detail}</p>}
+              <button
+                className="primary"
+                disabled={auth.status === "connecting" || auth.status === "awaiting_signature"}
+                onClick={() => void auth.connect()}
+              >
+                {auth.status === "rejected" || auth.status === "expired" || auth.status === "switched" || auth.status === "error"
+                  ? "Retry sign-in"
+                  : "Connect Phantom & sign in"}
+              </button>
+            </>
+          )}
         </div>
 
         {devnetStatus === "loading" && <p className="emptyState">Devnet Assetを読み込み中…</p>}
