@@ -81,7 +81,7 @@ struct TransferToast: Identifiable {
     let destinationWallet: String
     /// Set only for a "Twinfoldに売る" buyback: the offer amount shown in the
     /// sheet (display only — no payment happens in Demo or Devnet mode).
-    var buybackOfferAmount: Double? = nil
+    var buybackOfferText: String? = nil
     var destinationLabel: String { DemoWallet.label(forWallet: destinationWallet) }
     /// True for a "Twinfoldに売る" buyback: there's no "相手の部屋を見る"
     /// shortcut for Twinfold's vault (it isn't one of this app's demo
@@ -160,7 +160,7 @@ final class RoomController {
     private(set) var buybackQuoteError: String?
     private(set) var buybackQuoteLoading = false
     /// Offer amount confirmed per asset, kept until the sale's toast shows it.
-    private var buybackOfferAmounts: [String: Double] = [:]
+    private var buybackOfferTexts: [String: String] = [:]
     /// `true` once the current frame's raycast (during holding) found a
     /// matching wall/surface for the held asset's representation. Drives
     /// `hintText`'s "壁に向けてください" vs "タップして壁に掛ける" (and the
@@ -624,7 +624,7 @@ final class RoomController {
 
         transferStates[assetId] = .pending
         transferOperationKinds[assetId] = .buyback
-        buybackOfferAmounts[assetId] = quote.offerAmount
+        buybackOfferTexts[assetId] = "\(Int(quote.offerAmount).formatted(.number.grouping(.automatic))) \(quote.currency)"
         if let live = liveEntities[assetId] {
             AssetCardEntity.apply(state: .pending, to: live.cardEntity)
         }
@@ -751,7 +751,7 @@ final class RoomController {
         if selectedAssetId == assetId { selectedAssetId = nil }
         toast = TransferToast(
             assetTitle: asset.displayTitle(), destinationWallet: destination,
-            buybackOfferAmount: destination == MockAssetProvider.vaultWallet ? buybackOfferAmounts[assetId] : nil
+            buybackOfferText: destination == MockAssetProvider.vaultWallet ? buybackOfferTexts[assetId] : nil
         )
         Task { await loadOwnedAssets() }
     }

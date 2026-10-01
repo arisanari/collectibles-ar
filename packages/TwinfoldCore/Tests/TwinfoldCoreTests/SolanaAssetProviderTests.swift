@@ -176,13 +176,13 @@ final class SolanaAssetProviderTests: XCTestCase {
 
     func testBuybackQuoteDecodesResponse() async throws {
         let json = """
-        {"assetId": "tf-ukiyoe-001", "basis": {"amount": 50000, "currency": "JPY"}, "rate": 0.8, "offerAmount": 40000, "currency": "JPY", "eligible": true, "reason": "devnet: eligible", "quoteId": "q1", "expiresAt": "2026-09-30T00:10:00Z"}
+        {"assetId": "tf-ukiyoe-001", "basis": {"amount": 350, "currency": "USDC"}, "rate": 0.8, "offerAmount": 280, "currency": "USDC", "eligible": true, "reason": "devnet: eligible", "quoteId": "q1", "expiresAt": "2026-09-30T00:10:00Z"}
         """
         StubURLProtocol.stub(method: "GET", path: "/api/solana/assets/tf-ukiyoe-001/buyback-quote", status: 200, json: json)
         let provider = makeProvider()
 
         let quote = try await provider.buybackQuote(assetId: "tf-ukiyoe-001", wallet: "21hni5fvVgWm1NVAUBkki5ogTVweYsB7G9uVab9xTLWZ")
-        XCTAssertEqual(quote.offerAmount, 40000)
+        XCTAssertEqual(quote.offerAmount, 280)
         XCTAssertTrue(quote.eligible)
     }
 

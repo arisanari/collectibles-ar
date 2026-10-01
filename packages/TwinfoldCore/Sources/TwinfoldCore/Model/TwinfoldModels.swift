@@ -185,7 +185,7 @@ public struct ProvenanceEvent: Codable, Sendable, Identifiable, Equatable {
 public struct Commerce: Codable, Sendable, Equatable {
     public struct Price: Codable, Sendable, Equatable {
         public let amount: Double
-        public let currency: String // "JPY"
+        public let currency: String // "USDC" (display unit; no payment on devnet)
 
         public init(amount: Double, currency: String) {
             self.amount = amount

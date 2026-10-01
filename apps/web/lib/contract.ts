@@ -79,7 +79,7 @@ export type ProvenanceEvent = {
 export type Commerce = {
   // Twinfold's current listed (sales) price for this Asset — the basis the
   // buyback offer is a percentage of. Not what the current owner paid.
-  twinfoldPrice: { amount: number; currency: "JPY" };
+  twinfoldPrice: { amount: number; currency: "USDC" };
   buybackRate: number; // 0.8 = Twinfold buys back at 80% of twinfoldPrice
   buybackEligible: boolean;
   // Optional human-readable note. fixtures/demo/assets.json sets this to
@@ -108,10 +108,10 @@ export type TwinfoldAsset = {
 // send time rather than trusting a stale quote.
 export type BuybackQuote = {
   assetId: string;
-  basis: { amount: number; currency: "JPY" };
+  basis: { amount: number; currency: "USDC" };
   rate: number;
   offerAmount: number;
-  currency: "JPY";
+  currency: "USDC";
   eligible: boolean;
   reason: string;
   quoteId: string;

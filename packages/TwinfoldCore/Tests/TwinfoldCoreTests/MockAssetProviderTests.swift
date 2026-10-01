@@ -110,14 +110,14 @@ final class MockAssetProviderTests: XCTestCase {
     }
 
     /// tf-ukiyoe-001 is held by Twinfold since 2026-09-30 (custody "vaulted"),
-    /// so its offer is 80% of the ¥50,000 placeholder price.
+    /// so its offer is 80% of the 350 USDC placeholder price.
     func testBuybackQuoteForVaultedReferenceAsset() async throws {
         let provider = try MockAssetProvider()
         await provider.connect(wallet: walletA)
 
         let quote = try await provider.buybackQuote(assetId: assetId, wallet: walletA)
         XCTAssertTrue(quote.eligible)
-        XCTAssertEqual(quote.offerAmount, 40000)
+        XCTAssertEqual(quote.offerAmount, 280)
     }
 
     /// A wallet that doesn't own the Asset never gets an eligible offer.

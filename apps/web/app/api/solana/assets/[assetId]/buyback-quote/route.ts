@@ -50,10 +50,10 @@ export async function GET(request: Request, context: { params: Promise<{ assetId
   if (!offchainRecord?.commerce) {
     const quote: BuybackQuote = {
       assetId,
-      basis: { amount: 0, currency: "JPY" },
+      basis: { amount: 0, currency: "USDC" },
       rate: 0,
       offerAmount: 0,
-      currency: "JPY",
+      currency: "USDC",
       eligible: false,
       reason: "この作品にはTwinfoldの販売価格が設定されていません",
       quoteId,

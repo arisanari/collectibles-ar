@@ -77,6 +77,8 @@ export function useWalletAuth() {
   const [wallet, setWallet] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [detail, setDetail] = useState("");
+  // True once the initial server-session restore attempt has finished (success or not).
+  const [sessionChecked, setSessionChecked] = useState(false);
   const walletRef = useRef<string | null>(null);
 
   const clearSession = useCallback(async (next: AuthStatus, message = "") => {
@@ -154,7 +156,10 @@ export function useWalletAuth() {
         setExpiresAt(data.expiresAt);
         setStatus("authenticated");
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setSessionChecked(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -237,5 +242,5 @@ export function useWalletAuth() {
     await clearSession("disconnected");
   }, [clearSession]);
 
-  return { status, wallet, expiresAt, detail, connect, logout };
+  return { status, wallet, expiresAt, detail, sessionChecked, connect, logout };
 }

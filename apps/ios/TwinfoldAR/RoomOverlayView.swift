@@ -81,9 +81,9 @@ struct RoomOverlayView: View {
                         VStack(spacing: 4) {
                             Text("Twinfold販売価格の\(Int(quote.rate * 100))%")
                                 .font(.subheadline)
-                            Text("¥\(Int(quote.offerAmount).formatted(.number.grouping(.automatic)))")
+                            Text("\(Int(quote.offerAmount).formatted(.number.grouping(.automatic))) \(quote.currency)")
                                 .font(.system(size: 34, weight: .bold))
-                            Text("基準価格 ¥\(Int(quote.basis.amount)) の\(Int(quote.rate * 100))%（Twinfoldからの買取オファー。保証ではありません）")
+                            Text("Twinfold販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（Twinfoldからの買取オファー。保証ではありません）")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -251,7 +251,7 @@ struct RoomOverlayView: View {
         guard toast.isVaultDestination else {
             return "送信完了（confirmed）／「\(toast.assetTitle)」は\(toast.destinationLabel)の部屋に現れます。他の作品はそのまま"
         }
-        let offer = toast.buybackOfferAmount.map { "提示額 ¥\(Int($0).formatted(.number.grouping(.automatic)))。" } ?? ""
+        let offer = toast.buybackOfferText.map { "提示額 \($0)。" } ?? ""
         let note = controller.provider.isDemoData ? "DEMO DATA：支払いなし" : "DEVNET：支払いなし"
         return "売却完了（confirmed）／「\(toast.assetTitle)」をTwinfoldに売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
     }

@@ -109,8 +109,8 @@ public actor MockAssetProvider: AssetProvider {
 
         guard let commerce = asset.commerce else {
             return BuybackQuote(
-                assetId: asset.id, basis: .init(amount: 0, currency: "JPY"), rate: 0, offerAmount: 0,
-                currency: "JPY", eligible: false, reason: "demo: no Twinfold price set for this asset",
+                assetId: asset.id, basis: .init(amount: 0, currency: "USDC"), rate: 0, offerAmount: 0,
+                currency: "USDC", eligible: false, reason: "demo: no Twinfold price set for this asset",
                 quoteId: quoteId, expiresAt: expiresAt
             )
         }

@@ -87,8 +87,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 50000,
-        "currency": "JPY"
+        "amount": 350,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
@@ -173,8 +173,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 32000,
-        "currency": "JPY"
+        "amount": 220,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
@@ -259,8 +259,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 28000,
-        "currency": "JPY"
+        "amount": 190,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
@@ -345,8 +345,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 22000,
-        "currency": "JPY"
+        "amount": 150,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
@@ -431,8 +431,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 18000,
-        "currency": "JPY"
+        "amount": 120,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
@@ -512,8 +512,8 @@
     },
     "commerce": {
       "twinfoldPrice": {
-        "amount": 15000,
-        "currency": "JPY"
+        "amount": 100,
+        "currency": "USDC"
       },
       "buybackRate": 0.8,
       "buybackEligible": true,
