@@ -97,3 +97,36 @@ export function getAssetsByOwner(ownerAddress: string): Promise<HeliusAssetsByOw
 export function getSignaturesForAddress(address: string): Promise<HeliusSignatureInfo[]> {
   return rpc<HeliusSignatureInfo[]>("getSignaturesForAddress", [address, { limit: 100 }]);
 }
+
+export type HeliusTransactionInstruction = {
+  programIdIndex: number;
+  accounts: number[];
+  data: string; // base58
+};
+
+export type HeliusTransaction = {
+  transaction: {
+    message: {
+      accountKeys: string[];
+      instructions: HeliusTransactionInstruction[];
+    };
+  };
+  meta: {
+    innerInstructions?: { index: number; instructions: HeliusTransactionInstruction[] }[];
+  } | null;
+};
+
+/**
+ * Standard Solana RPC getTransaction, "json" encoding (not "jsonParsed" —
+ * the Metaplex Core program isn't one of the RPC's known parsers, so
+ * jsonParsed would leave its instructions undecoded anyway). Used by
+ * normalize.ts to distinguish a Metaplex Core `create` from a `transfer`
+ * instruction by discriminator byte, instead of guessing from transaction
+ * order alone.
+ */
+export function getTransaction(signature: string): Promise<HeliusTransaction | null> {
+  return rpc<HeliusTransaction | null>("getTransaction", [
+    signature,
+    { encoding: "json", maxSupportedTransactionVersion: 0 },
+  ]);
+}

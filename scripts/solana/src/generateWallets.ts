@@ -1,6 +1,8 @@
 /**
- * Generates two devnet-only test wallets (owner-a, owner-b) used by the mint
- * pipeline's demo transfer flow, and requests a devnet airdrop for each.
+ * Generates devnet-only test wallets (owner-a, owner-b, vault) used by the
+ * mint pipeline's demo transfer flow (vault: Twinfold's own devnet
+ * vault/treasury, used by the "Twinfoldに売る" buyback), and requests a
+ * devnet airdrop for each.
  *
  * Keys are written outside the repo (default ~/.config/twinfold/devnet/) as
  * solana-keygen-compatible JSON (an array of 64 secret key bytes). Only
@@ -20,6 +22,7 @@ import {
   KEY_DIR,
   OWNER_A_KEYPAIR_PATH,
   OWNER_B_KEYPAIR_PATH,
+  VAULT_KEYPAIR_PATH,
 } from "./config.js";
 
 const REPO_ROOT = path.resolve(new URL("../../../", import.meta.url).pathname);
@@ -58,6 +61,7 @@ async function main() {
 
   const ownerA = writeKeypairIfAbsent(OWNER_A_KEYPAIR_PATH, "owner-a");
   const ownerB = writeKeypairIfAbsent(OWNER_B_KEYPAIR_PATH, "owner-b");
+  const vault = writeKeypairIfAbsent(VAULT_KEYPAIR_PATH, "vault");
 
   if (airdropSol <= 0) {
     console.log("Skipping airdrop (--airdrop=0).");
@@ -67,6 +71,7 @@ async function main() {
   for (const [label, keypair] of [
     ["owner-a", ownerA],
     ["owner-b", ownerB],
+    ["vault", vault],
   ] as const) {
     try {
       const balanceBefore = await connection.getBalance(keypair.publicKey);

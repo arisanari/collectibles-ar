@@ -49,6 +49,65 @@ struct RoomOverlayView: View {
             }
             .padding(.bottom, 16)
         }
+        .sheet(isPresented: buybackSheetBinding) {
+            buybackOfferSheet
+        }
+    }
+
+    private var buybackSheetBinding: Binding<Bool> {
+        Binding(
+            get: { controller.buybackAssetId != nil },
+            set: { isPresented in if !isPresented { controller.dismissBuybackOffer() } }
+        )
+    }
+
+    @ViewBuilder
+    private var buybackOfferSheet: some View {
+        let asset = controller.ownedAssets.first(where: { $0.id == controller.buybackAssetId })
+        NavigationStack {
+            VStack(spacing: 16) {
+                if controller.buybackQuoteLoading {
+                    ProgressView("オファーを取得中…")
+                } else if let error = controller.buybackQuoteError {
+                    Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
+                } else if let quote = controller.buybackQuote {
+                    Text(asset?.title ?? "")
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET — devnetでの実際のtransfer。支払いはありません")
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                    if quote.eligible {
+                        VStack(spacing: 4) {
+                            Text("Twinfold販売価格の\(Int(quote.rate * 100))%")
+                                .font(.subheadline)
+                            Text("¥\(Int(quote.offerAmount).formatted(.number.grouping(.automatic)))")
+                                .font(.system(size: 34, weight: .bold))
+                            Text("基準価格 ¥\(Int(quote.basis.amount)) の\(Int(quote.rate * 100))%（Twinfoldからの買取オファー。保証ではありません）")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        Button("Twinfoldに売る") { controller.confirmBuyback() }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Text(quote.reason)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Twinfoldに売る")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { controller.dismissBuybackOffer() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     private var hintBar: some View {
@@ -144,30 +203,27 @@ struct RoomOverlayView: View {
                     Button("外す") { controller.removeSelected() }
                         .buttonStyle(.bordered)
                     Spacer(minLength: 8)
-                    if controller.provider.isDemoData {
-                        // "送る" lives in this secondary menu (not a
-                        // primary button) so it isn't the first thing
-                        // tapped by accident, but it's still inside the
-                        // card — not only in the top-right overflow — so a
-                        // first-time user still finds it while looking at
-                        // the selected asset.
-                        Menu {
-                            Button("\(controller.destinationLabelForSelected)へ送る (demo)") {
-                                controller.sendSelected()
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .padding(6)
+                    // "送る"/"Twinfoldに売る" live in this secondary menu
+                    // (not a primary button) so neither is the first thing
+                    // tapped by accident, but they're still inside the
+                    // card — not only in the top-right overflow — so a
+                    // first-time user still finds them while looking at the
+                    // selected asset. Both work the same in Demo and
+                    // Devnet mode now (Issue #29).
+                    Menu {
+                        Button(controller.provider.isDemoData
+                               ? "\(controller.destinationLabelForSelected)へ送る (demo)"
+                               : "\(controller.destinationLabelForSelected)へ送る (devnet)") {
+                            controller.sendSelected()
                         }
-                    } else {
-                        // Real devnet transfer is Issue #29; Place/Pull/
-                        // reset all work against the live devnet data, but
-                        // transfer stays off until that lands.
-                        Text("devnet transferは #29 で対応")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.6))
+                        Button("Twinfoldに売る") {
+                            controller.presentBuybackOffer()
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .padding(6)
                     }
                 }
             case .pending:
@@ -175,7 +231,7 @@ struct RoomOverlayView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(true)
             case .failed:
-                Button("Retry") { controller.sendSelected() }
+                Button("Retry") { controller.retrySelected() }
                     .buttonStyle(.borderedProminent)
             case .confirmed:
                 EmptyView()
@@ -191,15 +247,26 @@ struct RoomOverlayView: View {
         .padding(.horizontal, 16)
     }
 
+    private func toastMessage(_ toast: TransferToast) -> String {
+        guard toast.isVaultDestination else {
+            return "送信完了（confirmed）／「\(toast.assetTitle)」は\(toast.destinationLabel)の部屋に現れます。他の作品はそのまま"
+        }
+        let offer = toast.buybackOfferAmount.map { "提示額 ¥\(Int($0).formatted(.number.grouping(.automatic)))。" } ?? ""
+        let note = controller.provider.isDemoData ? "DEMO DATA：支払いなし" : "DEVNET：支払いなし"
+        return "売却完了（confirmed）／「\(toast.assetTitle)」をTwinfoldに売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
+    }
+
     private func toastView(_ toast: TransferToast) -> some View {
         VStack(spacing: 8) {
-            Text("送信完了（confirmed）／「\(toast.assetTitle)」は\(toast.destinationLabel)の部屋に現れます。他の作品はそのまま")
+            Text(toastMessage(toast))
                 .font(.footnote)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white)
             HStack(spacing: 12) {
-                Button("\(toast.destinationLabel)の部屋を見る") { controller.viewDestinationRoom() }
-                    .buttonStyle(.borderedProminent)
+                if !toast.isVaultDestination {
+                    Button("\(toast.destinationLabel)の部屋を見る") { controller.viewDestinationRoom() }
+                        .buttonStyle(.borderedProminent)
+                }
                 Button("閉じる") { controller.dismissToast() }
                     .buttonStyle(.bordered)
             }

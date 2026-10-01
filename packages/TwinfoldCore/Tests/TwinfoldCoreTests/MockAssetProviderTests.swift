@@ -97,4 +97,47 @@ final class MockAssetProviderTests: XCTestCase {
         XCTAssertEqual(assetsForA.count, 6)
         XCTAssertEqual(assetsForA.first { $0.id == assetId }?.provenance.count, originalCount)
     }
+
+    /// tf-ukiyoe-002 is vaulted (custody "vaulted") in the fixture, so
+    /// owner A gets an eligible 80%-of-list buyback offer.
+    func testBuybackQuoteEligibleForVaultedAsset() async throws {
+        let provider = try MockAssetProvider()
+        await provider.connect(wallet: walletA)
+
+        let quote = try await provider.buybackQuote(assetId: "tf-ukiyoe-002", wallet: walletA)
+        XCTAssertTrue(quote.eligible)
+        XCTAssertEqual(quote.offerAmount, quote.basis.amount * quote.rate)
+    }
+
+    /// tf-ukiyoe-001 is held by Twinfold since 2026-09-30 (custody "vaulted"),
+    /// so its offer is 80% of the ¥50,000 placeholder price.
+    func testBuybackQuoteForVaultedReferenceAsset() async throws {
+        let provider = try MockAssetProvider()
+        await provider.connect(wallet: walletA)
+
+        let quote = try await provider.buybackQuote(assetId: assetId, wallet: walletA)
+        XCTAssertTrue(quote.eligible)
+        XCTAssertEqual(quote.offerAmount, 40000)
+    }
+
+    /// A wallet that doesn't own the Asset never gets an eligible offer.
+    func testBuybackQuoteIneligibleForNonOwner() async throws {
+        let provider = try MockAssetProvider()
+        await provider.connect(wallet: walletB)
+
+        let quote = try await provider.buybackQuote(assetId: assetId, wallet: walletB)
+        XCTAssertFalse(quote.eligible)
+    }
+
+    /// simulateTransfer(to: MockAssetProvider.vaultWallet) models "Twinfold
+    /// に売る": the asset Disappears from the seller exactly like a P2P
+    /// transfer, since ownership moves the same way either way.
+    func testSimulateTransferToVaultRemovesAssetFromSeller() async throws {
+        let provider = try MockAssetProvider()
+
+        _ = try await provider.simulateTransfer(assetId: "tf-ukiyoe-002", to: MockAssetProvider.vaultWallet, requestId: "req-buyback-1")
+
+        let assetsForA = try await provider.getAssets(wallet: walletA)
+        XCTAssertFalse(assetsForA.contains { $0.id == "tf-ukiyoe-002" })
+    }
 }

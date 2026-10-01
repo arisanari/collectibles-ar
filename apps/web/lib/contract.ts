@@ -68,6 +68,25 @@ export type ProvenanceEvent = {
   metadata: Record<string, unknown>;
 };
 
+// Off-chain Twinfold interpretation, not an onchain fact: Twinfold's own
+// listed price for this Asset and the buyback terms derived from it. Prices
+// here are DEMO PLACEHOLDER values pending the user setting real ones (see
+// fixtures/demo/assets.json comments). `buybackEligible` is a snapshot
+// computed when the record was materialized (custody vaulted && not
+// redeemed); callers that need a live, non-stale answer (e.g. the actual
+// offer flow) should re-check via the buyback-quote endpoint /
+// AssetProvider.buybackQuote instead of trusting this field alone.
+export type Commerce = {
+  // Twinfold's current listed (sales) price for this Asset — the basis the
+  // buyback offer is a percentage of. Not what the current owner paid.
+  twinfoldPrice: { amount: number; currency: "JPY" };
+  buybackRate: number; // 0.8 = Twinfold buys back at 80% of twinfoldPrice
+  buybackEligible: boolean;
+  // Optional human-readable note. fixtures/demo/assets.json sets this to
+  // flag that twinfoldPrice is a DEMO PLACEHOLDER, not a real listed price.
+  priceNote?: string;
+};
+
 export type TwinfoldAsset = {
   id: string; // "tf-stamp-001"
   network: "devnet";
@@ -79,6 +98,33 @@ export type TwinfoldAsset = {
   spatialRepresentation: SpatialRepresentation;
   provenance: ProvenanceEvent[];
   physical?: PhysicalDescriptor;
+  commerce?: Commerce;
+};
+
+// GET /api/solana/assets/[assetId]/buyback-quote?wallet=... response shape.
+// A quote is a snapshot with an expiry, not a binding price — the actual
+// transfer endpoint re-derives eligibility from current custody/ownership at
+// send time rather than trusting a stale quote.
+export type BuybackQuote = {
+  assetId: string;
+  basis: { amount: number; currency: "JPY" };
+  rate: number;
+  offerAmount: number;
+  currency: "JPY";
+  eligible: boolean;
+  reason: string;
+  quoteId: string;
+  expiresAt: string; // ISO 8601 UTC
+};
+
+export type DevnetTransferStatus = "pending" | "confirmed" | "failed";
+
+export type DevnetTransferResult = {
+  requestId: string;
+  assetId: string;
+  status: DevnetTransferStatus;
+  signature?: string;
+  error?: string;
 };
 
 export type Entitlement = {

@@ -149,8 +149,8 @@ final class SolanaAssetProviderTests: XCTestCase {
         let provider = makeProvider()
         do {
             _ = try await provider.refreshOwnership(assetId: "tf-ukiyoe-001")
-            XCTFail("expected decodingFailed guidance error")
-        } catch AssetProviderError.decodingFailed {
+            XCTFail("expected unsupportedOperation guidance error")
+        } catch AssetProviderError.unsupportedOperation {
             // expected
         }
     }
@@ -172,5 +172,40 @@ final class SolanaAssetProviderTests: XCTestCase {
 
         let ids = try await provider.listConfiguredAssetIds()
         XCTAssertEqual(ids, ["tf-ukiyoe-001"])
+    }
+
+    func testBuybackQuoteDecodesResponse() async throws {
+        let json = """
+        {"assetId": "tf-ukiyoe-001", "basis": {"amount": 50000, "currency": "JPY"}, "rate": 0.8, "offerAmount": 40000, "currency": "JPY", "eligible": true, "reason": "devnet: eligible", "quoteId": "q1", "expiresAt": "2026-09-30T00:10:00Z"}
+        """
+        StubURLProtocol.stub(method: "GET", path: "/api/solana/assets/tf-ukiyoe-001/buyback-quote", status: 200, json: json)
+        let provider = makeProvider()
+
+        let quote = try await provider.buybackQuote(assetId: "tf-ukiyoe-001", wallet: "21hni5fvVgWm1NVAUBkki5ogTVweYsB7G9uVab9xTLWZ")
+        XCTAssertEqual(quote.offerAmount, 40000)
+        XCTAssertTrue(quote.eligible)
+    }
+
+    func testDevnetTransferDecodesResponse() async throws {
+        let json = """
+        {"requestId": "r1", "assetId": "tf-ukiyoe-001", "status": "confirmed", "signature": "sig123"}
+        """
+        StubURLProtocol.stub(method: "POST", path: "/api/devnet/transfer", status: 200, json: json)
+        let provider = makeProvider()
+
+        let result = try await provider.devnetTransfer(requestId: "r1", assetId: "tf-ukiyoe-001", from: "owner-a", to: "vault")
+        XCTAssertEqual(result.status, .confirmed)
+        XCTAssertEqual(result.signature, "sig123")
+    }
+
+    func testDevnetTransferStatusDecodesResponse() async throws {
+        let json = """
+        {"requestId": "r1", "assetId": "tf-ukiyoe-001", "status": "pending"}
+        """
+        StubURLProtocol.stub(method: "GET", path: "/api/devnet/transfer/r1", status: 200, json: json)
+        let provider = makeProvider()
+
+        let result = try await provider.devnetTransferStatus(requestId: "r1")
+        XCTAssertEqual(result.status, .pending)
     }
 }

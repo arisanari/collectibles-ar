@@ -49,14 +49,18 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
     /// conformance) vs. `refreshOwnershipForWallet(assetId, wallet)` (the
     /// one actually called).
     public func refreshOwnership(assetId: String) async throws -> Entitlement {
-        throw AssetProviderError.decodingFailed(
+        throw AssetProviderError.unsupportedOperation(
             "SolanaAssetProvider.refreshOwnership(assetId:) has no wallet to check against; " +
                 "call refreshOwnership(assetId:wallet:) instead."
         )
     }
 
     /// `POST /api/solana/assets/{id}/refresh`, body `{"wallet": wallet}`.
-    /// Use this instead of the protocol's `refreshOwnership(assetId:)`.
+    /// Re-fetches the Asset's current chain owner server-side and
+    /// re-evaluates `Entitlement.canDisplay` against `wallet` — this is the
+    /// method a transfer/buyback flow should call afterwards to decide
+    /// whether the asset should still Appear for this wallet. Use this
+    /// instead of the protocol's `refreshOwnership(assetId:)`.
     public func refreshOwnership(assetId: String, wallet: String) async throws -> Entitlement {
         let url = baseURL.appendingPathComponent("api/solana/assets/\(assetId)/refresh")
         var request = URLRequest(url: url)
@@ -77,6 +81,59 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
         let url = baseURL.appendingPathComponent("api/solana/registry")
         let response = try await get(RegistryResponse.self, url: url)
         return response.assetIds
+    }
+
+    /// `GET /api/solana/assets/{id}/buyback-quote?wallet=...`: the
+    /// "Twinfoldに売る" offer. Not part of `AssetProvider`; mirrors
+    /// `SolanaAssetProvider.buybackQuote` in `apps/web`.
+    public func buybackQuote(assetId: String, wallet: String) async throws -> BuybackQuote {
+        guard var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/solana/assets/\(assetId)/buyback-quote"),
+            resolvingAgainstBaseURL: false
+        ) else {
+            throw AssetProviderError.decodingFailed("invalid baseURL: \(baseURL)")
+        }
+        components.queryItems = [URLQueryItem(name: "wallet", value: wallet)]
+        guard let url = components.url else {
+            throw AssetProviderError.decodingFailed("failed to build buyback-quote URL")
+        }
+        return try await get(BuybackQuote.self, url: url)
+    }
+
+    /// `POST /api/devnet/transfer` — dev-only server-signing shortcut
+    /// (Issue #29; real wallet signing is #19/#45). `from`/`to` are devnet
+    /// wallet labels ("owner-a" | "owner-b" | "vault"), not raw pubkeys.
+    /// Idempotent server-side by `requestId`. Not part of `AssetProvider`.
+    public func devnetTransfer(
+        requestId: String,
+        assetId: String,
+        from: String,
+        to: String,
+        quoteId: String? = nil
+    ) async throws -> DevnetTransferResult {
+        let url = baseURL.appendingPathComponent("api/devnet/transfer")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+        struct Body: Encodable {
+            let requestId: String
+            let assetId: String
+            let from: String
+            let to: String
+            let quoteId: String?
+        }
+        request.httpBody = try JSONEncoder().encode(
+            Body(requestId: requestId, assetId: assetId, from: from, to: to, quoteId: quoteId)
+        )
+        return try await send(DevnetTransferResult.self, request: request)
+    }
+
+    /// `GET /api/devnet/transfer/{requestId}` — polls a transfer started
+    /// above. Not part of `AssetProvider`.
+    public func devnetTransferStatus(requestId: String) async throws -> DevnetTransferResult {
+        let url = baseURL.appendingPathComponent("api/devnet/transfer/\(requestId)")
+        return try await get(DevnetTransferResult.self, url: url)
     }
 
     // MARK: - Private

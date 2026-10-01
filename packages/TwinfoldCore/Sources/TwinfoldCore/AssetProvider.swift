@@ -22,4 +22,11 @@ public enum AssetProviderError: Error, Sendable {
     case networkFailed(String)
     /// Backend API responded with a non-2xx HTTP status.
     case httpError(status: Int, url: String)
+    /// A protocol method was called in a shape it doesn't support (e.g.
+    /// `SolanaAssetProvider.refreshOwnership(assetId:)`, which has no
+    /// wallet to check against — callers must use the `assetId:wallet:`
+    /// overload instead). Distinct from `decodingFailed` so callers can
+    /// tell "this call can never succeed as written" from "the server sent
+    /// something we couldn't parse".
+    case unsupportedOperation(String)
 }

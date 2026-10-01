@@ -12,6 +12,12 @@ import Foundation
 public actor MockAssetProvider: AssetProvider {
     public nonisolated let isDemoData = true
 
+    /// Demo-only stand-in for Twinfold's devnet vault/treasury wallet.
+    /// `simulateTransfer(assetId:to:requestId:)` with this as `to` models a
+    /// "Twinfold買取" (buyback): the Asset moves into Twinfold's custody and
+    /// Disappears from the seller's room, exactly like a P2P transfer.
+    public static let vaultWallet = "DEMO-VAULT-WALLET"
+
     private var connectedWallet: String?
     private let assets: [TwinfoldAsset]
 
@@ -79,6 +85,62 @@ public actor MockAssetProvider: AssetProvider {
                 ? "demo: chain owner matches wallet"
                 : "demo: chain owner does not match wallet",
             checkedAt: ISO8601DateFormatter().string(from: Date())
+        )
+    }
+
+    /// Computes the "Twinfoldに売る" buyback offer for `assetId` as seen by
+    /// `wallet`: 80% (or the asset's own `commerce.buybackRate`) of
+    /// Twinfold's current listed price (`commerce.twinfoldPrice`) — never
+    /// 80% of what the owner paid, which would allow wash-trade extraction.
+    /// Eligible only if `wallet` is the current owner, custody is
+    /// `"vaulted"`, and no `redeemed` event has been confirmed. This is a
+    /// DEMO DATA offer only — no real payment is simulated, mirroring
+    /// `apps/web`'s `/api/solana/assets/{id}/buyback-quote`.
+    public func buybackQuote(assetId: String, wallet: String) async throws -> BuybackQuote {
+        let asset = try await getAsset(assetId: assetId)
+        return Self.makeBuybackQuote(for: asset, wallet: wallet)
+    }
+
+    static func makeBuybackQuote(for asset: TwinfoldAsset, wallet: String) -> BuybackQuote {
+        let now = Date()
+        let checkedAt = ISO8601DateFormatter().string(from: now)
+        let expiresAt = ISO8601DateFormatter().string(from: now.addingTimeInterval(600))
+        let quoteId = "demo-quote-\(UUID().uuidString)"
+
+        guard let commerce = asset.commerce else {
+            return BuybackQuote(
+                assetId: asset.id, basis: .init(amount: 0, currency: "JPY"), rate: 0, offerAmount: 0,
+                currency: "JPY", eligible: false, reason: "demo: no Twinfold price set for this asset",
+                quoteId: quoteId, expiresAt: expiresAt
+            )
+        }
+
+        var reasons: [String] = []
+        if asset.owner != wallet {
+            reasons.append("この部屋のwalletは現在の所有者ではありません")
+        }
+        let custodyStatus = asset.physical?.custody.status
+        if custodyStatus != "vaulted" {
+            reasons.append("Vault保管中ではないため、Twinfoldへの売却の対象外です（custody: \(custodyStatus ?? "unknown")）")
+        }
+        let alreadyRedeemed = asset.provenance.contains { $0.kind == .redeemed && $0.status == .confirmed }
+        if alreadyRedeemed {
+            reasons.append("現物を引き取り済み（redeem済み）のため、対象外です")
+        }
+
+        let eligible = reasons.isEmpty
+        let offerAmount = (commerce.twinfoldPrice.amount * commerce.buybackRate * 100).rounded() / 100
+
+        return BuybackQuote(
+            assetId: asset.id,
+            basis: .init(amount: commerce.twinfoldPrice.amount, currency: commerce.twinfoldPrice.currency),
+            rate: commerce.buybackRate,
+            offerAmount: offerAmount,
+            currency: commerce.twinfoldPrice.currency,
+            eligible: eligible,
+            reason: eligible ? "demo: eligible for Twinfold buyback offer (checked \(checkedAt))" : reasons.joined(separator: "; "),
+            quoteId: quoteId,
+            expiresAt: expiresAt
         )
     }
 
@@ -153,7 +215,8 @@ public actor MockAssetProvider: AssetProvider {
             display: asset.display,
             spatialRepresentation: asset.spatialRepresentation,
             provenance: asset.provenance + extra,
-            physical: asset.physical
+            physical: asset.physical,
+            commerce: asset.commerce
         )
     }
 }

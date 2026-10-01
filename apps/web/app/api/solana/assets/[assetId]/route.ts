@@ -31,7 +31,7 @@ export async function GET(_request: Request, context: { params: Promise<{ assetI
       getAsset(address),
       getSignaturesForAddress(address),
     ]);
-    return NextResponse.json(heliusAssetToTwinfoldAsset(heliusAsset, signatures));
+    return NextResponse.json(await heliusAssetToTwinfoldAsset(heliusAsset, signatures));
   } catch (error) {
     console.error(`GET /api/solana/assets/${assetId} failed`, error);
     return NextResponse.json(

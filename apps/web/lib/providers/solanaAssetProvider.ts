@@ -1,4 +1,10 @@
-import type { AssetProvider, Entitlement, TwinfoldAsset } from "../contract";
+import type {
+  AssetProvider,
+  BuybackQuote,
+  DevnetTransferResult,
+  Entitlement,
+  TwinfoldAsset,
+} from "../contract";
 
 /**
  * Implements the shared AssetProvider contract by calling this app's own
@@ -66,5 +72,50 @@ export class SolanaAssetProvider implements AssetProvider {
       throw new Error(`Failed to refresh entitlement for ${assetId}: HTTP ${response.status}`);
     }
     return (await response.json()) as Entitlement;
+  }
+
+  /** GET /api/solana/assets/{id}/buyback-quote?wallet=... — see that route's comments. */
+  async buybackQuote(assetId: string, wallet: string): Promise<BuybackQuote> {
+    const response = await fetch(
+      `/api/solana/assets/${encodeURIComponent(assetId)}/buyback-quote?wallet=${encodeURIComponent(wallet)}`
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to get buyback quote for ${assetId}: HTTP ${response.status}`);
+    }
+    return (await response.json()) as BuybackQuote;
+  }
+
+  /**
+   * POST /api/devnet/transfer — dev-only server-signing shortcut (Issue
+   * #29; real wallet signing is #19/#45). `from`/`to` are devnet wallet
+   * labels ("owner-a" | "owner-b" | "vault"), not raw pubkeys.
+   */
+  async devnetTransfer(params: {
+    requestId: string;
+    assetId: string;
+    from: "owner-a" | "owner-b";
+    to: "owner-a" | "owner-b" | "vault";
+    quoteId?: string;
+  }): Promise<DevnetTransferResult> {
+    const response = await fetch("/api/devnet/transfer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    const json = (await response.json()) as DevnetTransferResult | { error: string };
+    if (!response.ok || "error" in json) {
+      const message = "error" in json ? json.error : `HTTP ${response.status}`;
+      throw new Error(`devnet transfer failed for ${params.assetId}: ${message}`);
+    }
+    return json;
+  }
+
+  /** GET /api/devnet/transfer/{requestId} — polls a transfer started above. */
+  async devnetTransferStatus(requestId: string): Promise<DevnetTransferResult> {
+    const response = await fetch(`/api/devnet/transfer/${encodeURIComponent(requestId)}`);
+    if (!response.ok) {
+      throw new Error(`Failed to poll devnet transfer ${requestId}: HTTP ${response.status}`);
+    }
+    return (await response.json()) as DevnetTransferResult;
   }
 }

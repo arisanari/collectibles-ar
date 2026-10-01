@@ -51,23 +51,44 @@
             "scanImg6035": "6e9563d4ff762937094fb479a8f17694afd164c60a9837d4f0773d57c44fd82c"
           }
         }
+      },
+      {
+        "id": "tf-ukiyoe-001-evt-3",
+        "assetId": "tf-ukiyoe-001",
+        "kind": "vaulted",
+        "occurredAt": "2026-09-30T08:30:00Z",
+        "source": "offchain_evidence",
+        "status": "confirmed",
+        "metadata": {
+          "note": "現物をTwinfoldが保管していることを、2026-09-30にデータへ反映した（創業者からの申告）。入庫日・保管施設・保険・入庫時写真のハッシュは未記録",
+          "previousCustody": "SELF-CUSTODY / pending_intake（2026-09-27時点の記録）"
+        }
       }
     ],
     "physical": {
       "physicalId": "PHY-DEMO-0001",
       "condition": "画像からの所見、第三者評価ではない（実物未確認）。摺り: 墨・灰色に薄紅の色版が入る淡彩摺で、当初の色か補彩かは判断不可。色: 2枚とも紙全体に黄変・くすみが見られ、原因は判断不可。紙: 左は上段中央に白い欠損、左上余白と四辺に小さな欠けや虫損らしき穴。右は上段中央に赤い小点、下辺と右上に小さな欠けや穴、右下の枠内に黒っぽい汚れ。裏打ち・補修・補彩の有無、余白の有無（トリミングの可能性）は写真からは判断不可",
-      "rights": "物理所有権は本人（自宅保管、デモ期間中。Twinfold Vaultへは未登録）。図柄は著作権消滅（推定）。表示画像はTwinfoldが実物を撮影し、傾き補正・合成した画像で、店の販売用ラベルは写っていない",
+      "rights": "現物はTwinfoldが保管（2026-09-30にデータへ反映。保管施設・保険の詳細は未記録）。図柄は著作権消滅（推定）。表示画像はTwinfoldが実物を撮影し、傾き補正・合成した画像で、店の販売用ラベルは写っていない",
       "custody": {
-        "vault": "SELF-CUSTODY",
-        "status": "pending_intake"
+        "vault": "TWINFOLD",
+        "status": "vaulted"
       },
-      "lastVerifiedAt": "2026-09-27T00:30:00Z",
+      "lastVerifiedAt": "2026-09-30T08:30:00Z",
       "dimensions": {
         "widthCm": 49,
         "heightCm": 32.5,
         "depthCm": 0.5,
         "label": "マット外寸 約49×32.5cm（推定）。本紙は半紙本の半丁2枚（各約24×14cm、推定）を左右に配置"
       }
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 50000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   },
   {
@@ -141,6 +162,15 @@
         "depthCm": 3,
         "label": "大判錦絵 約39×26.5cm（横）"
       }
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 32000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   },
   {
@@ -214,6 +244,15 @@
         "depthCm": 3,
         "label": "大判錦絵 約39×26.5cm（横）"
       }
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 28000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   },
   {
@@ -287,6 +326,15 @@
         "depthCm": 3,
         "label": "大判錦絵 約26.5×39cm（縦）"
       }
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 22000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   },
   {
@@ -360,6 +408,15 @@
         "depthCm": 3,
         "label": "新版画 大判相当 約26.5×39cm（縦）"
       }
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 18000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   },
   {
@@ -428,6 +485,15 @@
         "status": "vaulted"
       },
       "lastVerifiedAt": "2026-09-18T04:00:00Z"
+    },
+    "commerce": {
+      "twinfoldPrice": {
+        "amount": 15000,
+        "currency": "JPY"
+      },
+      "buybackRate": 0.8,
+      "buybackEligible": true,
+      "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
   }
 ]

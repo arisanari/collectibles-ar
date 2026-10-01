@@ -30,7 +30,19 @@ struct DemoWallet: Identifiable, Hashable {
     }
 
     static func label(forWallet wallet: String) -> String {
-        (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
+        if wallet == MockAssetProvider.vaultWallet || wallet == "vault" {
+            return "Twinfold Vault"
+        }
+        return (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
+    }
+
+    /// The devnet server-signing shortcut's wallet label ("owner-a" /
+    /// "owner-b") for this demo/devnet wallet, used by
+    /// `SolanaAssetProvider.devnetTransfer(from:to:)`. Not meaningful for
+    /// "vault" (Twinfold has no `DemoWallet` — it's addressed directly by
+    /// the "vault" label).
+    var devnetLabel: String {
+        (id == DemoWallet.ownerA.id || id == DemoWallet.ownerADevnet.id) ? "owner-a" : "owner-b"
     }
 }
 
@@ -53,13 +65,28 @@ enum TransferState: Sendable, Equatable {
     case failed
 }
 
+/// Which operation a pending/failed `TransferState` belongs to, so "Retry"
+/// re-attempts the right thing (P2P send vs. "Twinfoldに売る" buyback)
+/// instead of always assuming a P2P send.
+enum TransferOperationKind: Sendable {
+    case send
+    case buyback
+}
+
 /// Shown after a transfer confirms, offering a shortcut to switch to the
 /// receiving wallet so the Appear can be observed immediately.
 struct TransferToast: Identifiable {
     let id = UUID()
     let assetTitle: String
     let destinationWallet: String
+    /// Set only for a "Twinfoldに売る" buyback: the offer amount shown in the
+    /// sheet (display only — no payment happens in Demo or Devnet mode).
+    var buybackOfferAmount: Double? = nil
     var destinationLabel: String { DemoWallet.label(forWallet: destinationWallet) }
+    /// True for a "Twinfoldに売る" buyback: there's no "相手の部屋を見る"
+    /// shortcut for Twinfold's vault (it isn't one of this app's demo
+    /// wallets), so `RoomOverlayView` hides that button.
+    var isVaultDestination: Bool { destinationWallet == MockAssetProvider.vaultWallet }
 }
 
 /// Everything materialized in the scene for one placed asset. Present only
@@ -121,7 +148,19 @@ final class RoomController {
     private(set) var holdingAssetId: String?
     private(set) var selectedAssetId: String?
     private(set) var transferStates: [String: TransferState] = [:]
+    private var transferOperationKinds: [String: TransferOperationKind] = [:]
     private(set) var toast: TransferToast?
+
+    /// The asset a "Twinfoldに売る" offer sheet is currently showing for,
+    /// if any. `buybackQuote`/`buybackQuoteError`/`buybackQuoteLoading`
+    /// describe that fetch's state; `RoomOverlayView` reads these to render
+    /// the sheet.
+    private(set) var buybackAssetId: String?
+    private(set) var buybackQuote: BuybackQuote?
+    private(set) var buybackQuoteError: String?
+    private(set) var buybackQuoteLoading = false
+    /// Offer amount confirmed per asset, kept until the sale's toast shows it.
+    private var buybackOfferAmounts: [String: Double] = [:]
     /// `true` once the current frame's raycast (during holding) found a
     /// matching wall/surface for the held asset's representation. Drives
     /// `hintText`'s "壁に向けてください" vs "タップして壁に掛ける" (and the
@@ -165,6 +204,9 @@ final class RoomController {
         activeWallet = wallet
         selectedAssetId = nil
         holdingAssetId = nil
+        // A `.confirmed` state belongs to the previous owner's transfer; the
+        // new owner must see the same Asset as idle (来歴・送る available).
+        transferStates = transferStates.filter { $0.value != .confirmed }
         cancelHolding()
         Task { await loadOwnedAssets() }
     }
@@ -184,9 +226,11 @@ final class RoomController {
         liveEntities.removeAll()
         placementCoords.removeAll()
         transferStates.removeAll()
+        transferOperationKinds.removeAll()
         selectedAssetId = nil
         cancelHolding()
         toast = nil
+        dismissBuybackOffer()
 
         dataMode = mode
         activeWallet = DemoWallet.wallets(for: mode).first ?? .ownerA
@@ -201,7 +245,12 @@ final class RoomController {
             ownedAssets = try await provider.getAssets(wallet: activeWallet.id)
             loadErrorMessage = nil
         } catch {
-            loadErrorMessage = "資産を読み込めませんでした: \(error)"
+            // Full error goes to the console only; the on-screen text stays
+            // short enough to read (and to appear in a demo recording).
+            print("loadOwnedAssets failed: \(error)")
+            loadErrorMessage = dataMode == .demo
+                ? "作品を読み込めませんでした"
+                : "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でTwinfoldARが許可されているかを確認してください"
         }
         syncEntities()
     }
@@ -456,13 +505,15 @@ final class RoomController {
         liveEntities[assetId] = nil
         placementCoords[assetId] = nil
         transferStates[assetId] = nil
+        transferOperationKinds[assetId] = nil
         selectedAssetId = nil
     }
 
     // MARK: - Transfer ("送る")
 
     func destinationWallet(for asset: TwinfoldAsset) -> String {
-        asset.owner == DemoWallet.ownerA.id ? DemoWallet.ownerB.id : DemoWallet.ownerA.id
+        let (a, b) = dataMode == .demo ? (DemoWallet.ownerA, DemoWallet.ownerB) : (DemoWallet.ownerADevnet, DemoWallet.ownerBDevnet)
+        return asset.owner == a.id ? b.id : a.id
     }
 
     var destinationLabelForSelected: String {
@@ -474,12 +525,11 @@ final class RoomController {
         transferStates.values.contains(.pending)
     }
 
-    /// Real devnet transfer is tracked separately (Issue #29); in Devnet
-    /// mode this is a no-op so `RoomOverlayView` (which also hides the
-    /// "送る" control there) can't trigger a pseudo-transfer against real
-    /// devnet data.
+    /// Demo mode: simulated P2P transfer via `MockAssetProvider`. Devnet
+    /// mode (Issue #29): a real devnet transfer via
+    /// `/api/devnet/transfer`'s dev-only server-signing shortcut, to the
+    /// other devnet test wallet.
     func sendSelected() {
-        guard dataMode == .demo else { return }
         guard let assetId = selectedAssetId,
               let live = liveEntities[assetId],
               let asset = ownedAssets.first(where: { $0.id == assetId }) else { return }
@@ -487,10 +537,170 @@ final class RoomController {
         guard state == .idle || state == .failed else { return }
 
         transferStates[assetId] = .pending
+        transferOperationKinds[assetId] = .send
         AssetCardEntity.apply(state: .pending, to: live.cardEntity)
-        let destination = destinationWallet(for: asset)
         let requestId = UUID().uuidString
-        Task { await runTransfer(assetId: assetId, asset: asset, destination: destination, requestId: requestId) }
+
+        if dataMode == .demo {
+            let destination = destinationWallet(for: asset)
+            Task { await runTransfer(assetId: assetId, asset: asset, destination: destination, requestId: requestId) }
+        } else {
+            let toLabel = activeWallet.devnetLabel == "owner-a" ? "owner-b" : "owner-a"
+            let destinationWalletId = (toLabel == "owner-a" ? DemoWallet.ownerADevnet : DemoWallet.ownerBDevnet).id
+            Task { await runDevnetTransfer(assetId: assetId, asset: asset, requestId: requestId, toLabel: toLabel, destinationWalletId: destinationWalletId, quoteId: nil) }
+        }
+    }
+
+    /// "外す" isn't available while a "送る"/"Twinfoldに売る" is
+    /// pending/failed — `RoomOverlayView`'s Retry button reads this to
+    /// decide what to retry.
+    func retrySelected() {
+        guard let assetId = selectedAssetId else { return }
+        switch transferOperationKinds[assetId] ?? .send {
+        case .send:
+            sendSelected()
+        case .buyback:
+            // Re-open the offer sheet rather than blindly resending: the
+            // quote's eligibility/price may be stale after a failure, and
+            // the server re-derives eligibility at send time regardless.
+            presentBuybackOffer(assetId: assetId)
+        }
+    }
+
+    // MARK: - Twinfoldに売る (buyback)
+
+    /// Fetches a fresh buyback offer for `assetId` (defaults to the
+    /// selected asset) and opens the offer sheet. DEMO DATA in Demo mode,
+    /// a real devnet-derived offer in Devnet mode — no real payment either
+    /// way; see `AGENTS.md` section 3 and the buyback-quote route's
+    /// comments.
+    func presentBuybackOffer(assetId: String? = nil) {
+        guard let assetId = assetId ?? selectedAssetId else { return }
+        buybackAssetId = assetId
+        buybackQuote = nil
+        buybackQuoteError = nil
+        buybackQuoteLoading = true
+
+        Task {
+            do {
+                let quote: BuybackQuote
+                if let mock = provider as? MockAssetProvider {
+                    quote = try await mock.buybackQuote(assetId: assetId, wallet: activeWallet.id)
+                } else if let solana = provider as? SolanaAssetProvider {
+                    quote = try await solana.buybackQuote(assetId: assetId, wallet: activeWallet.id)
+                } else {
+                    throw AssetProviderError.unsupportedOperation("no AssetProvider backing found for buyback quote")
+                }
+                await MainActor.run {
+                    self.buybackQuote = quote
+                    self.buybackQuoteLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.buybackQuoteError = "オファーを取得できませんでした: \(error)"
+                    self.buybackQuoteLoading = false
+                }
+            }
+        }
+    }
+
+    func dismissBuybackOffer() {
+        buybackAssetId = nil
+        buybackQuote = nil
+        buybackQuoteError = nil
+        buybackQuoteLoading = false
+    }
+
+    /// Confirms the currently-shown offer: transfers the asset to
+    /// Twinfold's vault wallet. Demo mode simulates this exactly like a
+    /// P2P transfer (`MockAssetProvider.vaultWallet` as the destination);
+    /// Devnet mode sends a real devnet transfer to the vault wallet via the
+    /// same `/api/devnet/transfer` shortcut used for P2P sends.
+    func confirmBuyback() {
+        guard let assetId = buybackAssetId,
+              let quote = buybackQuote, quote.eligible,
+              let asset = ownedAssets.first(where: { $0.id == assetId }) else { return }
+        dismissBuybackOffer()
+
+        transferStates[assetId] = .pending
+        transferOperationKinds[assetId] = .buyback
+        buybackOfferAmounts[assetId] = quote.offerAmount
+        if let live = liveEntities[assetId] {
+            AssetCardEntity.apply(state: .pending, to: live.cardEntity)
+        }
+        let requestId = UUID().uuidString
+
+        if dataMode == .demo {
+            Task { await runBuybackDemo(assetId: assetId, asset: asset, requestId: requestId) }
+        } else {
+            Task {
+                await runDevnetTransfer(
+                    assetId: assetId, asset: asset, requestId: requestId,
+                    toLabel: "vault", destinationWalletId: MockAssetProvider.vaultWallet, quoteId: quote.quoteId
+                )
+            }
+        }
+    }
+
+    private func runBuybackDemo(assetId: String, asset: TwinfoldAsset, requestId: String) async {
+        guard let mock = provider as? MockAssetProvider else { return }
+        do {
+            _ = try await mock.simulateTransfer(assetId: assetId, to: MockAssetProvider.vaultWallet, requestId: requestId)
+        } catch {
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Twinfoldへの売却に失敗しました: \(error)") }
+            return
+        }
+        do {
+            let entitlement = try await provider.refreshOwnership(assetId: assetId)
+            await MainActor.run {
+                if entitlement.canDisplay {
+                    self.failTransfer(assetId: assetId, message: "confirmedですが、このwalletはentitlementを維持しています: \(entitlement.reason)")
+                } else {
+                    self.confirmTransfer(assetId: assetId, asset: asset, destination: MockAssetProvider.vaultWallet)
+                }
+            }
+        } catch {
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "entitlement確認に失敗しました: \(error)") }
+        }
+    }
+
+    /// Devnet path shared by P2P send and buyback: sends
+    /// `/api/devnet/transfer`, then polls (up to 5 minutes, every 5s) until
+    /// DAS reflects the new owner — Helius's indexer can lag behind the
+    /// devnet RPC confirmation the transfer route itself waits for.
+    private func runDevnetTransfer(
+        assetId: String, asset: TwinfoldAsset, requestId: String,
+        toLabel: String, destinationWalletId: String, quoteId: String?
+    ) async {
+        guard let solana = provider as? SolanaAssetProvider else { return }
+        let opLabel = toLabel == "vault" ? "Twinfoldへの売却" : "送信"
+        do {
+            let result = try await solana.devnetTransfer(
+                requestId: requestId, assetId: assetId, from: activeWallet.devnetLabel, to: toLabel, quoteId: quoteId
+            )
+            if result.status == .failed {
+                await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(result.error ?? "unknown error")") }
+                return
+            }
+        } catch {
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(error)") }
+            return
+        }
+
+        let deadline = Date().addingTimeInterval(300)
+        while Date() < deadline {
+            if let refreshed = try? await solana.getAsset(assetId: assetId), refreshed.owner != activeWallet.id {
+                await MainActor.run { self.confirmTransfer(assetId: assetId, asset: asset, destination: destinationWalletId) }
+                return
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+        await MainActor.run {
+            self.failTransfer(
+                assetId: assetId,
+                message: "\(opLabel)はdevnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。Retryで再確認します"
+            )
+        }
     }
 
     /// Overflow menu "失敗をシミュレート (demo)" for the selected asset.
@@ -539,7 +749,10 @@ final class RoomController {
     private func confirmTransfer(assetId: String, asset: TwinfoldAsset, destination: String) {
         transferStates[assetId] = .confirmed
         if selectedAssetId == assetId { selectedAssetId = nil }
-        toast = TransferToast(assetTitle: asset.title, destinationWallet: destination)
+        toast = TransferToast(
+            assetTitle: asset.title, destinationWallet: destination,
+            buybackOfferAmount: destination == MockAssetProvider.vaultWallet ? buybackOfferAmounts[assetId] : nil
+        )
         Task { await loadOwnedAssets() }
     }
 
@@ -560,8 +773,9 @@ final class RoomController {
     /// "〈相手〉の部屋を見る" — switches to the destination wallet so the
     /// just-transferred asset Appears at the same spot.
     func viewDestinationRoom() {
-        guard let toast else { return }
-        switchWallet(to: DemoWallet.all.first(where: { $0.id == toast.destinationWallet }) ?? .ownerB)
+        guard let toast, !toast.isVaultDestination else { return }
+        let match = (DemoWallet.all + DemoWallet.allDevnet).first(where: { $0.id == toast.destinationWallet })
+        switchWallet(to: match ?? .ownerB)
         self.toast = nil
     }
 
@@ -575,9 +789,11 @@ final class RoomController {
         liveEntities.removeAll()
         placementCoords.removeAll()
         transferStates.removeAll()
+        transferOperationKinds.removeAll()
         selectedAssetId = nil
         cancelHolding()
         toast = nil
+        dismissBuybackOffer()
         activeWallet = walletOptions.first ?? .ownerA
 
         if let mock = provider as? MockAssetProvider {

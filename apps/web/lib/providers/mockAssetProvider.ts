@@ -1,5 +1,6 @@
 import type {
   AssetProvider,
+  BuybackQuote,
   Entitlement,
   ProvenanceEvent,
   TwinfoldAsset,
@@ -9,6 +10,78 @@ import assetsFixture from "../fixtures/demo/assets.json";
 const assets = assetsFixture as TwinfoldAsset[];
 
 const TRANSFER_DELAY_MS = 1500;
+
+/**
+ * Demo-only stand-in for Twinfold's devnet vault/treasury wallet. A
+ * `simulateTransfer` to this address models a "Twinfoldに売る" buyback: the
+ * Asset moves into Twinfold's custody and Disappears from the seller's
+ * collection, exactly like a P2P transfer. Mirrors
+ * `MockAssetProvider.vaultWallet` in TwinfoldCore.
+ */
+export const DEMO_VAULT_WALLET = "DEMO-VAULT-WALLET";
+
+/**
+ * Computes the "Twinfoldに売る" buyback offer for `assetId` as seen by
+ * `wallet`: `buybackRate` (80%) of Twinfold's current listed price
+ * (`commerce.twinfoldPrice`) — never 80% of what the owner paid, which would
+ * allow wash-trade extraction. Eligible only if `wallet` is the current
+ * owner, custody is `"vaulted"`, and no `redeemed` event has been
+ * confirmed. DEMO DATA offer only — no real payment. Mirrors
+ * `MockAssetProvider.makeBuybackQuote` in TwinfoldCore and
+ * `/api/solana/assets/[assetId]/buyback-quote`.
+ */
+export function makeBuybackQuote(asset: TwinfoldAsset, wallet: string): BuybackQuote {
+  const now = new Date();
+  const checkedAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();
+  const quoteId = `demo-quote-${crypto.randomUUID()}`;
+
+  if (!asset.commerce) {
+    return {
+      assetId: asset.id,
+      basis: { amount: 0, currency: "JPY" },
+      rate: 0,
+      offerAmount: 0,
+      currency: "JPY",
+      eligible: false,
+      reason: "demo: no Twinfold price set for this asset",
+      quoteId,
+      expiresAt,
+    };
+  }
+
+  const reasons: string[] = [];
+  if (asset.owner !== wallet) {
+    reasons.push("この部屋のwalletは現在の所有者ではありません");
+  }
+  const custodyStatus = asset.physical?.custody.status;
+  if (custodyStatus !== "vaulted") {
+    reasons.push(`Vault保管中ではないため、Twinfoldへの売却の対象外です（custody: ${custodyStatus ?? "unknown"}）`);
+  }
+  const alreadyRedeemed = asset.provenance.some(
+    (event) => event.kind === "redeemed" && event.status === "confirmed"
+  );
+  if (alreadyRedeemed) {
+    reasons.push("現物を引き取り済み（redeem済み）のため、対象外です");
+  }
+
+  const eligible = reasons.length === 0;
+  const offerAmount = Math.round(asset.commerce.twinfoldPrice.amount * asset.commerce.buybackRate * 100) / 100;
+
+  return {
+    assetId: asset.id,
+    basis: { amount: asset.commerce.twinfoldPrice.amount, currency: asset.commerce.twinfoldPrice.currency },
+    rate: asset.commerce.buybackRate,
+    offerAmount,
+    currency: asset.commerce.twinfoldPrice.currency,
+    eligible,
+    reason: eligible
+      ? `demo: eligible for Twinfold buyback offer (checked ${checkedAt})`
+      : reasons.join("; "),
+    quoteId,
+    expiresAt,
+  };
+}
 
 /**
  * Reads fixtures/demo/assets.json (synced via scripts/sync-fixtures.sh) and
@@ -70,6 +143,11 @@ export class MockAssetProvider implements AssetProvider {
         : "demo: chain owner does not match wallet",
       checkedAt: new Date().toISOString(),
     };
+  }
+
+  async buybackQuote(assetId: string, wallet: string): Promise<BuybackQuote> {
+    const asset = await this.getAsset(assetId);
+    return makeBuybackQuote(asset, wallet);
   }
 
   /**

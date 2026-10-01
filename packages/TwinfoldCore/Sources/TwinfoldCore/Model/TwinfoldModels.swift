@@ -175,6 +175,37 @@ public struct ProvenanceEvent: Codable, Sendable, Identifiable, Equatable {
     }
 }
 
+/// Off-chain Twinfold interpretation, not an onchain fact: Twinfold's own
+/// listed price for this Asset and the buyback terms derived from it.
+/// Mirrors `Commerce` in `apps/web/lib/contract.ts`. `twinfoldPrice` values
+/// in fixtures/demo/assets.json are DEMO PLACEHOLDERS (see `priceNote`), not
+/// real listed prices. `buybackEligible` is a snapshot computed when the
+/// record was materialized; callers needing a live answer should call
+/// `AssetProvider`'s buyback quote instead of trusting this field alone.
+public struct Commerce: Codable, Sendable, Equatable {
+    public struct Price: Codable, Sendable, Equatable {
+        public let amount: Double
+        public let currency: String // "JPY"
+
+        public init(amount: Double, currency: String) {
+            self.amount = amount
+            self.currency = currency
+        }
+    }
+
+    public let twinfoldPrice: Price
+    public let buybackRate: Double
+    public let buybackEligible: Bool
+    public let priceNote: String?
+
+    public init(twinfoldPrice: Price, buybackRate: Double, buybackEligible: Bool, priceNote: String? = nil) {
+        self.twinfoldPrice = twinfoldPrice
+        self.buybackRate = buybackRate
+        self.buybackEligible = buybackEligible
+        self.priceNote = priceNote
+    }
+}
+
 public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let id: String
     public let network: String // "devnet"
@@ -186,6 +217,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let spatialRepresentation: SpatialRepresentation
     public let provenance: [ProvenanceEvent]
     public let physical: PhysicalDescriptor?
+    public let commerce: Commerce?
 
     public init(
         id: String,
@@ -197,7 +229,8 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         display: DisplayDescriptor,
         spatialRepresentation: SpatialRepresentation,
         provenance: [ProvenanceEvent],
-        physical: PhysicalDescriptor? = nil
+        physical: PhysicalDescriptor? = nil,
+        commerce: Commerce? = nil
     ) {
         self.id = id
         self.network = network
@@ -209,6 +242,78 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.spatialRepresentation = spatialRepresentation
         self.provenance = provenance
         self.physical = physical
+        self.commerce = commerce
+    }
+}
+
+/// `GET /api/solana/assets/{id}/buyback-quote?wallet=...` response. Mirrors
+/// `BuybackQuote` in `apps/web/lib/contract.ts`. A quote is a snapshot with
+/// an expiry, not a binding price.
+public struct BuybackQuote: Codable, Sendable, Equatable {
+    public struct Basis: Codable, Sendable, Equatable {
+        public let amount: Double
+        public let currency: String
+
+        public init(amount: Double, currency: String) {
+            self.amount = amount
+            self.currency = currency
+        }
+    }
+
+    public let assetId: String
+    public let basis: Basis
+    public let rate: Double
+    public let offerAmount: Double
+    public let currency: String
+    public let eligible: Bool
+    public let reason: String
+    public let quoteId: String
+    public let expiresAt: String
+
+    public init(
+        assetId: String,
+        basis: Basis,
+        rate: Double,
+        offerAmount: Double,
+        currency: String,
+        eligible: Bool,
+        reason: String,
+        quoteId: String,
+        expiresAt: String
+    ) {
+        self.assetId = assetId
+        self.basis = basis
+        self.rate = rate
+        self.offerAmount = offerAmount
+        self.currency = currency
+        self.eligible = eligible
+        self.reason = reason
+        self.quoteId = quoteId
+        self.expiresAt = expiresAt
+    }
+}
+
+public enum DevnetTransferStatus: String, Codable, Sendable {
+    case pending
+    case confirmed
+    case failed
+}
+
+/// `POST /api/devnet/transfer` and `GET /api/devnet/transfer/{requestId}`
+/// response. Mirrors `DevnetTransferResult` in `apps/web/lib/contract.ts`.
+public struct DevnetTransferResult: Codable, Sendable, Equatable {
+    public let requestId: String
+    public let assetId: String
+    public let status: DevnetTransferStatus
+    public let signature: String?
+    public let error: String?
+
+    public init(requestId: String, assetId: String, status: DevnetTransferStatus, signature: String? = nil, error: String? = nil) {
+        self.requestId = requestId
+        self.assetId = assetId
+        self.status = status
+        self.signature = signature
+        self.error = error
     }
 }
 

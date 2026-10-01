@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         .filter((item) => item.interface === "MplCoreAsset" && !item.burnt)
         .map(async (item) => {
           const signatures = await getSignaturesForAddress(item.id);
-          return heliusAssetToTwinfoldAsset(item, signatures);
+          return await heliusAssetToTwinfoldAsset(item, signatures);
         })
     );
     return NextResponse.json(assets);
