@@ -230,6 +230,11 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let provenance: [ProvenanceEvent]
     public let physical: PhysicalDescriptor?
     public let commerce: Commerce?
+    /// Rehearsal token for the redeem dry run (id `<baseId>-rehearsal-<n>`): same physical item as the base
+    /// Asset, NOT an additional claim and NOT a Reference Asset. Clients show a REHEARSAL badge.
+    public let rehearsal: Bool?
+    /// Redemption state overlaid by the backend. While `open` is true, clients offer neither buyback nor send.
+    public let redemption: RedemptionSummary?
 
     public init(
         id: String,
@@ -243,7 +248,9 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         spatialRepresentation: SpatialRepresentation,
         provenance: [ProvenanceEvent],
         physical: PhysicalDescriptor? = nil,
-        commerce: Commerce? = nil
+        commerce: Commerce? = nil,
+        rehearsal: Bool? = nil,
+        redemption: RedemptionSummary? = nil
     ) {
         self.id = id
         self.network = network
@@ -257,6 +264,8 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.provenance = provenance
         self.physical = physical
         self.commerce = commerce
+        self.rehearsal = rehearsal
+        self.redemption = redemption
     }
 
     /// ja if the locale's language is Japanese and a ja title exists, else en
@@ -353,19 +362,5 @@ public struct Entitlement: Codable, Sendable, Equatable {
         self.canDisplay = canDisplay
         self.reason = reason
         self.checkedAt = checkedAt
-    }
-}
-
-public struct RedeemedProvenancePassport: Codable, Sendable, Equatable {
-    public let sourceAsset: String
-    public let redeemedAt: String
-    public let lastVerifiedAt: String
-    public let limitations: [String]
-
-    public init(sourceAsset: String, redeemedAt: String, lastVerifiedAt: String, limitations: [String]) {
-        self.sourceAsset = sourceAsset
-        self.redeemedAt = redeemedAt
-        self.lastVerifiedAt = lastVerifiedAt
-        self.limitations = limitations
     }
 }

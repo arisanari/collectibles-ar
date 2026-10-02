@@ -36,3 +36,8 @@ apps/web/public/collection/
 # Next.js 16 `next dev` auto-generates these; the canonical guide is the repo-root AGENTS.md
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+apps/web/tsconfig.tsbuildinfo
+
+# Local runtime data (redemptions, passports); never commit
+.data/
+**/.data/

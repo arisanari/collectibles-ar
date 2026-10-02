@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAsset } from "../../../../../../lib/solana/heliusClient";
 import { resolveAssetAddress } from "../../../../../../lib/solana/assetRegistry";
 import { findOffchainRecord } from "../../../../../../lib/solana/normalize";
+import { isAssetInRedemption } from "../../../../../../lib/redemptions/store";
 import { evaluateBuybackEligibility } from "../../../../../../lib/solana/buybackEligibility";
 import type { BuybackQuote } from "../../../../../../lib/contract";
 
@@ -69,6 +70,7 @@ export async function GET(request: Request, context: { params: Promise<{ assetId
       currentOwner: heliusAsset.ownership.owner,
       burnt: heliusAsset.burnt,
       wallet,
+      redemptionOpen: isAssetInRedemption(assetId),
     });
 
     const commerce = offchainRecord.commerce;

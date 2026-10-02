@@ -9,6 +9,12 @@ import type { AuthStatus } from "../../lib/auth/useWalletAuth";
 import { shortAddress } from "../../lib/labels";
 import { AssetCard } from "../../components/AssetCard";
 import { useAuth } from "../../components/AuthProvider";
+import { DeviceLinkPanel } from "../../components/DeviceLinkPanel";
+import { PendingRequestsPanel } from "../../components/PendingRequestsPanel";
+import { OwnershipSection } from "../../components/OwnershipSection";
+import { RedemptionPanel } from "../../components/RedemptionPanel";
+import { useRedemptions } from "../../lib/redemptions/useRedemptions";
+import { useTransferRequests } from "../../lib/transferRequests/useTransferRequests";
 import walletsFixture from "../../lib/fixtures/demo/wallets.json";
 
 const demoWallet = (walletsFixture as Record<string, { label: string; address: string }>).walletA;
@@ -32,6 +38,10 @@ type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean };
 export default function CollectionPage() {
   const auth = useAuth();
   const authedWallet = auth.status === "authenticated" ? auth.wallet : null;
+  const tr = useTransferRequests(authedWallet);
+  const rd = useRedemptions(authedWallet, tr.refresh);
+  // Reload the asset cards whenever a redemption changes state (a locked Asset leaves this wallet).
+  const redemptionSignature = rd.redemptions.map((r) => `${r.id}:${r.status}`).join(",");
   const [demoOn, setDemoOn] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
@@ -53,7 +63,7 @@ export default function CollectionPage() {
     return () => {
       cancelled = true;
     };
-  }, [key, authedWallet]);
+  }, [key, authedWallet, redemptionSignature]);
 
   const current = key && result?.key === key ? result : null;
   const status = !key ? "idle" : !current ? "loading" : current.failed ? "error" : "ready";
@@ -108,6 +118,10 @@ export default function CollectionPage() {
         </div>
       </section>
 
+      {authedWallet && <PendingRequestsPanel tr={tr} />}
+      {authedWallet && <RedemptionPanel rd={rd} />}
+      {authedWallet && <DeviceLinkPanel />}
+
       {status === "loading" && <p className="emptyState">読み込み中…</p>}
       {status === "error" && <p className="emptyState" role="alert">所有Assetの取得に失敗しました。時間をおいて再読み込みしてください。</p>}
       {status === "ready" && assets.length === 0 && (
@@ -119,7 +133,19 @@ export default function CollectionPage() {
       {status === "ready" && assets.length > 0 && (
         <div className="grid devnetGrid collectionGrid">
           {assets.map((asset) => (
-            <AssetCard key={asset.id} asset={asset} demo={demo} showCommerce />
+            <div key={asset.id} className="collectionCell">
+              <AssetCard asset={asset} demo={demo} showCommerce />
+              {authedWallet && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}
+              {authedWallet && asset.commerce && !asset.redemption?.open && (
+                <button
+                  className="secondary sellButton"
+                  onClick={() => void tr.createBuyback(asset.id)}
+                  title="依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）"
+                >
+                  Twinfoldに売る（Phantomで承認）
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

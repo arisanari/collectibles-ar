@@ -10,6 +10,8 @@ export type DevnetTransferRecord = {
   status: "pending" | "confirmed" | "failed";
   signature?: string;
   error?: string;
+  /** Authenticated wallet that started the transfer (Issue #45). Unset only for the unauthenticated dev escape hatch. */
+  wallet?: string;
 };
 
 const store = new Map<string, DevnetTransferRecord>();

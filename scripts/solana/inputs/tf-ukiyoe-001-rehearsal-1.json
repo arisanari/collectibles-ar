@@ -1,0 +1,17 @@
+{
+  "assetId": "tf-ukiyoe-001-rehearsal-1",
+  "name": "Hokusai Manga vol.13 (attribution unconfirmed) - 2 leaves [REHEARSAL]",
+  "description": "REHEARSAL TOKEN for the Twinfold redeem dry run. It represents the same physical item as the Reference Asset tf-ukiyoe-001 and is not an additional claim on it: it exists only to rehearse lock / dry-run shipping / retire (burn) / Redeemed Provenance Passport without retiring the Reference Asset. It is not a Reference Asset and carries no separate ownership of the physical item. Cataloguing notes below are copied from tf-ukiyoe-001. Twinfold Reference Asset for two half-sheet (半丁) leaves from a bound book, mounted side by side in one mat. The series title \"北斎漫画十三編\" (Hokusai Manga, vol. 13) appears in the block margin (柱) of both leaves; the artist attribution to Katsushika Hokusai is unconfirmed (推定, confidence: medium). Neither leaf carries a signature (落款) -- Hokusai Manga does not sign individual plates. Publisher, censorship seal (改印), and this individual copy's printing period (Edo-period pull vs. later Meiji reprint vs. the 1969 Unsōdō reprint) are unconfirmed from the photographs alone. Museum catalogue records (Tokyo National Museum, Edo-Tokyo Museum archives) confirm the series' existence, half-sheet format, and a range of plausible publication dates (1830s-1849 depending on the source), but do not confirm a match to this specific copy's images. This description is a cataloguing note, not an authentication or grading certificate.",
+  "attributes": {
+    "artist": "葛飾北斎（推定、確度中）。根拠は柱の書名と店の説明。落款なし",
+    "series_title": "北斎漫画 十三編（推定、確度中〜高。柱の書名から）",
+    "publisher": "未確認（版元印が画像に見当たらない）",
+    "era": "図柄の刊行年代は未確認。所蔵記録は嘉永2年(1849)説と天保頃(1830-1844)説に分かれる。この個体の摺り時期（江戸期／明治後摺／1969年芸艸堂版のいずれか）も未確認",
+    "format": "半紙本 半丁2枚（推定、確度中）。続物ではなく本の挿絵",
+    "dimensions": "匡郭 約18.8×12.7cm（実測）。紙1枚 約24×14cm（推定）。マット外寸 約32.5×49cm（推定、確度低）",
+    "condition_notes": "画像からの所見、第三者評価ではない。淡彩摺（墨・灰・薄紅）、2枚とも黄変・くすみあり、左右とも虫損らしき小穴や汚れが散見。裏打ち・補修・補彩の有無、余白・トリミングの有無は写真からは判断不可",
+    "image_rights": "図柄は著作権消滅（北斎は1849年没）。掲載画像はTwinfoldが実物を撮影した写真2枚を傾き補正し、白いマット上に合成したもの。店の販売用ラベルは写っていない",
+    "evidence_hash": "display composite (fixtures/demo/artworks/ukiyoe-hokusai-manga13.png) sha256=b4acdc37b796bc1172b07d7aa0abffc8b689369bbc2cd6dd0642eba0a139ba8f; source scan IMG_6034.JPG sha256=01721d75e3940b9d55d10ca5345649374316c1db0bd85c9e8fcd6042b3396abb; source scan IMG_6035.JPG sha256=6e9563d4ff762937094fb479a8f17694afd164c60a9837d4f0773d57c44fd82c",
+    "verification_status": "unconfirmed"
+  }
+}

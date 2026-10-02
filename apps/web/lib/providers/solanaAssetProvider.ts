@@ -1,4 +1,5 @@
 import type {
+  AcquisitionView,
   AssetProvider,
   BuybackQuote,
   DevnetTransferResult,
@@ -108,6 +109,36 @@ export class SolanaAssetProvider implements AssetProvider {
       throw new Error(`devnet transfer failed for ${params.assetId}: ${message}`);
     }
     return json;
+  }
+
+  /** GET /api/vault/assets — Assets Twinfold's vault wallet holds and lists for acquisition (with commerce). */
+  async getVaultAssets(): Promise<TwinfoldAsset[]> {
+    const response = await fetch("/api/vault/assets", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Failed to load vault assets: HTTP ${response.status}`);
+    return (await response.json()) as TwinfoldAsset[];
+  }
+
+  /**
+   * POST /api/acquisitions — "Twinfoldから取得" (Issue #60). The buyer is the signed-in wallet (session cookie);
+   * only Twinfold's vault signs; no payment. Idempotent by requestId. Resolves with the view even for
+   * a refusal (`ok: false`), so the UI can show the server's message.
+   */
+  async acquire(requestId: string, assetId: string): Promise<{ ok: boolean; status: number; view?: AcquisitionView; message?: string }> {
+    const response = await fetch("/api/acquisitions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, assetId }),
+    });
+    const json = (await response.json().catch(() => ({}))) as Partial<AcquisitionView> & { error?: string; message?: string; reasons?: string[] };
+    if ("requestId" in json && json.requestId) return { ok: response.ok, status: response.status, view: json as AcquisitionView };
+    return { ok: false, status: response.status, message: json.message ?? json.reasons?.join("／") ?? json.error ?? `HTTP ${response.status}` };
+  }
+
+  /** GET /api/acquisitions/{requestId} — polls an acquisition started above. */
+  async acquisitionStatus(requestId: string): Promise<AcquisitionView> {
+    const response = await fetch(`/api/acquisitions/${encodeURIComponent(requestId)}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Failed to poll acquisition ${requestId}: HTTP ${response.status}`);
+    return (await response.json()) as AcquisitionView;
   }
 
   /** GET /api/devnet/transfer/{requestId} — polls a transfer started above. */

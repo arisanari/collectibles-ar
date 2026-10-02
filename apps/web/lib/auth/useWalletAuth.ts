@@ -27,11 +27,14 @@ type PhantomProvider = {
   connect(options?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: PhantomPublicKey }>;
   disconnect(): Promise<void>;
   signMessage(message: Uint8Array, display?: "utf8" | "hex"): Promise<{ signature: Uint8Array }>;
+  /** Signs without sending (used for owner-approved transfers; the server submits). */
+  signTransaction<T>(transaction: T): Promise<T>;
+  publicKey?: PhantomPublicKey | null;
   on(event: string, handler: (...args: never[]) => void): void;
   off?(event: string, handler: (...args: never[]) => void): void;
 };
 
-function getPhantom(): PhantomProvider | null {
+export function getPhantom(): PhantomProvider | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as { phantom?: { solana?: PhantomProvider }; solana?: PhantomProvider };
   const provider = w.phantom?.solana ?? w.solana;

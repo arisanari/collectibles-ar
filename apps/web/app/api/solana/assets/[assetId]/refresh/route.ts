@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAsset } from "../../../../../../lib/solana/heliusClient";
 import { resolveAssetAddress } from "../../../../../../lib/solana/assetRegistry";
 import type { Entitlement } from "../../../../../../lib/contract";
+import { redemptionEntitlement } from "../../../../../../lib/redemptions/overlay";
+import { findEffectiveByAsset } from "../../../../../../lib/redemptions/store";
 
 export const dynamic = "force-dynamic";
 
@@ -35,14 +37,19 @@ export async function POST(request: Request, context: { params: Promise<{ assetI
 
   try {
     const heliusAsset = await getAsset(address);
-    const canDisplay = !heliusAsset.burnt && heliusAsset.ownership.owner === wallet;
+    // Redeem dry run: once the Asset is locked into escrow (circulation stopped) or retired, the former owner
+    // can no longer display it, with a reason that says why (never silently "owner mismatch").
+    const stopped = redemptionEntitlement(findEffectiveByAsset(assetId));
+    const canDisplay = !stopped && !heliusAsset.burnt && heliusAsset.ownership.owner === wallet;
     const entitlement: Entitlement = {
       wallet,
       assetId,
       canDisplay,
-      reason: canDisplay
-        ? "devnet: chain owner matches wallet"
-        : "devnet: chain owner does not match wallet",
+      reason: stopped
+        ? stopped.reason
+        : canDisplay
+          ? "devnet: chain owner matches wallet"
+          : "devnet: chain owner does not match wallet",
       checkedAt: new Date().toISOString(),
     };
     return NextResponse.json(entitlement);

@@ -16,11 +16,28 @@ final class StubURLProtocol: URLProtocol {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var responses: [String: Response] = [:]
     nonisolated(unsafe) private static var networkErrorPaths: Set<String> = []
+    /// "METHOD path" -> the `Authorization` header of the last request seen (nil value = none sent).
+    nonisolated(unsafe) private static var authorizations: [String: String?] = [:]
+    nonisolated(unsafe) private static var extraHeaders: [String: [String: String]] = [:]
 
     static func reset() {
         lock.lock()
         responses = [:]
         networkErrorPaths = []
+        authorizations = [:]
+        extraHeaders = [:]
+        lock.unlock()
+    }
+
+    /// `nil` if the endpoint was never called; `.some(nil)` if called without an Authorization header.
+    static func authorization(method: String, path: String) -> String?? {
+        lock.lock(); defer { lock.unlock() }
+        return authorizations["\(method) \(path)"]
+    }
+
+    static func stubHeaders(method: String, path: String, headers: [String: String]) {
+        lock.lock()
+        extraHeaders["\(method) \(path)"] = headers
         lock.unlock()
     }
 
@@ -49,6 +66,8 @@ final class StubURLProtocol: URLProtocol {
         Self.lock.lock()
         let response = Self.responses[key]
         let isNetworkError = Self.networkErrorPaths.contains(key)
+        Self.authorizations[key] = .some(request.value(forHTTPHeaderField: "Authorization"))
+        let headers = Self.extraHeaders[key] ?? [:]
         Self.lock.unlock()
 
         if isNetworkError {
@@ -59,7 +78,7 @@ final class StubURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.fileDoesNotExist))
             return
         }
-        let httpResponse = HTTPURLResponse(url: url, statusCode: response.status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
+        let httpResponse = HTTPURLResponse(url: url, statusCode: response.status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"].merging(headers) { _, new in new })!
         client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: response.body)
         client?.urlProtocolDidFinishLoading(self)

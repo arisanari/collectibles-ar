@@ -3,6 +3,9 @@ import type { TwinfoldAsset, ProvenanceEvent, ProvenanceKind } from "../contract
 import type { HeliusAsset, HeliusSignatureInfo, HeliusTransaction } from "./heliusClient";
 import { getTransaction } from "./heliusClient";
 import { loadAssetRegistry } from "./assetRegistry";
+import { parseRehearsalId, rehearsalRecord } from "./rehearsal";
+import { applyRedemptionOverlay } from "../redemptions/overlay";
+import { findEffectiveByAsset } from "../redemptions/store";
 import offchainAssetsFixture from "../fixtures/demo/assets.json";
 
 // Metaplex Core program id and instruction discriminators (first byte of
@@ -16,6 +19,7 @@ import offchainAssetsFixture from "../fixtures/demo/assets.json";
 const MPL_CORE_PROGRAM_ID = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d";
 const CREATE_DISCRIMINATORS = new Set([0, 20]); // CreateV1, CreateV2
 const TRANSFER_DISCRIMINATOR = 14; // TransferV1
+const BURN_DISCRIMINATOR = 12; // BurnV1 (redeem retire)
 
 const offchainAssets = offchainAssetsFixture as TwinfoldAsset[];
 
@@ -44,7 +48,12 @@ function reverseRegistryLookup(address: string): string | null {
  * exists.
  */
 export function findOffchainRecord(assetId: string): TwinfoldAsset | undefined {
-  return offchainAssets.find((asset) => asset.id === assetId);
+  const direct = offchainAssets.find((asset) => asset.id === assetId);
+  if (direct) return direct;
+  // `<baseId>-rehearsal-<n>`: a rehearsal token for the redeem dry run, same physical item as <baseId>.
+  const rehearsal = parseRehearsalId(assetId);
+  const base = rehearsal && offchainAssets.find((asset) => asset.id === rehearsal.baseId);
+  return base ? rehearsalRecord(base, assetId) : undefined;
 }
 
 /**
@@ -61,6 +70,15 @@ export function findOffchainRecord(assetId: string): TwinfoldAsset | undefined {
  * defaults.
  */
 export async function heliusAssetToTwinfoldAsset(
+  heliusAsset: HeliusAsset,
+  signatures: HeliusSignatureInfo[]
+): Promise<TwinfoldAsset> {
+  const asset = await normalizeChainAsset(heliusAsset, signatures);
+  // Redeem dry run: overlay Twinfold's redemption record (lock / burn are onchain events with signatures).
+  return applyRedemptionOverlay(asset, findEffectiveByAsset(asset.id));
+}
+
+async function normalizeChainAsset(
   heliusAsset: HeliusAsset,
   signatures: HeliusSignatureInfo[]
 ): Promise<TwinfoldAsset> {
@@ -93,6 +111,7 @@ export async function heliusAssetToTwinfoldAsset(
       provenance,
       physical: offchainRecord.physical,
       commerce: offchainRecord.commerce,
+      ...(offchainRecord.rehearsal ? { rehearsal: true } : {}),
     };
   }
 
@@ -158,6 +177,7 @@ function classifyInstructionKind(
     const discriminator = dataBytes[0];
     if (CREATE_DISCRIMINATORS.has(discriminator)) return "minted";
     if (discriminator === TRANSFER_DISCRIMINATOR) return "transferred";
+    if (discriminator === BURN_DISCRIMINATOR) return "redeemed";
   }
 
   console.warn(

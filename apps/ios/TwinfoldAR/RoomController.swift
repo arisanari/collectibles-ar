@@ -42,7 +42,16 @@ struct DemoWallet: Identifiable, Hashable {
     /// "vault" (Twinfold has no `DemoWallet` — it's addressed directly by
     /// the "vault" label).
     var devnetLabel: String {
-        (id == DemoWallet.ownerA.id || id == DemoWallet.ownerADevnet.id) ? "owner-a" : "owner-b"
+        if id == DemoWallet.ownerA.id || id == DemoWallet.ownerADevnet.id { return "owner-a" }
+        if id == DemoWallet.ownerB.id || id == DemoWallet.ownerBDevnet.id { return "owner-b" }
+        // A linked Web wallet that is not a devnet test wallet: the server
+        // rejects this (403, needs Phantom signing) before reading the label.
+        return "linked"
+    }
+
+    /// "4abc...wxyz" for display.
+    var shortAddress: String {
+        id.count > 10 ? "\(id.prefix(4))...\(id.suffix(4))" : id
     }
 }
 
@@ -180,9 +189,478 @@ final class RoomController {
     /// card snaps flush with an already-placed one.
     private static let wallSnapTolerance: Float = 0.03
 
-    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider) {
+    // MARK: - Web wallet link (Issue #45)
+
+    /// Owns the Keychain-held device token. Shared with `devnetProvider`,
+    /// which sends it as `Authorization: Bearer` on transfer/status calls.
+    private let sessionLink: SessionLinkClient
+    /// Non-nil while a device session issued by the Web (one-time link code)
+    /// is held. Owner-only operations (送る / Twinfoldに売る) in Devnet mode are
+    /// enabled only when the active room is this wallet.
+    private(set) var linkedSession: LinkedSession?
+    /// One-shot banner after the link is dropped (401 / 解除).
+    private(set) var linkNotice: String?
+    private(set) var isLinking = false
+    private(set) var linkErrorMessage: String?
+    /// Presented by the ⋯ menu or by a `twinfold://link?code=` URL.
+    var showsLinkSheet = false
+    /// Code from a `twinfold://link` URL, consumed (prefilled, never auto-submitted) by the sheet.
+    var pendingLinkCode: String?
+
+    static let linkRequiredMessage = "この操作にはWebでwallet連携が必要です"
+    private static let linkedRoomLabel = "あなたのwallet"
+
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient) {
         self.mockProvider = mockProvider
         self.devnetProvider = devnetProvider
+        self.sessionLink = sessionLink
+        self.linkedSession = sessionLink.current
+    }
+
+    /// The linked Web wallet as a room ("あなたのwallet").
+    private var linkedWallet: DemoWallet? {
+        linkedSession.map { DemoWallet(id: $0.wallet, label: Self.linkedRoomLabel) }
+    }
+
+    /// True while the server reports the insecure local flag (Owner A / Owner B test-room signing).
+    private(set) var serverSignedTestTransfers = false
+    /// Per-asset text while a transfer request waits on the Web ("Webで承認待ち" etc.).
+    private(set) var approvalMessages: [String: String] = [:]
+
+    /// Devnet room whose wallet is the linked Web wallet: actions go through Web approval.
+    var isLinkedRoom: Bool {
+        guard dataMode == .devnet, let linked = sessionLink.current else { return false }
+        return linked.wallet == activeWallet.id
+    }
+
+    /// Demo mode: always true (simulated). Devnet mode: the linked wallet's room
+    /// (Web approval), or an Owner A/B test room only while the server's insecure
+    /// dev flag is on. Other rooms are public on-chain data and stay view-only.
+    var canOperateOnActiveWallet: Bool {
+        if dataMode == .demo { return true }
+        if isLinkedRoom { return true }
+        return serverSignedTestTransfers && DemoWallet.allDevnet.contains { $0.id == activeWallet.id }
+    }
+
+    func refreshCapabilities() async {
+        serverSignedTestTransfers = (try? await devnetProvider.devnetCapabilities().serverSignedTestTransfers) ?? false
+    }
+
+    /// 送る / Twinfoldに売る for the linked wallet: create a request, show 「Webで承認待ち」,
+    /// poll every 3s; on confirmed, wait for the owner change as for any transfer, then Disappear.
+    private func runApprovalFlow(assetId: String, asset: TwinfoldAsset, requestId: String, kind: TransferRequestKind, toWallet: String?) async {
+        let opLabel = kind == .buyback ? "Twinfoldへの売却" : "送信"
+        let destination = kind == .buyback ? MockAssetProvider.vaultWallet : (toWallet ?? "")
+        approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
+        defer { approvalMessages[assetId] = nil }
+        do {
+            var info = try await devnetProvider.createTransferRequest(requestId: requestId, assetId: assetId, kind: kind, toWallet: toWallet)
+            while true {
+                switch info.status {
+                case .awaitingApproval, .unknown:
+                    approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
+                case .submitted:
+                    approvalMessages[assetId] = "承認済み・devnetで確定待ち…"
+                case .confirmed:
+                    break
+                case .rejected:
+                    failTransfer(assetId: assetId, message: "取り消されました（Webで拒否されました）。Retryで新しい依頼を作成できます")
+                    return
+                case .expired:
+                    failTransfer(assetId: assetId, message: "期限切れです（10分）。Retryで新しい依頼を作成できます")
+                    return
+                case .failed:
+                    if info.retryable == true {
+                        // Same as the Web: a retryable failure can be re-approved there, so keep polling.
+                        approvalMessages[assetId] = "承認が完了しませんでした（\(info.error ?? "再試行できます")）。Webで再承認できます"
+                    } else {
+                        failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(info.error ?? "unknown error")")
+                        return
+                    }
+                }
+                if info.status == .confirmed { break }
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                // Stop if the user left this operation (mode/wallet switch, reset, link drop).
+                guard transferStates[assetId] == .pending, isLinkedRoom else { return }
+                info = try await devnetProvider.transferRequestStatus(requestId: requestId)
+            }
+        } catch {
+            failTransfer(assetId: assetId, message: transferFailureMessage(error, opLabel: opLabel))
+            return
+        }
+
+        approvalMessages[assetId] = "確定。所有者の反映を待っています…"
+        let owner = activeWallet.id
+        let deadline = Date().addingTimeInterval(300)
+        while Date() < deadline {
+            if let refreshed = try? await devnetProvider.getAsset(assetId: assetId), refreshed.owner != owner {
+                confirmTransfer(assetId: assetId, asset: asset, destination: destination)
+                return
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+        failTransfer(assetId: assetId, message: "\(opLabel)はdevnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。Retryで再確認します")
+    }
+
+    /// Re-reads the Keychain-backed client; if the token expired locally, drops the link.
+    private func refreshLinkState() {
+        if linkedSession != nil, sessionLink.current == nil {
+            dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+        }
+    }
+
+    /// Asks the server whether the token still works (expired / revoked / Web wallet switched -> 401).
+    /// A network failure keeps the link: the server simply could not be asked.
+    func validateLink() async {
+        guard linkedSession != nil else { return }
+        do {
+            let session = try await sessionLink.validate()
+            linkedSession = session
+        } catch SessionLinkError.unauthorized {
+            dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+        } catch {
+            print("validateLink: \(error)")
+        }
+    }
+
+    func linkWithCode(_ rawCode: String) async {
+        guard !isLinking else { return }
+        isLinking = true
+        linkErrorMessage = nil
+        defer { isLinking = false }
+        do {
+            let session = try await sessionLink.exchange(code: rawCode, deviceName: UIDevice.current.name)
+            linkedSession = session
+            linkNotice = nil
+            pendingLinkCode = nil
+            showsLinkSheet = false
+            activateLinkedRoom()
+        } catch let error as SessionLinkError {
+            linkErrorMessage = Self.message(for: error)
+        } catch {
+            linkErrorMessage = "連携に失敗しました: \(error)"
+        }
+    }
+
+    /// 「連携を解除」: forgets the token on this iPhone. (Web 側の「連携を解除」で、発行済みの全端末tokenが失効します)
+    func unlink() {
+        guard linkedSession != nil else { return }
+        dropLink(notice: nil)
+    }
+
+    func handleLinkURL(_ url: URL) {
+        guard let code = SessionLinkClient.code(fromLinkURL: url) else { return }
+        pendingLinkCode = code
+        linkErrorMessage = nil
+        showsLinkSheet = true
+    }
+
+    /// Back to view-only: forgets the token, drops the linked room, and falls
+    /// back to a test wallet room if the active room was the linked one.
+    private func dropLink(notice: String?) {
+        sessionLink.clear()
+        let formerWallet = linkedSession?.wallet
+        linkedSession = nil
+        linkNotice = notice
+        guard dataMode == .devnet, activeWallet.id == formerWallet else { return }
+        if let testRoom = DemoWallet.allDevnet.first(where: { $0.id == formerWallet }) {
+            activeWallet = testRoom // same wallet, original label; assets stay
+        } else {
+            switchWallet(to: DemoWallet.allDevnet.first ?? .ownerADevnet)
+        }
+    }
+
+    func dismissLinkNotice() { linkNotice = nil }
+
+    private func activateLinkedRoom() {
+        guard let linked = linkedWallet else { return }
+        if dataMode != .devnet {
+            switchDataMode(to: .devnet) // selects the first room; fixed up below
+        }
+        if activeWallet.id == linked.id {
+            activeWallet = linked
+        } else {
+            switchWallet(to: linked)
+        }
+    }
+
+    private static func message(for error: SessionLinkError) -> String {
+        switch error {
+        case .invalidCode: return "コードの形式が正しくありません（8文字）"
+        case .unknownCode: return "このコードは見つかりません。Webで新しいコードを発行してください"
+        case .expired: return "コードの有効期限（2分）が切れています。Webで新しいコードを発行してください"
+        case .alreadyUsed: return "このコードは使用済みです。Webで新しいコードを発行してください"
+        case .rateLimited(let seconds):
+            return "試行回数が多すぎます。" + (seconds.map { "約\(max(1, $0 / 60))分後に" } ?? "しばらくしてから") + "もう一度お試しください"
+        case .unauthorized: return "連携が切れました"
+        case .network: return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        case .server(let status): return "サーバーエラー（\(status)）"
+        case .decoding: return "応答を読み取れませんでした"
+        }
+    }
+
+    /// Turns a failed devnet transfer call into on-screen text; a 401 also drops the link.
+    private func transferFailureMessage(_ error: Error, opLabel: String) -> String {
+        if case AssetProviderError.httpError(let status, _) = error {
+            if status == 401 {
+                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+                return "\(opLabel)に失敗しました: 連携が切れました"
+            }
+            if status == 403 {
+                let isTestWallet = DemoWallet.allDevnet.contains { $0.id == activeWallet.id }
+                return "\(opLabel)できません: " + (isTestWallet
+                    ? "このwalletはWebでログイン中のwalletと一致しません"
+                    : "このwalletの署名にはPhantomでの署名が必要です（未対応）")
+            }
+        }
+        return "\(opLabel)に失敗しました: \(error)"
+    }
+
+    // MARK: - 現物を引き取る (Redeem Physical, dry run)
+
+    /// The Asset the redeem explanation sheet is showing, and its busy / error state.
+    private(set) var redeemAssetId: String?
+    private(set) var redeemWorking = false
+    private(set) var redeemError: String?
+    /// One-shot toast after the Asset was locked on chain (it Disappears from the wall).
+    private(set) var redeemToast: String?
+    private var redeemPollTask: Task<Void, Never>?
+    private var redeemRequestId = UUID().uuidString
+    static let redeemPendingMessage = "引き取り手続き中 — WebのMy collectionで承認"
+    static let redeemLockedToast = "流通を停止しました。引き取り手続きはWebで続けます"
+
+    /// True while a redemption is open for the asset (server overlay), so buyback / send are not offered.
+    func isInRedemption(_ asset: TwinfoldAsset) -> Bool { asset.redemption?.open == true }
+
+    func presentRedeem() {
+        refreshLinkState()
+        guard isLinkedRoom, !redeemWorking, let id = selectedAssetId else { return }
+        redeemAssetId = id
+        redeemError = nil
+        redeemRequestId = UUID().uuidString
+    }
+
+    func dismissRedeem() {
+        guard !redeemWorking else { return }
+        redeemAssetId = nil
+        redeemError = nil
+    }
+
+    func dismissRedeemToast() { redeemToast = nil }
+
+    /// Creates the redemption (Bearer). The lock itself is approved in Phantom on the Web; here we only poll until it is locked.
+    func confirmRedeem() {
+        guard isLinkedRoom, let assetId = redeemAssetId, !redeemWorking else { return }
+        redeemWorking = true
+        redeemError = nil
+        let requestId = redeemRequestId
+        Task {
+            defer { redeemWorking = false }
+            do {
+                let redemption = try await devnetProvider.createRedemption(requestId: requestId, assetId: assetId)
+                redeemAssetId = nil
+                if redemption.status == .requested || redemption.status == .locked {
+                    await loadOwnedAssets()
+                    startRedeemPolling(redemptionId: redemption.id, assetId: assetId)
+                }
+            } catch {
+                redeemError = redeemFailureMessage(error)
+            }
+        }
+    }
+
+    /// Polls every 4s. Locked on chain -> reload (the Asset leaves this wallet and Disappears) and show the toast.
+    /// A thrown poll error keeps polling; cancelled / retired / exception end it.
+    private func startRedeemPolling(redemptionId: String, assetId: String) {
+        redeemPollTask?.cancel()
+        redeemPollTask = Task {
+            let deadline = Date().addingTimeInterval(30 * 60)
+            while !Task.isCancelled, Date() < deadline {
+                if let info = try? await devnetProvider.redemptionStatus(id: redemptionId) {
+                    switch info.status {
+                    case .locked, .shipped, .received, .retired:
+                        if selectedAssetId == assetId { selectedAssetId = nil }
+                        await loadOwnedAssets()
+                        redeemToast = Self.redeemLockedToast
+                        return
+                    case .cancelled, .exception:
+                        await loadOwnedAssets()
+                        return
+                    case .requested, .unknown:
+                        break
+                    }
+                }
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+            }
+        }
+    }
+
+    private func cancelRedeemPolling() {
+        redeemPollTask?.cancel()
+        redeemPollTask = nil
+    }
+
+    private func redeemFailureMessage(_ error: Error) -> String {
+        if case AssetProviderError.httpError(let status, _) = error {
+            switch status {
+            case 401:
+                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+                return "連携が切れました"
+            case 403: return "申請できません（所有者ではない、またはサーバー側で無効です）"
+            case 409: return "この作品はすでに引き取り手続き中か、対象外です"
+            case 429: return "申請の回数が上限に達しました。しばらくしてから再試行してください"
+            case 503: return "いまは処理できません（Twinfold側の設定）。時間をおいて再試行してください"
+            default: return "申請に失敗しました（\(status)）"
+            }
+        }
+        return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+    }
+
+    // MARK: - Twinfoldから取得 (acquire, Issue #60)
+
+    enum AcquisitionPhase: Equatable {
+        case idle
+        case working(String)
+        case done
+        case failed(String)
+    }
+
+    static let acquisitionLinkRequiredMessage = "取得にはWebでwallet連携が必要です"
+
+    /// Assets Twinfold's vault wallet holds on devnet (Devnet mode only; empty in Demo mode, which is unchanged).
+    private(set) var vaultAssets: [TwinfoldAsset] = []
+    /// The vault Asset an acquisition sheet is currently showing, and that sheet's state.
+    private(set) var acquisitionAssetId: String?
+    private(set) var acquisitionPhase: AcquisitionPhase = .idle
+    /// Reused for retries of the same sheet so the server stays idempotent.
+    private var acquisitionRequestId = UUID().uuidString
+    private var acquisitionTask: Task<Void, Never>?
+
+    private func cancelAcquisitionTask() {
+        acquisitionTask?.cancel()
+        acquisitionTask = nil
+    }
+
+    var acquisitionAsset: TwinfoldAsset? { vaultAssets.first { $0.id == acquisitionAssetId } ?? lastAcquiredAsset }
+    private var lastAcquiredAsset: TwinfoldAsset?
+    var isAcquisitionLinked: Bool { dataMode == .devnet && sessionLink.current != nil }
+    var isAcquisitionWorking: Bool { if case .working = acquisitionPhase { return true } else { return false } }
+
+    /// Advisory list; a failure just hides the group (the acquisition itself is re-checked server-side).
+    func loadVaultAssets() async {
+        guard dataMode == .devnet else {
+            vaultAssets = []
+            return
+        }
+        do {
+            let assets = try await devnetProvider.vaultAssets()
+            if dataMode == .devnet { vaultAssets = assets.filter { $0.commerce != nil } }
+        } catch {
+            print("loadVaultAssets failed: \(error)")
+            if dataMode == .devnet { vaultAssets = [] }
+        }
+    }
+
+    func presentAcquisition(assetId: String) {
+        refreshLinkState()
+        guard dataMode == .devnet, !isAcquisitionWorking else { return }
+        acquisitionAssetId = assetId
+        acquisitionPhase = isAcquisitionLinked ? .idle : .failed(Self.acquisitionLinkRequiredMessage)
+        acquisitionRequestId = UUID().uuidString
+        lastAcquiredAsset = nil
+    }
+
+    func dismissAcquisition() {
+        guard !isAcquisitionWorking else { return }
+        acquisitionAssetId = nil
+        acquisitionPhase = .idle
+        lastAcquiredAsset = nil
+    }
+
+    /// 取得する: the server (Twinfold vault signs, no payment) transfers the Asset to the linked wallet.
+    /// Poll pending/submitted; once confirmed, wait until the on-chain owner equals the linked wallet, then
+    /// show the room of that wallet where it is a normal owned Asset (Place → Appear).
+    func confirmAcquisition() {
+        refreshLinkState()
+        guard isAcquisitionLinked, let linked = sessionLink.current, let assetId = acquisitionAssetId, !isAcquisitionWorking else {
+            if acquisitionAssetId != nil, !isAcquisitionLinked { acquisitionPhase = .failed(Self.acquisitionLinkRequiredMessage) }
+            return
+        }
+        lastAcquiredAsset = vaultAssets.first { $0.id == assetId }
+        let requestId = acquisitionRequestId
+        acquisitionPhase = .working("送信中…")
+        acquisitionTask = Task {
+            do {
+                var info = try await devnetProvider.acquire(requestId: requestId, assetId: assetId)
+                var pollErrors = 0
+                while info.status != .confirmed {
+                    if Task.isCancelled { return }
+                    switch info.status {
+                    case .failed:
+                        // A server-side `failed` is final for this id: the next attempt must use a NEW requestId.
+                        acquisitionRequestId = UUID().uuidString
+                        acquisitionPhase = .failed(info.error ?? "取得に失敗しました")
+                        return
+                    case .submitted:
+                        acquisitionPhase = .working("送信済み・devnetで確定待ち…")
+                    case .pending, .unknown, .confirmed:
+                        acquisitionPhase = .working("送信中…")
+                    }
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    if Task.isCancelled { return }
+                    do {
+                        info = try await devnetProvider.acquisitionStatus(requestId: requestId)
+                        pollErrors = 0
+                    } catch {
+                        // A thrown poll error (network blip) is NOT a failure: the transfer may have landed.
+                        if case AssetProviderError.httpError(let status, _) = error, status == 401 { throw error }
+                        pollErrors += 1
+                        if pollErrors > 40 { throw error }
+                        acquisitionPhase = .working("確認中…")
+                    }
+                }
+            } catch {
+                // Keep the same requestId only for network-error retries; any server answer means a new id next time.
+                if case AssetProviderError.httpError = error { acquisitionRequestId = UUID().uuidString }
+                acquisitionPhase = .failed(acquisitionFailureMessage(error))
+                return
+            }
+
+            // The status is never proof of ownership: wait for the on-chain owner to equal the linked wallet.
+            acquisitionPhase = .working("確定。所有者の反映を待っています…")
+            let deadline = Date().addingTimeInterval(180)
+            while Date() < deadline, !Task.isCancelled {
+                if let refreshed = try? await devnetProvider.getAsset(assetId: assetId), refreshed.owner == linked.wallet {
+                    if activeWallet.id != linked.wallet, let room = linkedWallet {
+                        switchWallet(to: room, fromAcquisition: true)
+                    } else {
+                        await loadOwnedAssets()
+                    }
+                    await loadVaultAssets()
+                    acquisitionPhase = .done
+                    return
+                }
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+            acquisitionPhase = .failed("devnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。しばらくしてからコレクションを開き直してください")
+        }
+    }
+
+    private func acquisitionFailureMessage(_ error: Error) -> String {
+        if case AssetProviderError.httpError(let status, _) = error {
+            switch status {
+            case 401:
+                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+                return "連携が切れました"
+            case 403: return "サーバー側で取得が無効です（dev設定）"
+            case 404: return "取得の記録が見つかりません。もう一度お試しください"
+            case 409: return "この作品は現在取得できません"
+            case 429: return "取得の回数が上限に達しました。しばらくしてから再試行してください"
+            case 503: return "いまは処理できません（Twinfold側のdevnet SOL残高など）。時間をおいて再試行してください"
+            default: return "取得に失敗しました（\(status)）"
+            }
+        }
+        return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
     }
 
     // MARK: - Wallet / ownership
@@ -193,14 +671,27 @@ final class RoomController {
     func isPlaced(_ assetId: String) -> Bool { placementCoords[assetId] != nil }
     func transferState(for assetId: String) -> TransferState { transferStates[assetId] ?? .idle }
 
-    var walletOptions: [DemoWallet] { DemoWallet.wallets(for: dataMode) }
-
-    func start() async {
-        await loadOwnedAssets()
+    /// Devnet rooms: Owner A / Owner B (public on-chain data, view-only unless
+    /// linked as that wallet) plus the linked Web wallet as "あなたのwallet"
+    /// (replacing the test wallet's own entry when it is the same address).
+    var walletOptions: [DemoWallet] {
+        guard dataMode == .devnet, let linked = linkedWallet else { return DemoWallet.wallets(for: dataMode) }
+        var options = DemoWallet.allDevnet.map { $0.id == linked.id ? linked : $0 }
+        if !options.contains(where: { $0.id == linked.id }) { options.append(linked) }
+        return options
     }
 
-    func switchWallet(to wallet: DemoWallet) {
+    func start() async {
+        async let validation: Void = validateLink()
+        await loadOwnedAssets()
+        await validation
+        await refreshCapabilities()
+    }
+
+    func switchWallet(to wallet: DemoWallet, fromAcquisition: Bool = false) {
         guard wallet.id != activeWallet.id else { return }
+        if !fromAcquisition { cancelAcquisitionTask() }
+        cancelRedeemPolling()
         activeWallet = wallet
         selectedAssetId = nil
         holdingAssetId = nil
@@ -231,10 +722,24 @@ final class RoomController {
         cancelHolding()
         toast = nil
         dismissBuybackOffer()
+        vaultAssets = []
+        cancelAcquisitionTask()
+        cancelRedeemPolling()
+        redeemAssetId = nil
+        redeemToast = nil
+        acquisitionAssetId = nil
+        acquisitionPhase = .idle
 
         dataMode = mode
-        activeWallet = DemoWallet.wallets(for: mode).first ?? .ownerA
-        Task { await loadOwnedAssets() }
+        activeWallet = walletOptions.first ?? .ownerA
+        Task {
+            await loadOwnedAssets()
+            if mode == .devnet {
+                await validateLink()
+                await refreshCapabilities()
+                await loadVaultAssets()
+            }
+        }
     }
 
     private func loadOwnedAssets() async {
@@ -530,6 +1035,8 @@ final class RoomController {
     /// `/api/devnet/transfer`'s dev-only server-signing shortcut, to the
     /// other devnet test wallet.
     func sendSelected() {
+        refreshLinkState()
+        guard canOperateOnActiveWallet else { return }
         guard let assetId = selectedAssetId,
               let live = liveEntities[assetId],
               let asset = ownedAssets.first(where: { $0.id == assetId }) else { return }
@@ -544,6 +1051,10 @@ final class RoomController {
         if dataMode == .demo {
             let destination = destinationWallet(for: asset)
             Task { await runTransfer(assetId: assetId, asset: asset, destination: destination, requestId: requestId) }
+        } else if isLinkedRoom {
+            // Owner's own wallet: Web approval (Phantom signs), never server signing.
+            let destination = destinationWallet(for: asset)
+            Task { await runApprovalFlow(assetId: assetId, asset: asset, requestId: requestId, kind: .send, toWallet: destination) }
         } else {
             let toLabel = activeWallet.devnetLabel == "owner-a" ? "owner-b" : "owner-a"
             let destinationWalletId = (toLabel == "owner-a" ? DemoWallet.ownerADevnet : DemoWallet.ownerBDevnet).id
@@ -575,6 +1086,8 @@ final class RoomController {
     /// way; see `AGENTS.md` section 3 and the buyback-quote route's
     /// comments.
     func presentBuybackOffer(assetId: String? = nil) {
+        refreshLinkState()
+        guard canOperateOnActiveWallet else { return }
         guard let assetId = assetId ?? selectedAssetId else { return }
         buybackAssetId = assetId
         buybackQuote = nil
@@ -617,6 +1130,8 @@ final class RoomController {
     /// Devnet mode sends a real devnet transfer to the vault wallet via the
     /// same `/api/devnet/transfer` shortcut used for P2P sends.
     func confirmBuyback() {
+        refreshLinkState()
+        guard canOperateOnActiveWallet else { return }
         guard let assetId = buybackAssetId,
               let quote = buybackQuote, quote.eligible,
               let asset = ownedAssets.first(where: { $0.id == assetId }) else { return }
@@ -632,6 +1147,10 @@ final class RoomController {
 
         if dataMode == .demo {
             Task { await runBuybackDemo(assetId: assetId, asset: asset, requestId: requestId) }
+        } else if isLinkedRoom {
+            Task {
+                await runApprovalFlow(assetId: assetId, asset: asset, requestId: requestId, kind: .buyback, toWallet: nil)
+            }
         } else {
             Task {
                 await runDevnetTransfer(
@@ -675,15 +1194,17 @@ final class RoomController {
         guard let solana = provider as? SolanaAssetProvider else { return }
         let opLabel = toLabel == "vault" ? "Twinfoldへの売却" : "送信"
         do {
+            // Test rooms only (server-signed, insecure dev flag): never attach the linked wallet's token.
             let result = try await solana.devnetTransfer(
-                requestId: requestId, assetId: assetId, from: activeWallet.devnetLabel, to: toLabel, quoteId: quoteId
+                requestId: requestId, assetId: assetId, from: activeWallet.devnetLabel, to: toLabel, quoteId: quoteId,
+                useSessionToken: false
             )
             if result.status == .failed {
                 await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(result.error ?? "unknown error")") }
                 return
             }
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: self.transferFailureMessage(error, opLabel: opLabel)) }
             return
         }
 

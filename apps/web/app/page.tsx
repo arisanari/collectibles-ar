@@ -10,6 +10,7 @@ import { custodyStatusLabel, shortAddress, spatialLabel } from "../lib/labels";
 import { useLang } from "../lib/useLang";
 import { AssetCard } from "../components/AssetCard";
 import { ProvenanceList } from "../components/ProvenanceList";
+import { VaultAcquisitionSection } from "../components/VaultAcquisitionSection";
 import walletsFixture from "../lib/fixtures/demo/wallets.json";
 
 type WalletEntry = { label: string; address: string };
@@ -91,9 +92,9 @@ export default function Home() {
       <section className="hero shell">
         <div className="eyebrow">PHYSICAL × DIGITAL TWIN</div>
         <h1>Own the provenance.<br /><em>Keep it real.</em></h1>
-        <p>壁に掛ける浮世絵・古版画をReference Assetとして登録し、来歴・現物状態・保管をSolana devnet上で追跡する。棚のコレクティブル（郷土玩具・こけし等）にも対応。<br className="desktop" />表示中のデータはすべてfixtureです。</p>
-        <button className="primary" onClick={() => document.getElementById("works")?.scrollIntoView({ behavior: "smooth" })}>
-          Explore the assets <span>↘</span>
+        <p>壁に掛ける浮世絵・古版画をReference Assetとして登録し、来歴・現物状態・保管をSolana devnet上で追跡する。棚のコレクティブル（郷土玩具・こけし等）にも対応。<br className="desktop" />DEVNETと表示した区画はSolana devnet上の実データ、下のサンプル一覧はDEMO DATA（fixture）です。</p>
+        <button className="primary" onClick={() => document.getElementById("vault-assets")?.scrollIntoView({ behavior: "smooth" })}>
+          Twinfoldから取得できる作品へ <span>↘</span>
         </button>
         <div className="heroArt" aria-hidden="true">
           <div className="frame front"><Image src="/artworks/ukiyoe-demo.png" alt="" fill priority sizes="360px" /></div>
@@ -104,29 +105,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="works shell" id="works">
-        <div className="sectionTitle">
-          <div><span>REFERENCE ASSETS</span><h2>Available assets</h2></div>
-          <div className="sectionTools">
-            <p>{allAssets.length.toString().padStart(2, "0")} unique assets</p>
-            <span className="demoBadge">DEMO DATA</span>
-          </div>
-        </div>
-        {allAssets.length === 0 ? (
-          <p className="emptyState">表示できるAssetがありません。</p>
-        ) : (
-          <div className="grid">
-            {allAssets.map((item) => (
-              <article className="card" key={item.id} onClick={() => setSelected(item)}>
-                <div className="cardImage"><Image className="contain" src={item.display.imageUrl} alt={title(item)} fill sizes="(max-width: 700px) 100vw, 33vw" /></div>
-                <div className="cardMeta"><span>FIXTURE · NOT ON CHAIN · {spatialLabel(item)}</span><span>Reference</span></div>
-                <h3>{title(item)}</h3>
-                <div className="price"><span>{item.address}</span><strong>{item.provenance.length} events</strong></div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <VaultAcquisitionSection />
 
       <section className="works shell devnetSection" id="devnet-assets">
         <div className="sectionTitle">
@@ -155,6 +134,30 @@ export default function Home() {
               ))}
             </div>
           </>
+        )}
+      </section>
+
+      <section className="works shell" id="works">
+        <div className="sectionTitle">
+          <div><span>REFERENCE ASSETS</span><h2>Available assets</h2></div>
+          <div className="sectionTools">
+            <p>{allAssets.length.toString().padStart(2, "0")} unique assets</p>
+            <span className="demoBadge">DEMO DATA</span>
+          </div>
+        </div>
+        {allAssets.length === 0 ? (
+          <p className="emptyState">表示できるAssetがありません。</p>
+        ) : (
+          <div className="grid">
+            {allAssets.map((item) => (
+              <article className="card" key={item.id} onClick={() => setSelected(item)}>
+                <div className="cardImage"><Image className="contain" src={item.display.imageUrl} alt={title(item)} fill sizes="(max-width: 700px) 100vw, 33vw" /></div>
+                <div className="cardMeta"><span>FIXTURE · NOT ON CHAIN · {spatialLabel(item)}</span><span>Reference</span></div>
+                <h3>{title(item)}</h3>
+                <div className="price"><span>{item.address}</span><strong>{item.provenance.length} events</strong></div>
+              </article>
+            ))}
+          </div>
         )}
       </section>
 

@@ -21,14 +21,17 @@ export function evaluateBuybackEligibility(params: {
   currentOwner: string | null | undefined;
   burnt?: boolean;
   wallet: string;
+  /** True while a redemption (Redeem Physical) is open for this Asset: it must not be offered for buyback. */
+  redemptionOpen?: boolean;
 }): BuybackEligibility {
-  const { offchainRecord, currentOwner, burnt, wallet } = params;
+  const { offchainRecord, currentOwner, burnt, wallet, redemptionOpen } = params;
 
   if (!offchainRecord?.commerce) {
     return { eligible: false, reasons: ["no Twinfold price set for this asset"] };
   }
 
   const reasons: string[] = [];
+  if (redemptionOpen) reasons.push("redeem（現物の引き取り）手続き中のため、売却できません");
   if (burnt) reasons.push("Assetが失効（burn）しています");
   if (currentOwner !== wallet) {
     reasons.push("このwalletはdevnet上の現在の所有者ではありません");

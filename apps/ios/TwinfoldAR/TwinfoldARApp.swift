@@ -17,11 +17,21 @@ struct TwinfoldARApp: App {
 struct CollectionRootView: View {
     @State private var mockProvider: MockAssetProvider?
     @State private var loadError: String?
+    /// Keychain-backed device session (Issue #45), shared by the devnet
+    /// provider (Bearer on transfer/status) and the room controller.
+    @State private var sessionLink: SessionLinkClient
+    @State private var devnetProvider: SolanaAssetProvider
+
+    init() {
+        let link = SessionLinkClient(baseURL: Self.apiBaseURL)
+        _sessionLink = State(initialValue: link)
+        _devnetProvider = State(initialValue: SolanaAssetProvider(baseURL: Self.apiBaseURL, sessionLink: link))
+    }
 
     var body: some View {
         Group {
             if let mockProvider {
-                MyRoomView(mockProvider: mockProvider, devnetProvider: SolanaAssetProvider(baseURL: Self.apiBaseURL))
+                MyRoomView(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink)
             } else if let loadError {
                 Text("fixtureの読み込みに失敗しました: \(loadError)")
                     .multilineTextAlignment(.center)

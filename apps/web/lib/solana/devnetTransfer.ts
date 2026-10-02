@@ -10,12 +10,13 @@ import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { mplCore, fetchAssetV1, transfer } from "@metaplex-foundation/mpl-core";
 import { createSignerFromKeypair, signerIdentity, publicKey as umiPublicKey } from "@metaplex-foundation/umi";
 import { fromWeb3JsKeypair } from "@metaplex-foundation/umi-web3js-adapters";
+import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { loadDevnetKeypair, type DevnetWalletLabel } from "./devnetKeys";
 
 const HELIUS_DEVNET_RPC = "https://devnet.helius-rpc.com";
 
-function rpcUrl(): string {
+export function devnetRpcUrl(): string {
   const apiKey = process.env.HELIUS_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -34,26 +35,51 @@ export function devnetWalletAddress(label: DevnetWalletLabel): string {
  * Signs and sends a devnet transfer of Core Asset `assetAddress` from `from`
  * to `to` (both devnet test wallets whose keypairs live under
  * TWINFOLD_DEVNET_KEY_DIR). Throws on failure; never logs a secret key.
+ * Only reachable from the dev-only server-signing route (insecure dev flag).
  */
 export async function sendDevnetTransfer(params: {
   assetAddress: string;
   from: DevnetWalletLabel;
   to: DevnetWalletLabel;
 }): Promise<{ signature: string; newOwner: string }> {
-  const umi = createUmi(rpcUrl()).use(mplCore());
-
-  const fromKeypair = fromWeb3JsKeypair(loadDevnetKeypair(params.from));
-  const signer = createSignerFromKeypair(umi, fromKeypair);
-  umi.use(signerIdentity(signer));
-
   const newOwner = devnetWalletAddress(params.to);
-  const assetPk = umiPublicKey(params.assetAddress);
-  const asset = await fetchAssetV1(umi, assetPk);
+  const { signature, error } = await sendDevnetTransferWithSigner({
+    assetAddress: params.assetAddress,
+    signer: loadDevnetKeypair(params.from),
+    newOwner,
+  });
+  if (error) throw new Error(error);
+  return { signature, newOwner };
+}
 
-  const tx = await transfer(umi, {
-    asset,
-    newOwner: umiPublicKey(newOwner),
-  }).sendAndConfirm(umi);
+/**
+ * Reusable core: sends a Core `transfer` of `assetAddress` to `newOwner`
+ * (base58) signed by an arbitrary web3.js `signer` (the current owner, who
+ * also pays the fee). Used by `sendDevnetTransfer` (test wallets) and
+ * intended for a future server-side "buy from Twinfold" transfer signed by
+ * the vault wallet. Never logs the secret key.
+ */
+export async function sendDevnetTransferWithSigner(params: {
+  assetAddress: string;
+  signer: Keypair;
+  newOwner: string;
+  /**
+   * Called as soon as the transaction has been sent (signature known) and BEFORE
+   * confirmation, so a caller can keep a "submitted" state if confirmation then
+   * times out or errors, instead of reporting a failure for a transfer that may land.
+   */
+  onSubmitted?: (signature: string, lastValidBlockHeight: number) => void;
+}): Promise<{ signature: string; error?: string }> {
+  const umi = createUmi(devnetRpcUrl()).use(mplCore());
+  umi.use(signerIdentity(createSignerFromKeypair(umi, fromWeb3JsKeypair(params.signer))));
 
-  return { signature: bs58.encode(tx.signature), newOwner };
+  const asset = await fetchAssetV1(umi, umiPublicKey(params.assetAddress));
+  const blockhash = await umi.rpc.getLatestBlockhash();
+  const builder = transfer(umi, { asset, newOwner: umiPublicKey(params.newOwner) }).setBlockhash(blockhash);
+  const sent = await builder.send(umi, { preflightCommitment: "confirmed" });
+  const signature = bs58.encode(sent);
+  params.onSubmitted?.(signature, blockhash.lastValidBlockHeight);
+  const result = await umi.rpc.confirmTransaction(sent, { strategy: { type: "blockhash", ...blockhash }, commitment: "confirmed" });
+  if (result.value.err) return { signature, error: `transaction failed on devnet: ${JSON.stringify(result.value.err)}` };
+  return { signature };
 }

@@ -1,5 +1,5 @@
 /**
- * Generates devnet-only test wallets (owner-a, owner-b, vault) used by the
+ * Generates devnet-only test wallets (owner-a, owner-b, vault, escrow) used by the
  * mint pipeline's demo transfer flow (vault: Twinfold's own devnet
  * vault/treasury, used by the "Twinfoldに売る" buyback), and requests a
  * devnet airdrop for each.
@@ -23,6 +23,7 @@ import {
   OWNER_A_KEYPAIR_PATH,
   OWNER_B_KEYPAIR_PATH,
   VAULT_KEYPAIR_PATH,
+  ESCROW_KEYPAIR_PATH,
 } from "./config.js";
 
 const REPO_ROOT = path.resolve(new URL("../../../", import.meta.url).pathname);
@@ -62,6 +63,8 @@ async function main() {
   const ownerA = writeKeypairIfAbsent(OWNER_A_KEYPAIR_PATH, "owner-a");
   const ownerB = writeKeypairIfAbsent(OWNER_B_KEYPAIR_PATH, "owner-b");
   const vault = writeKeypairIfAbsent(VAULT_KEYPAIR_PATH, "vault");
+  // Redemption escrow (redeem dry run). The vault pays its fees, so no airdrop is needed for it.
+  writeKeypairIfAbsent(ESCROW_KEYPAIR_PATH, "escrow");
 
   if (airdropSol <= 0) {
     console.log("Skipping airdrop (--airdrop=0).");

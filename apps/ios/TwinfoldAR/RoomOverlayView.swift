@@ -25,10 +25,22 @@ struct RoomOverlayView: View {
             }
             .padding()
 
+            if controller.linkNotice != nil {
+                linkNoticeBanner
+            }
+
             Spacer()
 
             VStack(spacing: 10) {
-                if let toast = controller.toast {
+                if let message = controller.redeemToast {
+                    VStack(spacing: 8) {
+                        Text(message).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.white)
+                        Button("閉じる") { controller.dismissRedeemToast() }.buttonStyle(.bordered)
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
+                    .padding(.horizontal, 16)
+                } else if let toast = controller.toast {
                     toastView(toast)
                 } else if controller.holdingAssetId != nil {
                     hintBar
@@ -52,6 +64,39 @@ struct RoomOverlayView: View {
         .sheet(isPresented: buybackSheetBinding) {
             buybackOfferSheet
         }
+        .sheet(isPresented: redeemSheetBinding) {
+            redeemSheet
+        }
+        .sheet(isPresented: acquisitionSheetBinding) {
+            acquisitionSheet
+        }
+        .sheet(isPresented: linkSheetBinding) {
+            LinkWalletSheet(controller: controller)
+        }
+    }
+
+    private var linkSheetBinding: Binding<Bool> {
+        Binding(
+            get: { controller.showsLinkSheet },
+            set: { controller.showsLinkSheet = $0 }
+        )
+    }
+
+    private var linkNoticeBanner: some View {
+        HStack(spacing: 8) {
+            Text(controller.linkNotice ?? "")
+                .font(.footnote.bold())
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 4)
+            Button("閉じる") { controller.dismissLinkNotice() }
+                .font(.footnote)
+                .buttonStyle(.bordered)
+                .tint(.white)
+        }
+        .padding(10)
+        .background(Color.red.opacity(0.75), in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
     }
 
     private var buybackSheetBinding: Binding<Bool> {
@@ -71,7 +116,7 @@ struct RoomOverlayView: View {
                 } else if let error = controller.buybackQuoteError {
                     Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
                 } else if let quote = controller.buybackQuote {
-                    Text(asset?.displayTitle() ?? "")
+                    Text((asset?.displayTitle() ?? "") + (asset?.rehearsal == true ? " [REHEARSAL]" : ""))
                         .font(.headline)
                         .multilineTextAlignment(.center)
                     Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET — devnetでの実際のtransfer。支払いはありません")
@@ -108,6 +153,136 @@ struct RoomOverlayView: View {
             }
         }
         .presentationDetents([.medium])
+    }
+
+    private var redeemSheetBinding: Binding<Bool> {
+        Binding(
+            get: { controller.redeemAssetId != nil },
+            set: { isPresented in if !isPresented { controller.dismissRedeem() } }
+        )
+    }
+
+    /// 「現物を引き取る」 explanation sheet (dry run). No delivery address is asked for or stored.
+    @ViewBuilder
+    private var redeemSheet: some View {
+        let asset = controller.ownedAssets.first(where: { $0.id == controller.redeemAssetId })
+        NavigationStack {
+            VStack(spacing: 14) {
+                Text((asset?.displayTitle() ?? "") + (asset?.rehearsal == true ? " [REHEARSAL]" : ""))
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Text("DEVNET · DRY RUN")
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("・流通するAssetは止まります。Webで承認すると壁から消え、受取確認後にAssetは失効します。")
+                    Text("・再流通には再確認とTwinfold Vaultへのre-vaultが必要です。")
+                    Text("・このデモでは実配送はせず、配送先も記録しません。")
+                    Text("・承認と受取確認はWebのMy collectionで行います（Passportの閲覧もWebです）。")
+                }
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if let error = controller.redeemError {
+                    Text(error).font(.subheadline).foregroundStyle(.red).multilineTextAlignment(.center)
+                }
+                if controller.redeemWorking {
+                    ProgressView("申請中…")
+                } else {
+                    Button("申請する（dry run）") { controller.confirmRedeem() }
+                        .buttonStyle(.borderedProminent)
+                }
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("現物を引き取る")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { controller.dismissRedeem() }.disabled(controller.redeemWorking)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .interactiveDismissDisabled(controller.redeemWorking)
+    }
+
+    private var acquisitionSheetBinding: Binding<Bool> {
+        Binding(
+            get: { controller.acquisitionAssetId != nil },
+            set: { isPresented in if !isPresented { controller.dismissAcquisition() } }
+        )
+    }
+
+    /// 「Twinfoldから取得」 sheet: title, display price, the three statements, DEVNET, then 取得する.
+    @ViewBuilder
+    private var acquisitionSheet: some View {
+        let asset = controller.acquisitionAsset
+        let working = controller.isAcquisitionWorking
+        NavigationStack {
+            VStack(spacing: 14) {
+                Text((asset?.displayTitle() ?? "") + (asset?.rehearsal == true ? " [REHEARSAL]" : ""))
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Text("DEVNET")
+                    .font(.caption.bold())
+                    .foregroundStyle(.orange)
+                if let price = asset?.commerce?.twinfoldPrice {
+                    Text("\(Int(price.amount).formatted(.number.grouping(.automatic))) \(price.currency)")
+                        .font(.system(size: 30, weight: .bold))
+                    Text("表示価格（Twinfoldの表示値・デモ用の仮の値）")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("・devnet上の取得であり、支払いは行われません。")
+                    Text("・価格は表示のみです（デモ用の仮の値）。")
+                    Text("・現物はTwinfoldのVaultに保管されたままです。")
+                }
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                switch controller.acquisitionPhase {
+                case .idle:
+                    Button("取得する") { controller.confirmAcquisition() }
+                        .buttonStyle(.borderedProminent)
+                case .working(let message):
+                    ProgressView(message)
+                case .done:
+                    Text("取得しました。あなたのコレクションに追加されました。トレイから選んで壁に配置できます")
+                        .font(.subheadline.bold())
+                        .multilineTextAlignment(.center)
+                    Button("閉じる") { controller.dismissAcquisition() }
+                        .buttonStyle(.borderedProminent)
+                case .failed(let message):
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                    if controller.isAcquisitionLinked {
+                        Button("もう一度取得する") { controller.confirmAcquisition() }
+                            .buttonStyle(.bordered)
+                    } else {
+                        Button("Webのwalletと連携") {
+                            controller.dismissAcquisition()
+                            controller.showsLinkSheet = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Twinfoldから取得")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { controller.dismissAcquisition() }
+                        .disabled(working)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .interactiveDismissDisabled(working)
     }
 
     private var hintBar: some View {
@@ -158,6 +333,16 @@ struct RoomOverlayView: View {
                 }
             }
 
+            if controller.dataMode == .devnet {
+                if let linked = controller.linkedSession {
+                    Section("連携中: \(DemoWallet(id: linked.wallet, label: "").shortAddress)") {
+                        Button("連携を解除", role: .destructive) { controller.unlink() }
+                    }
+                } else {
+                    Button("Webのwalletと連携") { controller.showsLinkSheet = true }
+                }
+            }
+
             if controller.provider.isDemoData {
                 Button("失敗をシミュレート (demo)") {
                     controller.simulateFailureForSelected()
@@ -181,7 +366,7 @@ struct RoomOverlayView: View {
         let state = controller.transferState(for: asset.id)
         return VStack(spacing: 8) {
             VStack(spacing: 2) {
-                Text(asset.displayTitle())
+                Text(asset.displayTitle() + (asset.rehearsal == true ? " [REHEARSAL]" : ""))
                     .font(.headline)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
@@ -216,8 +401,16 @@ struct RoomOverlayView: View {
                                : "\(controller.destinationLabelForSelected)へ送る (devnet)") {
                             controller.sendSelected()
                         }
+                        .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
                         Button("Twinfoldに売る") {
                             controller.presentBuybackOffer()
+                        }
+                        .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
+                        if !controller.provider.isDemoData {
+                            Button("現物を引き取る") {
+                                controller.presentRedeem()
+                            }
+                            .disabled(!controller.isLinkedRoom || controller.isInRedemption(asset) || asset.physical?.custody.status != "vaulted")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -226,8 +419,26 @@ struct RoomOverlayView: View {
                             .padding(6)
                     }
                 }
+                if controller.isInRedemption(asset) {
+                    Text(RoomController.redeemPendingMessage)
+                        .font(.footnote.bold())
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                }
+                if !controller.canOperateOnActiveWallet {
+                    Text("\(RoomController.linkRequiredMessage)（連携中の「あなたのwallet」の部屋でのみ送る・売るが使えます。Owner A / Bは閲覧のみ）")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                }
             case .pending:
-                Button("送信中…") {}
+                if let approval = controller.approvalMessages[asset.id] {
+                    Text(approval)
+                        .font(.footnote.bold())
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                }
+                Button(controller.approvalMessages[asset.id] == nil ? "送信中…" : "Webで承認待ち") {}
                     .buttonStyle(.borderedProminent)
                     .disabled(true)
             case .failed:

@@ -5,6 +5,7 @@ import type { TwinfoldAsset } from "../lib/contract";
 import { displayTitle } from "../lib/displayTitle";
 import { custodyStatusLabel, explorerAddressUrl, shortAddress } from "../lib/labels";
 import { useLang } from "../lib/useLang";
+import { PhysicalDetails } from "./PhysicalDetails";
 import { ProvenanceList } from "./ProvenanceList";
 
 /** Display-only card for a devnet (or, with `demo`, fixture) asset. No owner actions. */
@@ -23,7 +24,10 @@ export function AssetCard({ asset, demo = false, showCommerce = false }: { asset
             <Image src={asset.display.imageUrl} alt={title} width={96} height={120} className="thumbImg" />
           </div>
         )}
-        <span className="demoBadge">{demo ? "DEMO DATA" : "DEVNET"}</span>
+        <span className="badgeRow">
+          {asset.rehearsal && <span className="demoBadge rehearsalBadge" title="redeem dry run用のリハーサルToken。Reference Assetではありません">REHEARSAL</span>}
+          <span className="demoBadge">{demo ? "DEMO DATA" : "DEVNET"}</span>
+        </span>
       </div>
       <div className="cardMeta">
         <span>{demo ? "FIXTURE · NOT ON CHAIN" : `${asset.standard} · ${asset.network}`}</span>
@@ -36,6 +40,7 @@ export function AssetCard({ asset, demo = false, showCommerce = false }: { asset
       <p className="custodyLine">
         <span className="eyebrow">CUSTODY</span> {custody ? custodyStatusLabel[custody] : "—"}
       </p>
+      <PhysicalDetails asset={asset} demo={demo} />
       {showCommerce && commerce && (
         <div className="offerBox">
           <div className="eyebrow">TWINFOLD PRICE / BUYBACK OFFER</div>

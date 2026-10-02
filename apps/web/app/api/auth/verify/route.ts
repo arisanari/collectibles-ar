@@ -9,7 +9,8 @@ import {
   PREAUTH_COOKIE,
   readSmallJson,
 } from "../../../../lib/auth/http";
-import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from "../../../../lib/auth/session";
+import { createSessionToken, readSessionToken, SESSION_COOKIE, sessionCookieOptions } from "../../../../lib/auth/session";
+import { revokeDevicesForWallet } from "../../../../lib/link/store";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,12 @@ export async function POST(request: Request) {
     console.error("auth/verify: session secret is missing or too short (TWINFOLD_SESSION_SECRET)");
     return NextResponse.json({ error: "server misconfigured" }, { status: 500 });
   }
+  // Signing in as a different wallet ends the previous wallet's device links: the iPhone then gets 401
+  // ("連携が切れました") instead of staying bound to an identity the Web no longer shows.
+  // Limitation: when the previous cookie already expired (1h) there is no previous wallet to read here, so
+  // its device tokens (12h) can outlive the cookie until they expire or are revoked on the Web.
+  const previous = readSessionToken((await cookies()).get(SESSION_COOKIE)?.value);
+  if (previous && previous.wallet !== result.wallet) revokeDevicesForWallet(previous.wallet, "web signed in as a different wallet");
   const response = NextResponse.json({ wallet: result.wallet, expiresAt: new Date(session.expiresAt).toISOString() });
   response.cookies.set(SESSION_COOKIE, session.token, sessionCookieOptions(Math.floor((session.expiresAt - Date.now()) / 1000)));
   response.cookies.set(PREAUTH_COOKIE, "", sessionCookieOptions(0));

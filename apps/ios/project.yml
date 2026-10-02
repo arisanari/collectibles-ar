@@ -35,5 +35,9 @@ targets:
       path: Generated/Info.plist
       properties:
         TWINFOLD_API_BASE_URL: "http://localhost:3000"
+        # twinfold://link?code=XXXXXXXX（Webの連携QRをiPhoneカメラで読む、Issue #45）
+        CFBundleURLTypes:
+          - CFBundleURLName: design.twinfold.ar.link
+            CFBundleURLSchemes: [twinfold]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

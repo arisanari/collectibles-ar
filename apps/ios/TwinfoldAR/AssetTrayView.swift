@@ -75,10 +75,56 @@ struct AssetTrayView: View {
                     }
                     .padding(.horizontal, 16)
                 }
+
+                if controller.dataMode == .devnet, !controller.vaultAssets.isEmpty {
+                    vaultGroup
+                }
             }
         }
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 「Twinfoldから取得」: Assets Twinfold's vault wallet holds (DEVNET). Tapping one opens the
+    /// acquisition sheet; the sheet explains when the Web wallet link is missing.
+    private var vaultGroup: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Twinfoldから取得（DEVNET・支払いなし）")
+                .font(.footnote.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(controller.vaultAssets) { asset in
+                        vaultThumbnail(for: asset)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func vaultThumbnail(for asset: TwinfoldAsset) -> some View {
+        Button {
+            controller.presentAcquisition(assetId: asset.id)
+        } label: {
+            VStack(spacing: 4) {
+                artworkImage(for: asset)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange, lineWidth: 2))
+                Text(asset.displayTitle() + (asset.rehearsal == true ? " [REHEARSAL]" : ""))
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .frame(width: 60)
+                    .foregroundStyle(.white)
+                if let price = asset.commerce?.twinfoldPrice {
+                    Text("\(Int(price.amount).formatted(.number.grouping(.automatic))) \(price.currency)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
     }
 
     /// Small bottom-center handle shown when the tray is closed, so the
@@ -124,7 +170,7 @@ struct AssetTrayView: View {
                         .frame(width: 10, height: 10)
                         .offset(x: 4, y: -4)
                 }
-                Text(asset.displayTitle())
+                Text(asset.displayTitle() + (asset.rehearsal == true ? " [REHEARSAL]" : ""))
                     .font(.caption2)
                     .lineLimit(1)
                     .frame(width: 60)

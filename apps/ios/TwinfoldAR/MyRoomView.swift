@@ -16,8 +16,8 @@ struct MyRoomView: View {
     /// so placing/cancelling can restore it instead of always reopening.
     @State private var trayOpenBeforeHolding: Bool?
 
-    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider) {
-        _controller = State(initialValue: RoomController(mockProvider: mockProvider, devnetProvider: devnetProvider))
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient) {
+        _controller = State(initialValue: RoomController(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink))
     }
 
     var body: some View {
@@ -30,6 +30,8 @@ struct MyRoomView: View {
             AssetTrayView(controller: controller, showsFullList: $showsFullList, isOpen: $isTrayOpen)
         }
         .task { await controller.start() }
+        // `twinfold://link?code=XXXXXXXX` (Web QR scanned with the Camera app): opens the link sheet prefilled.
+        .onOpenURL { controller.handleLinkURL($0) }
         .onChange(of: controller.holdingAssetId) { oldValue, newValue in
             // Auto-close the tray while a holding preview is being placed
             // (so the preview is easier to see), and restore whatever

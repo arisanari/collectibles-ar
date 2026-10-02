@@ -11,6 +11,7 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
 
     private let baseURL: URL
     private let session: URLSession
+    private let sessionLink: SessionLinkClient?
 
     /// - Parameters:
     ///   - baseURL: Twinfold API origin, e.g. `http://localhost:3000` for
@@ -19,9 +20,14 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
     ///     `.claude/skills/ios-realitykit-ar/SKILL.md`).
     ///   - session: injectable for tests (URLProtocol stub); defaults to
     ///     `.shared`.
-    public init(baseURL: URL, session: URLSession = .shared) {
+    ///   - sessionLink: when set and holding a device token (Issue #45), devnet
+    ///     transfer/status calls send `Authorization: Bearer <token>`; a 401
+    ///     response clears the token. Read-only calls (assets, quote, registry)
+    ///     are public on-chain data and never carry it.
+    public init(baseURL: URL, session: URLSession = .shared, sessionLink: SessionLinkClient? = nil) {
         self.baseURL = baseURL
         self.session = session
+        self.sessionLink = sessionLink
     }
 
     public func getAssets(wallet: String) async throws -> [TwinfoldAsset] {
@@ -109,7 +115,8 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
         assetId: String,
         from: String,
         to: String,
-        quoteId: String? = nil
+        quoteId: String? = nil,
+        useSessionToken: Bool = true
     ) async throws -> DevnetTransferResult {
         let url = baseURL.appendingPathComponent("api/devnet/transfer")
         var request = URLRequest(url: url)
@@ -126,25 +133,101 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
         request.httpBody = try JSONEncoder().encode(
             Body(requestId: requestId, assetId: assetId, from: from, to: to, quoteId: quoteId)
         )
-        return try await send(DevnetTransferResult.self, request: request)
+        return try await send(DevnetTransferResult.self, request: request, authorized: useSessionToken)
     }
 
     /// `GET /api/devnet/transfer/{requestId}` — polls a transfer started
     /// above. Not part of `AssetProvider`.
     public func devnetTransferStatus(requestId: String) async throws -> DevnetTransferResult {
         let url = baseURL.appendingPathComponent("api/devnet/transfer/\(requestId)")
-        return try await get(DevnetTransferResult.self, url: url)
+        return try await get(DevnetTransferResult.self, url: url, authorized: true)
+    }
+
+    /// `GET /api/devnet/capabilities`: whether the insecure server-signed test
+    /// transfers (Owner A / Owner B rooms) are enabled on this server.
+    public func devnetCapabilities() async throws -> DevnetCapabilities {
+        try await get(DevnetCapabilities.self, url: baseURL.appendingPathComponent("api/devnet/capabilities"))
+    }
+
+    /// `POST /api/transfer-requests` (device Bearer token). Creates an approval
+    /// request; the owner approves it on the Web with Phantom. For a buyback the
+    /// server resolves the destination (Twinfold vault); `toWallet` is for `send`.
+    public func createTransferRequest(
+        requestId: String, assetId: String, kind: TransferRequestKind, toWallet: String? = nil
+    ) async throws -> TransferRequestInfo {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/transfer-requests"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15
+        struct Body: Encodable { let requestId: String; let assetId: String; let kind: TransferRequestKind; let toWallet: String? }
+        request.httpBody = try JSONEncoder().encode(Body(requestId: requestId, assetId: assetId, kind: kind, toWallet: toWallet))
+        return try await send(TransferRequestInfo.self, request: request, authorized: true)
+    }
+
+    /// `GET /api/transfer-requests/{id}` (device Bearer token).
+    public func transferRequestStatus(requestId: String) async throws -> TransferRequestInfo {
+        try await get(TransferRequestInfo.self, url: baseURL.appendingPathComponent("api/transfer-requests/\(requestId)"), authorized: true)
+    }
+
+    // MARK: - Twinfoldから取得 (Issue #60)
+
+    /// `GET /api/vault/assets` (public): Assets Twinfold's vault wallet currently holds and lists
+    /// for acquisition, with `commerce`. Advisory: the acquisition re-checks everything server-side.
+    public func vaultAssets() async throws -> [TwinfoldAsset] {
+        try await get([TwinfoldAsset].self, url: baseURL.appendingPathComponent("api/vault/assets"))
+    }
+
+    /// `POST /api/acquisitions` (device Bearer token). The buyer is always the token's wallet; only
+    /// Twinfold's vault signs (devnet); no payment. Idempotent server-side by `requestId`.
+    public func acquire(requestId: String, assetId: String) async throws -> AcquisitionInfo {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/acquisitions"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+        struct Body: Encodable { let requestId: String; let assetId: String }
+        request.httpBody = try JSONEncoder().encode(Body(requestId: requestId, assetId: assetId))
+        return try await send(AcquisitionInfo.self, request: request, authorized: true)
+    }
+
+    /// `GET /api/acquisitions/{id}` (device Bearer token).
+    public func acquisitionStatus(requestId: String) async throws -> AcquisitionInfo {
+        try await get(AcquisitionInfo.self, url: baseURL.appendingPathComponent("api/acquisitions/\(requestId)"), authorized: true)
+    }
+
+    // MARK: - Redeem Physical (dry run)
+
+    /// `POST /api/redemptions` (device Bearer token). Creates a `requested` redemption; the owner signs the lock
+    /// on the Web with Phantom. No personal data is sent (the dry run records no delivery address).
+    public func createRedemption(requestId: String, assetId: String) async throws -> Redemption {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/redemptions"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 20
+        struct Body: Encodable { let requestId: String; let assetId: String }
+        request.httpBody = try JSONEncoder().encode(Body(requestId: requestId, assetId: assetId))
+        return try await send(Redemption.self, request: request, authorized: true)
+    }
+
+    /// `GET /api/redemptions/{id}` (device Bearer token).
+    public func redemptionStatus(id: String) async throws -> Redemption {
+        try await get(Redemption.self, url: baseURL.appendingPathComponent("api/redemptions/\(id)"), authorized: true)
     }
 
     // MARK: - Private
 
-    private func get<T: Decodable>(_ type: T.Type, url: URL) async throws -> T {
+    private func get<T: Decodable>(_ type: T.Type, url: URL, authorized: Bool = false) async throws -> T {
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
-        return try await send(type, request: request)
+        return try await send(type, request: request, authorized: authorized)
     }
 
-    private func send<T: Decodable>(_ type: T.Type, request: URLRequest) async throws -> T {
+    private func send<T: Decodable>(_ type: T.Type, request: URLRequest, authorized: Bool = false) async throws -> T {
+        var request = request
+        var sentToken: String?
+        if authorized, let token = sessionLink?.token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            sentToken = token
+        }
         let data: Data
         let response: URLResponse
         do {
@@ -155,6 +238,10 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
 
         guard let http = response as? HTTPURLResponse else {
             throw AssetProviderError.networkFailed("no HTTP response for \(request.url?.absoluteString ?? "unknown URL")")
+        }
+        if http.statusCode == 401, let sentToken, sessionLink?.token == sentToken {
+            // Expired / revoked / Web wallet switched: forget the device token (view-only from here).
+            sessionLink?.clear()
         }
         guard (200..<300).contains(http.statusCode) else {
             throw AssetProviderError.httpError(status: http.statusCode, url: request.url?.absoluteString ?? "unknown URL")

@@ -16,11 +16,11 @@ export function hasSameOrigin(request: Request): boolean {
 }
 
 /** Reads a small JSON object body; returns null when too large, malformed, or not an object. */
-export async function readSmallJson(request: Request): Promise<Record<string, unknown> | null> {
+export async function readSmallJson(request: Request, maxBytes = MAX_BODY_BYTES): Promise<Record<string, unknown> | null> {
   const declared = Number(request.headers.get("content-length") ?? "0");
-  if (declared > MAX_BODY_BYTES) return null;
+  if (declared > maxBytes) return null;
   const text = await request.text().catch(() => "");
-  if (text.length === 0 || text.length > MAX_BODY_BYTES) return null;
+  if (text.length === 0 || text.length > maxBytes) return null;
   try {
     const value = JSON.parse(text) as unknown;
     return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;

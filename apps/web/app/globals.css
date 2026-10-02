@@ -96,6 +96,38 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .connectPrompt .primary:disabled { opacity:.5; cursor:wait; }
 .connectPrompt .demoToggle { margin-top:6px; }
 .textButton.inline { margin:0 0 0 10px; }
+.linkPanel { border:1px solid var(--ink); padding:28px; margin:0 0 36px; max-width:560px; display:flex; flex-direction:column; gap:12px; }
+.linkPanel h2 { margin:0; font-size:22px; font-weight:500; letter-spacing:-.03em; }
+.linkPanel h3 { margin:14px 0 0; font:500 11px DM Mono; text-transform:uppercase; letter-spacing:.08em; }
+.linkPanel .linkNote { margin:0; font-size:12px; line-height:1.8; color:var(--muted); }
+.linkCodeBox { display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.linkCode { font:500 40px DM Mono; letter-spacing:.12em; }
+.linkCountdown { font:500 12px DM Mono; color:var(--muted); }
+.linkActions { display:flex; gap:10px; }
+.linkPanel .primary:disabled, .linkPanel .secondary:disabled { opacity:.5; cursor:wait; }
+.requestList { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; }
+.requestItem { border:1px solid var(--line); padding:14px; display:flex; flex-direction:column; gap:8px; }
+.requestHead { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px; }
+.requestMeta { font:400 11px DM Mono; line-height:1.7; color:var(--muted); }
+.vaultCard { gap:12px; }
+.vaultCardTop { display:grid; grid-template-columns:140px 1fr; gap:18px; align-items:start; }
+.vaultThumb { position:relative; width:140px; height:190px; background:var(--paper); border:1px solid var(--line); overflow:hidden; }
+.vaultThumb img.thumbImg { object-fit:contain; }
+.vaultCardInfo { display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+.vaultCardInfo h3 { margin:0; }
+.vaultPrice { margin:0; font:500 18px DM Mono; } .vaultPrice small { display:block; font:400 10px DM Mono; color:var(--muted); }
+@media (max-width:600px) { .vaultCardTop { grid-template-columns:100px 1fr; } .vaultThumb { width:100px; height:140px; } }
+.confirmBox { width:min(520px,94vw); max-height:92vh; overflow:auto; background:var(--paper); padding:34px 32px; display:flex; flex-direction:column; gap:14px; box-shadow:0 30px 90px #0007; }
+.confirmBox h2 { font-size:28px; margin:0; letter-spacing:-.04em; }
+.confirmList { margin:0; padding-left:18px; font-size:13px; line-height:1.9; }
+.fullAddress { font:400 12px DM Mono; word-break:break-all; overflow-wrap:anywhere; color:var(--ink); border:1px solid var(--line); padding:8px 10px; }
+.confirmLine { display:flex; gap:8px; align-items:flex-start; font:400 12px DM Mono; line-height:1.6; }
+.requestItem.status-confirmed { border-color:var(--ink); }
+.collectionCell { display:flex; flex-direction:column; gap:8px; }
+.sellButton { align-self:stretch; }
+.linkDevices { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.linkDevices li { display:flex; flex-direction:column; gap:2px; font-size:12px; }
+.linkDevices li span { font:400 10px DM Mono; color:var(--muted); }
 .linkButton { display:inline-block; text-decoration:none; color:inherit; margin-top:10px; }
 .assetCardTop { display:flex; justify-content:space-between; align-items:flex-start; }
 .custodyLine { margin:0; font:500 12px DM Mono; }
@@ -111,3 +143,49 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .provenanceItem.src-offchain_evidence { border-left:3px solid #b9a64a; }
 .provenanceItem.src-twinfold_interpretation { border-left:3px dotted var(--muted); }
 @media(max-width:900px){.devnetGrid{grid-template-columns:1fr}.collectionTop{flex-direction:column;align-items:flex-start;padding-top:36px}.sectionTitle{flex-wrap:wrap;gap:12px}}
+.badgeRow { display:inline-flex; gap:6px; align-items:center; }
+.rehearsalBadge { background:transparent; color:var(--ink); border:1px dashed var(--ink); }
+
+/* Redeem Physical (dry run) */
+.ownershipBox { border:1px solid var(--line); padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+.ownershipChoice { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border:1px dashed var(--line); font-size:12px; line-height:1.6; }
+.ownershipChoice.current { border:1px solid var(--ink); background:var(--paper); }
+.ownershipChoice b { font:500 11px DM Mono; }
+.ownershipChoice span { color:var(--muted); }
+.ownershipChoice .secondary { align-self:flex-start; }
+.physicalDetails { border:1px solid var(--line); padding:8px 12px; margin:6px 0; }
+.physicalDetails summary { cursor:pointer; font:500 10px DM Mono; letter-spacing:.08em; text-transform:uppercase; }
+.physicalDetails dl { margin:10px 0 0; }
+.physicalDetails dl div { display:flex; flex-direction:column; gap:3px; padding:8px 0; border-top:1px solid var(--line); font:400 11px DM Mono; line-height:1.6; }
+.physicalDetails dt { color:var(--muted); display:flex; flex-direction:column; }
+.physicalDetails dt small, .passportFacts dt small { font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
+.physicalDetails dd, .passportFacts dd { margin:0; }
+.breakAll { word-break:break-all; overflow-wrap:anywhere; }
+.redemptionPanel { max-width:760px; }
+.stepper { list-style:none; margin:4px 0; padding:0; display:flex; gap:6px; flex-wrap:wrap; }
+.step { display:flex; align-items:center; gap:6px; font:400 10px DM Mono; color:var(--muted); padding:5px 8px; border:1px solid var(--line); }
+.step .stepDot { width:18px; height:18px; border-radius:50%; display:grid; place-items:center; border:1px solid currentColor; font-size:10px; }
+.step.done { color:var(--ink); border-color:var(--ink); }
+.step.done .stepDot { background:var(--acid); border-color:var(--ink); }
+.step.current { color:var(--ink); border-color:var(--ink); background:var(--paper); font-weight:600; }
+.step.failed { color:#a94332; border-color:#a94332; }
+.requestItem.status-exception { border-color:#a94332; }
+.operatorInput { font:400 13px DM Mono; padding:10px 12px; border:1px solid var(--ink); background:transparent; width:100%; max-width:420px; }
+.passportPage { padding-bottom:80px; max-width:900px; }
+.passportBadges { display:flex; gap:8px; margin:20px 0 10px; flex-wrap:wrap; }
+.passportPage h1 { font-size:36px; letter-spacing:-.04em; margin:6px 0; }
+.notGuarantee { border:2px solid #a94332; background:#fff6f3; padding:18px 22px; margin:22px 0; }
+.notGuarantee h2 { margin:0 0 10px; font-size:20px; color:#a94332; }
+.notGuarantee ul { margin:0 0 10px; padding-left:20px; font-size:13px; line-height:1.9; }
+.notGuarantee p { margin:0; font-size:12px; line-height:1.8; color:var(--muted); }
+.passportGrid { display:grid; grid-template-columns:minmax(0,320px) 1fr; gap:28px; align-items:start; margin:24px 0; }
+@media (max-width:720px) { .passportGrid { grid-template-columns:1fr; } }
+.passportImage { margin:0; }
+.passportImage img.thumbImg { width:100%; height:auto; border:1px solid var(--line); }
+.passportImage figcaption { font:400 10px DM Mono; color:var(--muted); margin-top:6px; line-height:1.6; }
+.passportFacts { margin:0; }
+.passportFacts div { display:flex; flex-direction:column; gap:3px; padding:10px 0; border-top:1px solid var(--line); font:400 12px DM Mono; line-height:1.7; }
+.passportFacts dt { color:var(--muted); display:flex; flex-direction:column; }
+.passportSection { margin-top:32px; }
+.passportSection h2 { font-size:20px; margin:0 0 8px; }
+.signatureList { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font:400 11px DM Mono; word-break:break-all; }

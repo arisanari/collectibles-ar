@@ -11,7 +11,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Keypair } from "@solana/web3.js";
 
-export type DevnetWalletLabel = "owner-a" | "owner-b" | "vault";
+// "escrow" is Twinfold's redemption escrow wallet (redeem dry run): the owner moves a locked Asset here and it
+// is burned (or returned on cancel) from here, always with the vault as fee payer. It is never accepted by
+// the dev server-signing shortcut (/api/devnet/transfer): normalizeDevnetWalletLabel does not return it.
+export type DevnetWalletLabel = "owner-a" | "owner-b" | "vault" | "escrow";
 
 const KEY_DIR =
   process.env.TWINFOLD_DEVNET_KEY_DIR ?? path.join(os.homedir(), ".config", "twinfold", "devnet");
