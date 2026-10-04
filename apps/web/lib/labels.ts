@@ -12,13 +12,13 @@ export const custodyStatusLabel: Record<PhysicalDescriptor["custody"]["status"],
   vaulted: "Vaulted",
   released: "Released",
   exception: "Exception",
-  pending_intake: "Vault登録前（自己保管）",
+  pending_intake: "Pre-vault (self-custody)",
 };
 
 export const sourceLabel: Record<ProvenanceEvent["source"], string> = {
   onchain: "On-chain",
   offchain_evidence: "Off-chain evidence",
-  twinfold_interpretation: "Twinfold interpretation",
+  twinfold_interpretation: "OshiPin interpretation",
 };
 
 export function explorerAddressUrl(address: string) {
@@ -47,17 +47,17 @@ export function spatialLabel(asset: TwinfoldAsset) {
 // ---- Redeem Physical (dry run) ----
 
 export const redemptionStatusLabel: Record<Redemption["status"], string> = {
-  requested: "申請済み（Phantomでlock承認待ち）",
-  locked: "流通停止中（lock済み）",
-  shipped: "発送済み（dry run）",
-  received: "受取確認済み（失効処理中）",
-  retired: "失効・Passport発行済み",
-  cancelled: "取消済み",
-  exception: "例外停止（operator対応待ち）",
+  requested: "Requested (awaiting lock approval in Phantom)",
+  locked: "Locked (out of circulation)",
+  shipped: "Shipped (dry run)",
+  received: "Receipt confirmed (retiring)",
+  retired: "Retired (burned), Passport issued",
+  cancelled: "Cancelled",
+  exception: "Stopped on exception (awaiting operator)",
 };
 
-/** Stepper: 申請 -> 流通停止（lock） -> 発送（dry run） -> 受取確認 -> 失効・Passport. */
-export const redemptionSteps = ["申請", "流通停止（lock）", "発送（dry run）", "受取確認", "失効・Passport"] as const;
+/** Stepper: request -> lock -> shipping (dry run) -> receipt -> retire + Passport. */
+export const redemptionSteps = ["Request", "Locked (out of circulation)", "Shipped (dry run)", "Receipt confirmed", "Retired + Passport"] as const;
 
 /** Index of the step a redemption is currently at (steps before it are done; `retired` = all done). */
 export function redemptionStepIndex(status: Redemption["status"], exceptionFrom?: Redemption["status"]): number {
@@ -67,12 +67,12 @@ export function redemptionStepIndex(status: Redemption["status"], exceptionFrom?
 }
 
 const redeemStepLabel: Record<string, string> = {
-  requested: "Redeem · 申請",
-  locked: "Redeem · 流通停止（lock）",
-  shipped: "Redeem · 発送（dry run）",
-  received: "Redeem · 受取確認（dry run）",
-  retired: "Redeemed · 失効（burn）",
-  exception: "Redeem · 例外停止",
+  requested: "Redeem · Requested",
+  locked: "Redeem · Locked (out of circulation)",
+  shipped: "Redeem · Shipped (dry run)",
+  received: "Redeem · Receipt confirmed (dry run)",
+  retired: "Redeemed · Retired (burned)",
+  exception: "Redeem · Stopped on exception",
 };
 
 /** Title for a provenance event; redeem steps (kind `redeemed` with metadata.redeemStep) are named by their step. */

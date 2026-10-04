@@ -4,13 +4,13 @@ import { AuthProvider } from "../components/AuthProvider";
 import { SiteFooter, SiteHeader } from "../components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Twinfold — Collect what matters",
+  title: "OshiPin — Collect what matters",
   description: "Own real-world collectibles on Solana. Starting with ukiyo-e prints on your wall.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <body>
         <AuthProvider>
           <SiteHeader />

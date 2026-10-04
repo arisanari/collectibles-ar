@@ -1,11 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useI18n } from "./i18n";
 
-const subscribeNoop = () => () => {};
-
-/** Server snapshot is the page language (ja); React swaps to navigator.language
- * after hydration without a mismatch. */
+/** The selected UI language code ("en" | "ja"). Kept for callers that only need the code (e.g. displayTitle). */
 export function useLang(): string {
-  return useSyncExternalStore(subscribeNoop, () => navigator.language, () => "ja");
+  return useI18n().lang;
 }

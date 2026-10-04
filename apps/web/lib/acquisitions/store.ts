@@ -52,7 +52,7 @@ export const PENDING_MAX_MS = 2 * 60 * 1000;
 
 function sweep(now: number) {
   acquisitions.forEach((a, id) => {
-    if (a.status === "pending" && now - a.createdAt > PENDING_MAX_MS) markAcqFailed(a, "取得の処理が時間内に終わりませんでした。もう一度お試しください", now);
+    if (a.status === "pending" && now - a.createdAt > PENDING_MAX_MS) markAcqFailed(a, "The acquisition did not finish in time. Please try again.", now);
     if (!isOpen(a) && a.updatedAt + RETENTION_MS <= now) acquisitions.delete(id);
   });
 }

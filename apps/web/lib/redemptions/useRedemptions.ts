@@ -52,15 +52,15 @@ export function useRedemptions(wallet: string | null, onChanged?: () => void) {
       const res = await call("/api/redemptions", "POST", { requestId: crypto.randomUUID(), assetId });
       if (!res.ok) {
         const message = typeof res.data.message === "string" ? res.data.message : "";
-        const reasons = Array.isArray(res.data.reasons) ? (res.data.reasons as string[]).join("／") : "";
+        const reasons = Array.isArray(res.data.reasons) ? (res.data.reasons as string[]).join(", ") : "";
         setNotice(
           res.status === 409 && res.data.error === "redemption_in_progress"
-            ? "この作品はすでに引き取り手続き中です"
+            ? "This work already has a redemption in progress"
             : res.status === 403
               ? typeof res.data.error === "string" && res.data.error.startsWith("not_owner")
-                ? "このwalletはdevnet上の現在の所有者ではありません"
-                : "申請できませんでした（サーバーのdevnet署名設定を確認してください）"
-              : `申請できませんでした${message || reasons ? `: ${message || reasons}` : ""}`,
+                ? "This wallet is not the current owner on devnet"
+                : "Could not submit the request (check the server's devnet signing setup)"
+              : `Could not submit the request${message || reasons ? `: ${message || reasons}` : ""}`,
         );
         return false;
       }
@@ -79,9 +79,9 @@ export function useRedemptions(wallet: string | null, onChanged?: () => void) {
       setError(id);
       try {
         const res = await call(`/api/redemptions/${id}/${action}`, "POST", {});
-        if (!res.ok) setError(id, typeof res.data.error === "string" ? res.data.error : "処理できませんでした");
+        if (!res.ok) setError(id, typeof res.data.error === "string" ? res.data.error : "Could not complete the action");
       } catch {
-        setError(id, "処理中にエラーが発生しました");
+        setError(id, "Something went wrong while processing");
       } finally {
         inFlight.current.delete(id);
         setBusy((b) => ({ ...b, [id]: false }));

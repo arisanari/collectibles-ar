@@ -180,9 +180,9 @@ test("passport building: provenance up to exit with sources, signatures split, l
   assert.equal(p.dryRun, true);
   assert.ok(p.limitations.length >= 5);
   assert.equal(p.limitations, PASSPORT_LIMITATIONS);
-  assert.ok(p.limitations.some((l) => l.includes("保証しません")));
+  assert.ok(p.limitations.some((l) => l.includes("does not guarantee the current owner")));
   const text = JSON.stringify(p);
-  assert.equal(/住所|電話|tracking/.test(text.replace(/配送先などの個人情報も記録していません/g, "")), false);
+  assert.equal(/住所|電話|tracking|delivery address/.test(text.replace(/records no personal data such as a delivery address/g, "")), false);
 });
 
 test("passport is refused for a redemption that is not retired", () => {

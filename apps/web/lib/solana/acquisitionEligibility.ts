@@ -7,7 +7,7 @@
 
 import type { TwinfoldAsset } from "../contract";
 
-export const NOT_ACQUIRABLE_MESSAGE = "この作品は現在取得できません";
+export const NOT_ACQUIRABLE_MESSAGE = "This work is not currently available to acquire";
 
 export type AcquisitionEligibility = { eligible: boolean; reasons: string[] };
 
@@ -23,12 +23,12 @@ export function evaluateAcquisitionEligibility(params: {
 }): AcquisitionEligibility {
   const { offchainRecord, currentOwner, burnt, vaultWallet, redemptionOpen } = params;
   const reasons: string[] = [];
-  if (redemptionOpen) reasons.push("redeem（現物の引き取り）手続き中です");
-  if (!offchainRecord?.commerce) reasons.push("Twinfoldの販売価格が設定されていません");
-  if (!vaultWallet) reasons.push("Twinfold vault walletが設定されていません");
-  if (burnt) reasons.push("Assetが失効（burn）しています");
-  if (vaultWallet && currentOwner !== vaultWallet) reasons.push("devnet上でTwinfoldのvault walletが保有していません");
+  if (redemptionOpen) reasons.push("A redeem (physical item redemption) is in progress");
+  if (!offchainRecord?.commerce) reasons.push("The OshiPin list price is not set");
+  if (!vaultWallet) reasons.push("The OshiPin vault wallet is not configured");
+  if (burnt) reasons.push("The Asset has been retired (burned)");
+  if (vaultWallet && currentOwner !== vaultWallet) reasons.push("The OshiPin vault wallet does not hold it on devnet");
   const redeemed = offchainRecord?.provenance.some((e) => e.kind === "redeemed" && e.status === "confirmed");
-  if (redeemed) reasons.push("現物を引き取り済み（redeem済み）のため対象外です");
+  if (redeemed) reasons.push("The physical item has been redeemed, so it is not eligible");
   return { eligible: reasons.length === 0, reasons };
 }

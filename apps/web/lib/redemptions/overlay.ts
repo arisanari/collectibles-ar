@@ -24,7 +24,7 @@ export function applyRedemptionOverlay(asset: TwinfoldAsset, redemption: Redempt
   redemption.events.forEach((event: RedemptionEvent, index) => {
     if (event.kind === "cancelled" || event.kind === "returned") return;
     // Operator-entered text (exception notes) is never exposed through the public asset API.
-    const note = event.kind === "exception" ? "例外停止（operator対応待ち）" : event.note;
+    const note = event.kind === "exception" ? "Stopped on exception (awaiting operator)" : event.note;
     const meta = { redeemStep: event.kind, redemptionId: redemption.id, ...(event.dryRun ? { dryRun: true } : {}), ...(note ? { note } : {}) };
     if (event.signature) {
       const existing = provenance.find((p) => p.transaction === event.signature);
@@ -64,8 +64,8 @@ export function applyRedemptionOverlay(asset: TwinfoldAsset, redemption: Redempt
 export function redemptionEntitlement(redemption: Redemption | undefined): { canDisplay: false; reason: string } | null {
   if (!affectsAsset(redemption)) return null;
   if (redemption.status === "retired") {
-    return { canDisplay: false, reason: `失効済み（引き取り手続き完了、dry run）。来歴はRedeemed Provenance Passportで確認できます: /passport/${redemption.assetId}` };
+    return { canDisplay: false, reason: `Retired (redemption complete, dry run). Provenance is in the Redeemed Provenance Passport: /passport/${redemption.assetId}` };
   }
   if (redemption.status === "requested") return null;
-  return { canDisplay: false, reason: "redeem手続き中（流通停止）" };
+  return { canDisplay: false, reason: "Redemption in progress (out of circulation)" };
 }

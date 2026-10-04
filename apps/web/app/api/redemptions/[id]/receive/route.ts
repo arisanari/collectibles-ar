@@ -25,7 +25,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (runtimeOf(r.id).busy) return NextResponse.json(r);
   if (r.status !== "shipped") {
     recordRefusal(r.wallet, `redemption ${r.id.slice(0, 6)}: receive refused in ${r.status}`);
-    return NextResponse.json({ error: "発送済みの状態でのみ受け取りを確認できます", status: r.status }, { status: 409 });
+    return NextResponse.json({ error: "Receipt can only be confirmed in the shipped state", status: r.status }, { status: 409 });
   }
   markReceived(r);
   await runRetire(r);

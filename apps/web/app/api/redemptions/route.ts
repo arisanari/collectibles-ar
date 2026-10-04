@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   const personal = findPersonalDataKey(body);
   if (personal) {
     recordAudit("redemption_refused", { wallet, detail: `body contained a personal-data field (${personal.slice(0, 20)})` });
-    return refuse(400, "personal_data_not_accepted: このdry runでは氏名・住所・電話番号などを受け付けません");
+    return refuse(400, "personal_data_not_accepted: This dry run does not accept names, addresses, phone numbers or similar");
   }
   const requestId = boundedString(body?.requestId, 64);
   const assetId = boundedString(body?.assetId, 64);
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   if (!takeSlot("redeem-create", wallet, REDEMPTIONS_PER_HOUR)) {
     recordAudit("redemption_refused", { wallet, detail: "redemption request cap reached" });
-    return refuse(429, "rate_limited: 申請の回数が上限（1時間あたり）に達しました。しばらくしてから再試行してください");
+    return refuse(429, "rate_limited: Request limit reached (per hour). Please try again later.");
   }
 
   // The on-chain owner must be the authenticated wallet. A client claim or a status is never proof of ownership.
@@ -82,22 +82,22 @@ export async function POST(request: Request) {
   }
   if (current.burnt || current.ownership.owner !== wallet) {
     recordAudit("redemption_refused", { wallet, detail: `${assetId}: not the on-chain owner` });
-    return refuse(403, "not_owner: このwalletはdevnet上の現在の所有者ではありません");
+    return refuse(403, "not_owner: This wallet is not the current owner on devnet");
   }
   const record = findOffchainRecord(assetId);
   if (record?.physical?.custody.status !== "vaulted") {
     recordAudit("redemption_refused", { wallet, detail: `${assetId}: custody is not vaulted` });
-    return refuse(409, "not_eligible", { reasons: ["Vault保管中の作品だけが引き取りの対象です"] });
+    return refuse(409, "not_eligible", { reasons: ["Only Vaulted works can be redeemed"] });
   }
   if (findOpenTransferRequest(assetId)) {
-    return refuse(409, "open_request_exists", { message: "この作品には処理中の移転依頼があります。完了または拒否してから申請してください" });
+    return refuse(409, "open_request_exists", { message: "This work has a transfer request in progress. Complete or reject it, then request again" });
   }
 
   const created = createRedemption({ id: requestId, wallet, assetId, assetAddress, assetTitle: record.title });
   if (!created.ok) {
     if (created.reason === "exists") return NextResponse.json(created.redemption);
-    if (created.reason === "asset_busy") return refuse(409, "redemption_in_progress", { redemptionId: created.redemption.id, message: "この作品はすでに引き取り手続き中です" });
-    if (created.reason === "wallet_cap") return refuse(429, "too_many_open_redemptions: 同時に進められる引き取り手続きの上限に達しました");
+    if (created.reason === "asset_busy") return refuse(409, "redemption_in_progress", { redemptionId: created.redemption.id, message: "This work is already in a redemption procedure" });
+    if (created.reason === "wallet_cap") return refuse(429, "too_many_open_redemptions: You have reached the limit of redemptions in progress at once");
     return refuse(429, "too many redemptions, retry later");
   }
   ensureLockRequest(created.redemption, record.title, origin);

@@ -132,7 +132,7 @@ async function normalizeChainAsset(
       placeholder: false,
       rightsNote:
         attributeValue(heliusAsset, "image_rights") ??
-        "画像利用権は未登録（Phase 3のRWA Adapterで追加予定）",
+        "Image usage rights are not registered yet (to be added by the Phase 3 RWA Adapter)",
     },
     spatialRepresentation: { kind: "card" },
     provenance: onchainProvenance,

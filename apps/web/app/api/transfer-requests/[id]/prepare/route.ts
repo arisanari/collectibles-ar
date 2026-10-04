@@ -46,7 +46,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   // Per-wallet cap: every prepare makes the vault pay a fee on approval.
   if (!takeSlot("transfer-prepare", r.wallet, PREPARE_PER_HOUR)) {
-    return NextResponse.json({ error: "rate_limited: 準備の回数が上限（1時間あたり）に達しました。しばらくしてから再試行してください" }, { status: 429 });
+    return NextResponse.json({ error: "rate_limited: Preparation limit reached (per hour). Please try again later." }, { status: 429 });
   }
 
   try {
@@ -58,11 +58,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // Re-check at prepare time (not only at creation): eligibility and destination may have changed since the request was made.
   // An Asset in a redemption must not be offered for buyback or sent.
   if ((r.kind === "buyback" || r.kind === "send") && findOpenRedemption(r.assetId)) {
-    markFailed(r, "この作品はredeem手続き中のため、売却・送信できません", false);
+    markFailed(r, "This work has a redeem procedure in progress, so it cannot be sold or sent", false);
     return NextResponse.json({ error: "in_redemption" }, { status: 409 });
   }
   if (r.kind === "send" && isTwinfoldOperatedWallet(r.toWallet, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
-    markFailed(r, "Twinfoldのwalletへは送信できません（売却または引き取りを使ってください）", false);
+    markFailed(r, "Cannot send to an OshiPin wallet (use Sell to OshiPin or Redeem instead)", false);
     return NextResponse.json({ error: "destination_not_allowed" }, { status: 409 });
   }
   if (r.kind === "redeem_lock") {
@@ -70,18 +70,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const redemption = r.redemptionId ? getRedemption(r.redemptionId) : undefined;
     const escrow = escrowAddress();
     if (!escrow || escrow !== r.toWallet) {
-      markFailed(r, "引き取りの預け先（escrow）が変更されたため、この依頼は無効です", false);
+      markFailed(r, "The redemption escrow has changed, so this request is no longer valid", false);
       return NextResponse.json({ error: "destination_changed" }, { status: 409 });
     }
     if (!redemption || redemption.status !== "requested" || redemption.wallet !== r.wallet || redemption.assetId !== r.assetId) {
-      markFailed(r, "引き取り手続きが「申請」の状態ではないため、この依頼は無効です", false);
+      markFailed(r, "The redemption is no longer in the requested state, so this request is no longer valid", false);
       return NextResponse.json({ error: "redemption_not_requested" }, { status: 409 });
     }
   }
   if (r.kind === "buyback") {
     const vault = devnetWalletAddressOrNull("vault");
     if (!vault || vault !== r.toWallet) {
-      markFailed(r, "買取先（Twinfold Vault）が変更されたため、この依頼は無効です", false);
+      markFailed(r, "The buyback destination (OshiPin Vault) has changed, so this request is no longer valid", false);
       return NextResponse.json({ error: "destination_changed" }, { status: 409 });
     }
     try {
@@ -93,7 +93,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         wallet: r.wallet,
       });
       if (!eligibility.eligible) {
-        markFailed(r, `買取の対象外になりました: ${eligibility.reasons.join("／")}`, false);
+        markFailed(r, `No longer eligible for buyback: ${eligibility.reasons.join("; ")}`, false);
         return NextResponse.json({ error: "not_eligible", reasons: eligibility.reasons }, { status: 409 });
       }
     } catch {
@@ -107,7 +107,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ requestId: r.id, transaction: prepared.transactionB64, expiresAt: new Date(r.expiresAt).toISOString() });
   } catch (error) {
     if (error instanceof NotOwnerError) {
-      markFailed(r, "このwalletはdevnet上の現在の所有者ではありません", false);
+      markFailed(r, "This wallet is not the current owner on devnet", false);
       return NextResponse.json({ error: "not_owner" }, { status: 409 });
     }
     if (error instanceof VaultLowBalanceError) return NextResponse.json({ error: "vault_low_balance", message: VAULT_LOW_BALANCE_MESSAGE }, { status: 503 });

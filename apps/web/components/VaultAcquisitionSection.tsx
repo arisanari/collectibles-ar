@@ -4,11 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AcquisitionView, TwinfoldAsset } from "../lib/contract";
+import { custodyText, vault } from "../lib/copy/landing";
 import { displayTitle } from "../lib/displayTitle";
-import { custodyStatusLabel, explorerAddressUrl, explorerTxUrl } from "../lib/labels";
+import { useI18n } from "../lib/i18n";
+import { explorerAddressUrl, explorerTxUrl } from "../lib/labels";
 import { SolanaAssetProvider } from "../lib/providers/solanaAssetProvider";
-import { useLang } from "../lib/useLang";
 import { useAuth } from "./AuthProvider";
+import { Carousel } from "./Carousel";
 import { ProvenanceList } from "./ProvenanceList";
 
 const provider = new SolanaAssetProvider();
@@ -19,7 +21,7 @@ const priceText = (asset: TwinfoldAsset) =>
 
 /** Thumbnail, title, custody, price and the button first; provenance collapsed below. */
 function VaultCard({ asset, authed, onAcquire }: { asset: TwinfoldAsset; authed: boolean; onAcquire: () => void }) {
-  const lang = useLang();
+  const { lang, t } = useI18n();
   const [showProvenance, setShowProvenance] = useState(false);
   const title = displayTitle(asset, lang);
   const custody = asset.physical?.custody.status;
@@ -30,22 +32,21 @@ function VaultCard({ asset, authed, onAcquire }: { asset: TwinfoldAsset; authed:
           {asset.display.imageUrl ? (
             <Image src={asset.display.imageUrl} alt={title} fill sizes="140px" priority className="thumbImg" />
           ) : (
-            <span className="emptyState small">画像なし</span>
+            <span className="emptyState small">{t(vault.noImage)}</span>
           )}
         </div>
         <div className="vaultCardInfo">
-          <span className="demoBadge">DEVNET</span>
           <h3>{title}</h3>
-          <p className="custodyLine"><span className="eyebrow">CUSTODY</span> {custody ? custodyStatusLabel[custody] : "—"}</p>
+          <p className="custodyLine"><span className="eyebrow">{t(vault.custody)}</span> {custody ? t(custodyText[custody]) : "—"}</p>
           <p className="workName"><a href={explorerAddressUrl(asset.address)} target="_blank" rel="noreferrer">{asset.address}</a></p>
-          <p className="vaultPrice">{priceText(asset)} <small>表示のみ・デモ用の仮の値</small></p>
+          <p className="vaultPrice">{priceText(asset)} <small>{t(vault.priceNote)}</small></p>
           <button className="primary" onClick={onAcquire}>
-            {authed ? "取得する" : "Connect Phantomして取得"}
+            {authed ? t(vault.acquire) : t(vault.connectToAcquire)}
           </button>
         </div>
       </div>
       <button className="textButton" aria-expanded={showProvenance} onClick={() => setShowProvenance((v) => !v)}>
-        {showProvenance ? "来歴を閉じる" : "来歴を見る"}
+        {showProvenance ? t(vault.hideProvenance) : t(vault.showProvenance)}
       </button>
       {showProvenance && <ProvenanceList asset={asset} demo={false} />}
     </article>
@@ -53,16 +54,16 @@ function VaultCard({ asset, authed, onAcquire }: { asset: TwinfoldAsset; authed:
 }
 
 /**
- * 「Twinfoldから取得できる作品」: Assets the Twinfold vault wallet holds on devnet.
+ * "Available from OshiPin": Assets the OshiPin vault wallet holds on devnet.
  * Acquisition = the vault wallet signs a devnet transfer to the signed-in wallet. No payment;
- * the price is Twinfold's off-chain display value (demo placeholder). The Asset's physical
- * original stays in Twinfold's Vault.
+ * the price is OshiPin's off-chain display value (demo placeholder). The Asset's physical
+ * original stays in OshiPin's Vault.
  */
 export function VaultAcquisitionSection() {
   const auth = useAuth();
-  const lang = useLang();
+  const { lang, t } = useI18n();
   const [assets, setAssets] = useState<TwinfoldAsset[] | null>(null);
-  const [failed, setFailed] = useState("");
+  const [failed, setFailed] = useState(false);
   const [dialog, setDialog] = useState<TwinfoldAsset | null>(null);
   const [acq, setAcq] = useState<AcquisitionView | null>(null);
   const [message, setMessage] = useState("");
@@ -74,9 +75,12 @@ export function VaultAcquisitionSection() {
       .getVaultAssets()
       .then((list) => {
         setAssets(list);
-        setFailed("");
+        setFailed(false);
       })
-      .catch((error) => setFailed(error instanceof Error ? error.message : "取得に失敗しました"));
+      .catch((error) => {
+        console.warn("Vault assets failed to load", error);
+        setFailed(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -88,15 +92,15 @@ export function VaultAcquisitionSection() {
   const watching = acq && (acq.status === "pending" || acq.status === "submitted") ? acq.requestId : null;
   useEffect(() => {
     if (!watching) return;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       provider.acquisitionStatus(watching).then(setAcq).catch(() => undefined);
     }, POLL_MS);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [watching]);
   useEffect(() => {
     if (acq?.status === "confirmed") {
-      const t = setTimeout(load, 0); // the Asset leaves the vault list
-      return () => clearTimeout(t);
+      const timer = setTimeout(load, 0); // the Asset leaves the vault list
+      return () => clearTimeout(timer);
     }
   }, [acq?.status, load]);
 
@@ -118,9 +122,9 @@ export function VaultAcquisitionSection() {
     try {
       const result = await provider.acquire(requestIdRef.current, dialog.id);
       if (result.view) setAcq(result.view);
-      if (!result.ok) setMessage(result.view?.error ?? result.message ?? "取得できませんでした");
+      if (!result.ok) setMessage(result.view?.error ?? result.message ?? t(vault.notAcquired));
     } catch {
-      setMessage("取得を開始できませんでした。ネットワークを確認してください");
+      setMessage(t(vault.networkError));
     } finally {
       setBusy(false);
     }
@@ -137,64 +141,65 @@ export function VaultAcquisitionSection() {
 
   return (
     <section className="works shell devnetSection" id="vault-assets">
-      <div className="sectionTitle">
-        <div>
-          <span>SOLANA DEVNET · TWINFOLD VAULT</span>
-          <h2>Twinfoldから取得できる作品</h2>
-        </div>
-        <p className="demoBadge">DEVNET</p>
-      </div>
-      <p className="emptyState small">
-        TwinfoldのVault walletが保有するAssetを、あなたのwalletへdevnet上で取得します。支払いは行われません。価格は表示のみ（デモ用の仮の値）で、現物はTwinfoldのVaultに保管されたままです。
-        {!authed && " 取得にはPhantomでの接続（署名のみ・送金なし）が必要です。"}
-      </p>
-      {assets === null && !failed && <p className="emptyState">読み込み中…</p>}
-      {failed && assets === null && <p className="emptyState" role="alert">Vault保有Assetの取得に失敗しました: {failed}</p>}
-      {assets !== null && assets.length === 0 && <p className="emptyState">いま取得できる作品はありません</p>}
-      {assets !== null && assets.length > 0 && (
-        <div className="grid devnetGrid">
-          {assets.map((asset) => (
-            <VaultCard key={asset.id} asset={asset} authed={authed} onAcquire={() => open(asset)} />
-          ))}
-        </div>
-      )}
+      <Carousel
+        label={t(vault.heading)}
+        header={(
+          <div>
+            <span>{t(vault.eyebrow)}</span>
+            <h2>{t(vault.heading)}</h2>
+          </div>
+        )}
+        badge={<span className="demoBadge">DEVNET</span>}
+        intro={<p className="emptyState small">{t(vault.note)}</p>}
+        placeholder={
+          assets === null ? (
+            failed ? <p className="emptyState" role="alert">{t(vault.failed)}</p> : <p className="emptyState">{t(vault.loading)}</p>
+          ) : assets.length === 0 ? (
+            <p className="emptyState">{t(vault.empty)}</p>
+          ) : undefined
+        }
+      >
+        {assets?.map((asset) => (
+          <VaultCard key={asset.id} asset={asset} authed={authed} onAcquire={() => open(asset)} />
+        ))}
+      </Carousel>
 
       {dialog && (
         <div className="overlay" onMouseDown={() => !inProgress && close()}>
           <section className="confirmBox" role="dialog" aria-modal="true" aria-labelledby="acqTitle" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="eyebrow">DEVNET · 取得</div>
+            <div className="eyebrow">{t(vault.dialogEyebrow)}</div>
             <h2 id="acqTitle">{displayTitle(dialog, lang)}</h2>
-            <p className="workName">表示価格 {priceText(dialog)}（Twinfoldの表示値・デモ用の仮の値）</p>
+            <p className="workName">{t(vault.dialogPrice(priceText(dialog)))}</p>
             <ul className="confirmList">
-              <li>devnet上の取得であり、支払いは行われません。</li>
-              <li>価格は表示のみです（デモ用の仮の値）。</li>
-              <li>現物はTwinfoldのVaultに保管されたままです。</li>
+              {vault.confirmItems.map((item) => (
+                <li key={item.en}>{t(item)}</li>
+              ))}
             </ul>
             {!acq && (
               <div className="linkActions">
                 <button className="primary" disabled={busy} onClick={() => void confirm()}>
-                  {busy ? "処理中…" : "取得する"}
+                  {busy ? t(vault.processing) : t(vault.acquire)}
                 </button>
-                <button className="secondary" disabled={busy} onClick={close}>キャンセル</button>
+                <button className="secondary" disabled={busy} onClick={close}>{t(vault.cancel)}</button>
               </div>
             )}
             {message && <p className="emptyState small" role="alert">{message}</p>}
-            {inProgress && <p className="emptyState small" aria-live="polite">{acq?.status === "pending" ? "送信中…" : "送信済み・devnetで確定待ち…"}</p>}
+            {inProgress && <p className="emptyState small" aria-live="polite">{acq?.status === "pending" ? t(vault.sending) : t(vault.waiting)}</p>}
             {acq?.status === "confirmed" && (
               <>
                 <p className="emptyState small" role="status">
-                  確定しました（confirmed）。
-                  {acq.signature && <> <a href={explorerTxUrl(acq.signature)} target="_blank" rel="noreferrer">Explorerで確認（devnet）</a></>}
+                  {t(vault.confirmed)}
+                  {acq.signature && <> <a href={explorerTxUrl(acq.signature)} target="_blank" rel="noreferrer">{t(vault.explorer)}</a></>}
                 </p>
                 <div className="linkActions">
-                  <Link href="/collection" className="primary linkButton">My collectionで見る</Link>
-                  <button className="secondary" onClick={close}>閉じる</button>
+                  <Link href="/collection" className="primary linkButton">{t(vault.viewCollection)}</Link>
+                  <button className="secondary" onClick={close}>{t(vault.close)}</button>
                 </div>
               </>
             )}
             {acq?.status === "failed" && (
               <div className="linkActions">
-                <button className="secondary" onClick={close}>閉じる</button>
+                <button className="secondary" onClick={close}>{t(vault.close)}</button>
               </div>
             )}
           </section>

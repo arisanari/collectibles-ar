@@ -124,16 +124,16 @@ struct RoomOverlayView: View {
                         .foregroundStyle(.orange)
                     if quote.eligible {
                         VStack(spacing: 4) {
-                            Text("Twinfold販売価格の\(Int(quote.rate * 100))%")
+                            Text("OshiPin販売価格の\(Int(quote.rate * 100))%")
                                 .font(.subheadline)
                             Text("\(Int(quote.offerAmount).formatted(.number.grouping(.automatic))) \(quote.currency)")
                                 .font(.system(size: 34, weight: .bold))
-                            Text("Twinfold販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（Twinfoldからの買取オファー。保証ではありません）")
+                            Text("OshiPin販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（OshiPinからの買取オファー。保証ではありません）")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        Button("Twinfoldに売る") { controller.confirmBuyback() }
+                        Button("OshiPinに売る") { controller.confirmBuyback() }
                             .buttonStyle(.borderedProminent)
                     } else {
                         Text(quote.reason)
@@ -145,7 +145,7 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Twinfoldに売る")
+            .navigationTitle("OshiPinに売る")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる") { controller.dismissBuybackOffer() }
@@ -176,7 +176,7 @@ struct RoomOverlayView: View {
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("・流通するAssetは止まります。Webで承認すると壁から消え、受取確認後にAssetは失効します。")
-                    Text("・再流通には再確認とTwinfold Vaultへのre-vaultが必要です。")
+                    Text("・再流通には再確認とOshiPin Vaultへのre-vaultが必要です。")
                     Text("・このデモでは実配送はせず、配送先も記録しません。")
                     Text("・承認と受取確認はWebのMy collectionで行います（Passportの閲覧もWebです）。")
                 }
@@ -229,14 +229,14 @@ struct RoomOverlayView: View {
                 if let price = asset?.commerce?.twinfoldPrice {
                     Text("\(Int(price.amount).formatted(.number.grouping(.automatic))) \(price.currency)")
                         .font(.system(size: 30, weight: .bold))
-                    Text("表示価格（Twinfoldの表示値・デモ用の仮の値）")
+                    Text("表示価格（OshiPinの表示値・デモ用の仮の値）")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("・devnet上の取得であり、支払いは行われません。")
                     Text("・価格は表示のみです（デモ用の仮の値）。")
-                    Text("・現物はTwinfoldのVaultに保管されたままです。")
+                    Text("・現物はOshiPinのVaultに保管されたままです。")
                 }
                 .font(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -272,7 +272,7 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Twinfoldから取得")
+            .navigationTitle("OshiPinから取得")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -402,7 +402,7 @@ struct RoomOverlayView: View {
                             controller.sendSelected()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
-                        Button("Twinfoldに売る") {
+                        Button("OshiPinに売る") {
                             controller.presentBuybackOffer()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
@@ -464,7 +464,7 @@ struct RoomOverlayView: View {
         }
         let offer = toast.buybackOfferText.map { "提示額 \($0)。" } ?? ""
         let note = controller.provider.isDemoData ? "DEMO DATA：支払いなし" : "DEVNET：支払いなし"
-        return "売却完了（confirmed）／「\(toast.assetTitle)」をTwinfoldに売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
+        return "売却完了（confirmed）／「\(toast.assetTitle)」をOshiPinに売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
     }
 
     private func toastView(_ toast: TransferToast) -> some View {

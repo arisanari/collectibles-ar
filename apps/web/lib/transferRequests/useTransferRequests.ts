@@ -60,10 +60,10 @@ export function useTransferRequests(wallet: string | null) {
       setError(id);
       try {
         const phantom = getPhantom();
-        if (!phantom) return setError(id, "Phantomが見つかりません");
+        if (!phantom) return setError(id, "Phantom was not found");
         const current = phantom.publicKey?.toString();
         if (wallet && current && current !== wallet) {
-          return setError(id, "Phantomで選択中のアカウントが、ログイン中のwalletと違います。アカウントを切り替えてください");
+          return setError(id, "The account selected in Phantom differs from the signed-in wallet. Please switch accounts");
         }
 
         setPhaseFor(id, "preparing");
@@ -73,10 +73,10 @@ export function useTransferRequests(wallet: string | null) {
           return setError(
             id,
             prepared.status === 410
-              ? "依頼の有効期限が切れました"
+              ? "This request has expired"
               : prepared.status === 429
-                ? "準備の回数が上限に達しました。しばらくしてから再試行してください"
-                : reasonText || "トランザクションを準備できませんでした。時間をおいて再試行してください",
+                ? "Too many attempts. Please try again later"
+                : reasonText || "Could not prepare the transaction. Please try again later",
           );
         }
 
@@ -87,16 +87,16 @@ export function useTransferRequests(wallet: string | null) {
         try {
           signed = await phantom.signTransaction(tx);
         } catch {
-          return setError(id, "署名がキャンセルされました（依頼はまだ有効です）");
+          return setError(id, "Signing was cancelled (the request is still active)");
         }
 
         setPhaseFor(id, "submitting");
         const submitted = await postJson(`/api/transfer-requests/${id}/submit`, { signedTransaction: toBase64(signed.serialize()) });
         if (!submitted.ok) {
-          setError(id, submitted.status === 400 ? "署名の検証に失敗しました（内容が準備したものと一致しません）" : "送信に失敗しました");
+          setError(id, submitted.status === 400 ? "Signature verification failed (it does not match the prepared transaction)" : "Could not send the transaction");
         }
       } catch {
-        setError(id, "承認中にエラーが発生しました");
+        setError(id, "Something went wrong while approving");
       } finally {
         inFlight.current.delete(id);
         setPhaseFor(id);
@@ -110,7 +110,7 @@ export function useTransferRequests(wallet: string | null) {
     async (id: string) => {
       setError(id);
       const res = await postJson(`/api/transfer-requests/${id}/reject`);
-      if (!res.ok) setError(id, "拒否できませんでした（すでに処理中の可能性があります）");
+      if (!res.ok) setError(id, "Could not reject (it may already be processing)");
       void refresh();
     },
     [refresh],
@@ -123,11 +123,11 @@ export function useTransferRequests(wallet: string | null) {
       const requestId = crypto.randomUUID();
       const res = await postJson("/api/transfer-requests", { requestId, assetId, kind: "buyback" });
       if (!res.ok) {
-        const reasons = Array.isArray(res.data.reasons) ? (res.data.reasons as string[]).join("／") : "";
+        const reasons = Array.isArray(res.data.reasons) ? (res.data.reasons as string[]).join(", ") : "";
         setNotice(
           res.status === 409 && res.data.error === "open_request_exists"
-            ? "この作品にはすでに承認待ちの依頼があります"
-            : `依頼を作成できませんでした${reasons ? `: ${reasons}` : ""}`,
+            ? "This work already has a request awaiting approval"
+            : `Could not create the request${reasons ? `: ${reasons}` : ""}`,
         );
         return;
       }

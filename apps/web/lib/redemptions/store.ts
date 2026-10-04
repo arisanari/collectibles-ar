@@ -182,7 +182,7 @@ export function createRedemption(
     status: "requested",
     createdAt: iso(now),
     updatedAt: iso(now),
-    events: [{ kind: "requested", at: iso(now), source: "offchain_evidence", note: "引き取り申請（dry run）" }],
+    events: [{ kind: "requested", at: iso(now), source: "offchain_evidence", note: "Redemption requested (dry run)" }],
     dryRun: true,
   };
   all.set(redemption.id, redemption);
@@ -199,12 +199,12 @@ export function setLockRequestId(r: Redemption, lockRequestId: string, now = Dat
 }
 
 export function markLocked(r: Redemption, signature: string | undefined, now = Date.now()): TransitionResult {
-  const result = transition(r, "locked", { kind: "locked", source: "onchain", signature, note: "流通Assetをredemption escrowへ移しました（流通停止）" }, { lockSignature: signature }, now);
+  const result = transition(r, "locked", { kind: "locked", source: "onchain", signature, note: "Circulating Asset moved to the redemption escrow (out of circulation)" }, { lockSignature: signature }, now);
   if (result.ok) recordAudit("redemption_locked", { wallet: r.wallet, detail: `redemption ${ref(r.id)}${signature ? ` tx ${ref(signature)}` : ""}` }, now);
   return result;
 }
 
-export const SHIPPED_NOTE = "保険付き配送相当（dry run、実配送なし）";
+export const SHIPPED_NOTE = "Insured-shipping equivalent (dry run, nothing actually shipped)";
 
 export function markShipped(r: Redemption, now = Date.now()): TransitionResult {
   // Shipping is only ever recorded from `locked` (never from `exception`: that goes through `resume`).
@@ -222,7 +222,7 @@ export function markReceived(r: Redemption, now = Date.now()): TransitionResult 
   const result = transition(
     r,
     "received",
-    { kind: "received", source: "offchain_evidence", dryRun: true, note: retry ? "失効（burn）を再試行（operator）" : "受取確認（dry run、実配送なし）" },
+    { kind: "received", source: "offchain_evidence", dryRun: true, note: retry ? "Retiring (burn) retried (operator)" : "Receipt confirmed (dry run, nothing actually shipped)" },
     { exceptionReason: undefined, exceptionFrom: undefined },
     now,
   );
@@ -237,21 +237,21 @@ export function markResumed(r: Redemption, now = Date.now()): TransitionResult {
     recordAudit("redemption_refused", { wallet: r.wallet, detail: `redemption ${ref(r.id)}: resume not applicable (${r.status}/${to ?? "-"})` }, now);
     return { ok: false, reason: "wrong_state", status: r.status };
   }
-  const result = transition(r, to, { kind: to, source: "offchain_evidence", note: "例外から再開（operator）" }, { exceptionReason: undefined, exceptionFrom: undefined }, now);
+  const result = transition(r, to, { kind: to, source: "offchain_evidence", note: "Resumed from exception (operator)" }, { exceptionReason: undefined, exceptionFrom: undefined }, now);
   if (result.ok) recordAudit("redemption_retry", { wallet: r.wallet, detail: `redemption ${ref(r.id)} resumed at ${to}` }, now);
   return result;
 }
 
 export function markRetired(r: Redemption, signature: string, now = Date.now()): TransitionResult {
-  const result = transition(r, "retired", { kind: "retired", source: "onchain", signature, note: "流通Assetを失効（burn）しました" }, { retireSignature: signature }, now);
+  const result = transition(r, "retired", { kind: "retired", source: "onchain", signature, note: "Circulating Asset retired (burned)" }, { retireSignature: signature }, now);
   if (result.ok) recordAudit("redemption_retired", { wallet: r.wallet, detail: `redemption ${ref(r.id)} tx ${ref(signature)}` }, now);
   return result;
 }
 
 export function markCancelled(r: Redemption, returnSignature: string | undefined, now = Date.now()): TransitionResult {
   const events: Omit<RedemptionEvent, "at">[] = [];
-  if (returnSignature) events.push({ kind: "returned", source: "onchain", signature: returnSignature, note: "escrowからownerへ返却しました" });
-  events.push({ kind: "cancelled", source: "offchain_evidence", note: "取消" });
+  if (returnSignature) events.push({ kind: "returned", source: "onchain", signature: returnSignature, note: "Returned from escrow to the owner" });
+  events.push({ kind: "cancelled", source: "offchain_evidence", note: "Cancelled" });
   const first = transition(r, "cancelled", events[0], {}, now);
   if (!first.ok) return first;
   if (events[1]) r.events.push({ ...events[1], at: iso(now) });

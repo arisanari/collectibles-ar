@@ -7,6 +7,7 @@ import { SolanaAssetProvider } from "../../lib/providers/solanaAssetProvider";
 import type { TwinfoldAsset } from "../../lib/contract";
 import type { AuthStatus } from "../../lib/auth/useWalletAuth";
 import { shortAddress } from "../../lib/labels";
+import { useI18n, type Localized } from "../../lib/i18n";
 import { AssetCard } from "../../components/AssetCard";
 import { useAuth } from "../../components/AuthProvider";
 import { DeviceLinkPanel } from "../../components/DeviceLinkPanel";
@@ -21,21 +22,64 @@ const demoWallet = (walletsFixture as Record<string, { label: string; address: s
 const mockProvider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
 
-const authLabel: Record<AuthStatus, string> = {
-  disconnected: "未接続",
-  connecting: "接続中…",
-  awaiting_signature: "Phantomで署名してください（費用なし・送金なし）",
-  authenticated: "認証済み",
-  rejected: "署名が拒否されました",
-  expired: "有効期限切れ",
-  switched: "ウォレットが切り替わりました",
-  no_wallet: "Phantomが見つかりません",
-  error: "認証エラー",
+const authLabel: Record<AuthStatus, Localized> = {
+  disconnected: { en: "Not connected", ja: "未接続" },
+  connecting: { en: "Connecting…", ja: "接続中…" },
+  awaiting_signature: {
+    en: "Sign in Phantom (no fee, no transfer)",
+    ja: "Phantomで署名してください（費用なし・送金なし）",
+  },
+  authenticated: { en: "Signed in", ja: "認証済み" },
+  rejected: { en: "Signature was rejected", ja: "署名が拒否されました" },
+  expired: { en: "Session expired", ja: "有効期限切れ" },
+  switched: { en: "Wallet was switched", ja: "ウォレットが切り替わりました" },
+  no_wallet: { en: "Phantom not found", ja: "Phantomが見つかりません" },
+  error: { en: "Sign-in error", ja: "認証エラー" },
 };
+
+const text = {
+  eyebrow: { en: "YOUR ARCHIVE", ja: "YOUR ARCHIVE" },
+  title: { en: "My collection", ja: "My collection" },
+  connectPrompt: {
+    en: "Sign in with Phantom (devnet) to see the Assets your wallet owns. Signing is free and sends no funds.",
+    ja: "Phantom（devnet）で署名すると、あなたのウォレットが所有するAssetが表示されます。署名は無料で、送金は行われません。",
+  },
+  status: { en: "Status:", ja: "状態:" },
+  retry: { en: "Retry sign-in", ja: "Retry sign-in" },
+  connect: { en: "Connect Phantom", ja: "Connect Phantom" },
+  demoTitle: {
+    en: "Fixture demo wallet (does not connect to Solana)",
+    ja: "Fixtureのデモウォレット（Solanaには接続しません）",
+  },
+  demoTry: { en: "Try with DEMO DATA", ja: "DEMO DATAで試す" },
+  demoNote: {
+    en: "Showing the fixture demo wallet (not connected to Solana).",
+    ja: "fixtureのデモウォレット（Solanaには接続していません）の表示です。",
+  },
+  demoOff: { en: "Leave DEMO DATA", ja: "DEMO DATAをやめる" },
+  demoAsset: { en: "DEMO DATA Asset", ja: "DEMO DATA Asset" },
+  devnetAsset: { en: "devnet Asset", ja: "devnet Asset" },
+  loading: { en: "Loading…", ja: "読み込み中…" },
+  loadFailed: {
+    en: "Could not load the Assets you own. Please wait a moment and reload.",
+    ja: "所有Assetの取得に失敗しました。時間をおいて再読み込みしてください。",
+  },
+  empty: {
+    en: "This wallet owns no devnet Assets.",
+    ja: "このウォレットが所有するdevnet Assetはありません",
+  },
+  backToDiscover: { en: "Back to Discover", ja: "Discoverへ戻る" },
+  sellTitle: {
+    en: "Creates a request and asks Phantom to sign it (devnet, no payment)",
+    ja: "依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）",
+  },
+  sell: { en: "Sell to OshiPin (approve in Phantom)", ja: "OshiPinに売る（Phantomで承認）" },
+} satisfies Record<string, Localized>;
 
 type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean };
 
 export default function CollectionPage() {
+  const { t } = useI18n();
   const auth = useAuth();
   const authedWallet = auth.status === "authenticated" ? auth.wallet : null;
   const tr = useTransferRequests(authedWallet);
@@ -76,18 +120,16 @@ export default function CollectionPage() {
       <main className="shell collectionPage">
         {/* Rendered during SSR too (so the prompt is in the HTML); hidden until the session check finishes to avoid a flash for signed-in users. */}
         <section className={`connectPrompt${auth.sessionChecked ? "" : " pending"}`} aria-busy={!auth.sessionChecked}>
-          <div className="eyebrow">YOUR ARCHIVE</div>
-          <h1>My collection</h1>
-          <p className="emptyState small">
-            Phantom（devnet）で署名すると、あなたのウォレットが所有するAssetが表示されます。署名は無料で、送金は行われません。
-          </p>
-          <p className="authLine">状態: {authLabel[auth.status]}</p>
+          <div className="eyebrow">{t(text.eyebrow)}</div>
+          <h1>{t(text.title)}</h1>
+          <p className="emptyState small">{t(text.connectPrompt)}</p>
+          <p className="authLine">{t(text.status)} {t(authLabel[auth.status])}</p>
           {auth.detail && <p className="emptyState small" role="alert">{auth.detail}</p>}
           <button className="primary" disabled={busy} onClick={() => void auth.connect()}>
-            {retry ? "Retry sign-in" : "Connect Phantom"}
+            {retry ? t(text.retry) : t(text.connect)}
           </button>
-          <button className="demoToggle" onClick={() => setDemoOn(true)} title="Fixtureのデモウォレット（Solanaには接続しません）">
-            DEMO DATAで試す
+          <button className="demoToggle" onClick={() => setDemoOn(true)} title={t(text.demoTitle)}>
+            {t(text.demoTry)}
           </button>
         </section>
       </main>
@@ -100,21 +142,21 @@ export default function CollectionPage() {
     <main className="shell collectionPage">
       <section className="collectionTop">
         <div>
-          <div className="eyebrow">YOUR ARCHIVE</div>
-          <h1>My collection</h1>
+          <div className="eyebrow">{t(text.eyebrow)}</div>
+          <h1>{t(text.title)}</h1>
           <p className="collectionWallet">
             <span className="statusDot" />{shortAddress(addr)} <span className="demoBadge">{demo ? "DEMO DATA" : "DEVNET"}</span>
           </p>
           {demo && (
             <p className="emptyState small">
-              fixtureのデモウォレット（Solanaには接続していません）の表示です。
-              <button className="textButton inline" onClick={() => setDemoOn(false)}>DEMO DATAをやめる</button>
+              {t(text.demoNote)}
+              <button className="textButton inline" onClick={() => setDemoOn(false)}>{t(text.demoOff)}</button>
             </p>
           )}
         </div>
         <div className="collectionStat">
           <strong>{status === "ready" ? assets.length.toString().padStart(2, "0") : "--"}</strong>
-          <span>{demo ? "DEMO DATA Asset" : "devnet Asset"}</span>
+          <span>{demo ? t(text.demoAsset) : t(text.devnetAsset)}</span>
         </div>
       </section>
 
@@ -122,12 +164,12 @@ export default function CollectionPage() {
       {authedWallet && <RedemptionPanel rd={rd} />}
       {authedWallet && <DeviceLinkPanel />}
 
-      {status === "loading" && <p className="emptyState">読み込み中…</p>}
-      {status === "error" && <p className="emptyState" role="alert">所有Assetの取得に失敗しました。時間をおいて再読み込みしてください。</p>}
+      {status === "loading" && <p className="emptyState">{t(text.loading)}</p>}
+      {status === "error" && <p className="emptyState" role="alert">{t(text.loadFailed)}</p>}
       {status === "ready" && assets.length === 0 && (
         <div className="emptyState">
-          <p>このウォレットが所有するdevnet Assetはありません</p>
-          <Link href="/" className="secondary linkButton">Discoverへ戻る</Link>
+          <p>{t(text.empty)}</p>
+          <Link href="/" className="secondary linkButton">{t(text.backToDiscover)}</Link>
         </div>
       )}
       {status === "ready" && assets.length > 0 && (
@@ -140,9 +182,9 @@ export default function CollectionPage() {
                 <button
                   className="secondary sellButton"
                   onClick={() => void tr.createBuyback(asset.id)}
-                  title="依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）"
+                  title={t(text.sellTitle)}
                 >
-                  Twinfoldに売る（Phantomで承認）
+                  {t(text.sell)}
                 </button>
               )}
             </div>

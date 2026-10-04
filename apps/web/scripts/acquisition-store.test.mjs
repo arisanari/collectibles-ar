@@ -84,7 +84,7 @@ test("eligibility: owned by anyone other than the vault -> not acquirable", () =
   const e = evaluateAcquisitionEligibility({ offchainRecord: record(), currentOwner: "SOMEONE", vaultWallet: "VAULT" });
   assert.equal(e.eligible, false);
   assert.ok(e.reasons.length >= 1);
-  assert.equal(NOT_ACQUIRABLE_MESSAGE, "この作品は現在取得できません");
+  assert.equal(NOT_ACQUIRABLE_MESSAGE, "This work is not currently available to acquire");
 });
 
 test("eligibility: no price, burnt, redeemed, or no vault wallet -> refused", () => {
