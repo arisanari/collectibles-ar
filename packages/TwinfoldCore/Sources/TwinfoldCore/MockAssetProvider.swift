@@ -110,22 +110,22 @@ public actor MockAssetProvider: AssetProvider {
         guard let commerce = asset.commerce else {
             return BuybackQuote(
                 assetId: asset.id, basis: .init(amount: 0, currency: "USDC"), rate: 0, offerAmount: 0,
-                currency: "USDC", eligible: false, reason: "demo: no Twinfold price set for this asset",
+                currency: "USDC", eligible: false, reason: "demo: no OshiPin price set for this asset",
                 quoteId: quoteId, expiresAt: expiresAt
             )
         }
 
         var reasons: [String] = []
         if asset.owner != wallet {
-            reasons.append("この部屋のwalletは現在の所有者ではありません")
+            reasons.append("The wallet in this room is not the current owner")
         }
         let custodyStatus = asset.physical?.custody.status
         if custodyStatus != "vaulted" {
-            reasons.append("Vault保管中ではないため、Twinfoldへの売却の対象外です（custody: \(custodyStatus ?? "unknown")）")
+            reasons.append("Not Vaulted, so not eligible to sell to OshiPin (custody: \(custodyStatus ?? "unknown"))")
         }
         let alreadyRedeemed = asset.provenance.contains { $0.kind == .redeemed && $0.status == .confirmed }
         if alreadyRedeemed {
-            reasons.append("現物を引き取り済み（redeem済み）のため、対象外です")
+            reasons.append("The physical item has been redeemed, so it is not eligible")
         }
 
         let eligible = reasons.isEmpty
@@ -138,7 +138,7 @@ public actor MockAssetProvider: AssetProvider {
             offerAmount: offerAmount,
             currency: commerce.twinfoldPrice.currency,
             eligible: eligible,
-            reason: eligible ? "demo: eligible for Twinfold buyback offer (checked \(checkedAt))" : reasons.joined(separator: "; "),
+            reason: eligible ? "demo: eligible for OshiPin buyback offer (checked \(checkedAt))" : reasons.joined(separator: "; "),
             quoteId: quoteId,
             expiresAt: expiresAt
         )

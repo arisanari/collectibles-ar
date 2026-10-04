@@ -31,7 +31,7 @@ struct DemoWallet: Identifiable, Hashable {
 
     static func label(forWallet wallet: String) -> String {
         if wallet == MockAssetProvider.vaultWallet || wallet == "vault" {
-            return "Twinfold Vault"
+            return "OshiPin Vault"
         }
         return (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
     }
@@ -249,7 +249,7 @@ final class RoomController {
     /// 送る / Twinfoldに売る for the linked wallet: create a request, show 「Webで承認待ち」,
     /// poll every 3s; on confirmed, wait for the owner change as for any transfer, then Disappear.
     private func runApprovalFlow(assetId: String, asset: TwinfoldAsset, requestId: String, kind: TransferRequestKind, toWallet: String?) async {
-        let opLabel = kind == .buyback ? "Twinfoldへの売却" : "送信"
+        let opLabel = kind == .buyback ? "OshiPinへの売却" : "送信"
         let destination = kind == .buyback ? MockAssetProvider.vaultWallet : (toWallet ?? "")
         approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
         defer { approvalMessages[assetId] = nil }
@@ -393,7 +393,7 @@ final class RoomController {
         case .rateLimited(let seconds):
             return "試行回数が多すぎます。" + (seconds.map { "約\(max(1, $0 / 60))分後に" } ?? "しばらくしてから") + "もう一度お試しください"
         case .unauthorized: return "連携が切れました"
-        case .network: return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        case .network: return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
         case .server(let status): return "サーバーエラー（\(status)）"
         case .decoding: return "応答を読み取れませんでした"
         }
@@ -509,11 +509,11 @@ final class RoomController {
             case 403: return "申請できません（所有者ではない、またはサーバー側で無効です）"
             case 409: return "この作品はすでに引き取り手続き中か、対象外です"
             case 429: return "申請の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（Twinfold側の設定）。時間をおいて再試行してください"
+            case 503: return "いまは処理できません（OshiPin側の設定）。時間をおいて再試行してください"
             default: return "申請に失敗しました（\(status)）"
             }
         }
-        return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
     }
 
     // MARK: - Twinfoldから取得 (acquire, Issue #60)
@@ -656,11 +656,11 @@ final class RoomController {
             case 404: return "取得の記録が見つかりません。もう一度お試しください"
             case 409: return "この作品は現在取得できません"
             case 429: return "取得の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（Twinfold側のdevnet SOL残高など）。時間をおいて再試行してください"
+            case 503: return "いまは処理できません（OshiPin側のdevnet SOL残高など）。時間をおいて再試行してください"
             default: return "取得に失敗しました（\(status)）"
             }
         }
-        return "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
     }
 
     // MARK: - Wallet / ownership
@@ -755,7 +755,7 @@ final class RoomController {
             print("loadOwnedAssets failed: \(error)")
             loadErrorMessage = dataMode == .demo
                 ? "作品を読み込めませんでした"
-                : "Twinfold APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でTwinfoldARが許可されているかを確認してください"
+                : "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でOshiPinが許可されているかを確認してください"
         }
         syncEntities()
     }
@@ -1166,7 +1166,7 @@ final class RoomController {
         do {
             _ = try await mock.simulateTransfer(assetId: assetId, to: MockAssetProvider.vaultWallet, requestId: requestId)
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "Twinfoldへの売却に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "OshiPinへの売却に失敗しました: \(error)") }
             return
         }
         do {
@@ -1192,7 +1192,7 @@ final class RoomController {
         toLabel: String, destinationWalletId: String, quoteId: String?
     ) async {
         guard let solana = provider as? SolanaAssetProvider else { return }
-        let opLabel = toLabel == "vault" ? "Twinfoldへの売却" : "送信"
+        let opLabel = toLabel == "vault" ? "OshiPinへの売却" : "送信"
         do {
             // Test rooms only (server-signed, insecure dev flag): never attach the linked wallet's token.
             let result = try await solana.devnetTransfer(

@@ -89,7 +89,7 @@ struct AssetTrayView: View {
     /// acquisition sheet; the sheet explains when the Web wallet link is missing.
     private var vaultGroup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Twinfoldから取得（DEVNET・支払いなし）")
+            Text("OshiPinから取得（DEVNET・支払いなし）")
                 .font(.footnote.bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
