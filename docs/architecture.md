@@ -359,6 +359,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - iPhoneへの一回限りの端末連携
 - transfer、Vaulted／Physical Ownership、redeem
 - Trust、Physical情報、Passportの表示
+- UI言語: 既定は英語。ヘッダーのプルダウンで日本語に切り替える（`apps/web/lib/i18n.tsx`、選択はブラウザに保存、言語の追加は `LANGUAGES` に1件足す）。Backendが返す文言（error、reason、Passportのlimitationsなど）とステータスのラベルは英語固定なので、日本語UIとiPhoneアプリにも英語のまま出る。fixtureやオンチェーンのデータに入っている文章は翻訳しない
 
 ### Spatial Experience（Swift Package）
 

@@ -9,7 +9,7 @@ import type { Localized } from "../i18n";
 
 export const hero = {
   lead: {
-    en: "Real-world collectibles, owned onchain. Place them in your room in AR at true size, line them up, and share the shot. The original stays safe in the vault.",
+    en: "Real-world collectibles, owned onchain. Place them in your room in AR at true size, line them up, and share the shot. The original stays in the vault.",
     ja: "オンチェーンで所有する実物コレクティブルを、ARで自分の部屋に実寸で飾り、並べて、撮ってシェアできます。現物は保管庫に置いたまま。",
   } satisfies Localized,
   cta: { en: "See what's available", ja: "取得できる作品を見る" } satisfies Localized,
@@ -32,7 +32,8 @@ export const devnetSection = {
 export const devnetFeature = {
   label: { en: "ONCHAIN PIECE", ja: "オンチェーンの1点" } satisfies Localized,
   owner: { en: "Owner", ja: "所有者" } satisfies Localized,
-  custody: { en: "Custody", ja: "保管" } satisfies Localized,
+  // Custody is an off-chain record, unlike Owner and Asset (onchain facts); the label says so.
+  custody: { en: "Custody (off-chain record)", ja: "保管（オフチェーン記録）" } satisfies Localized,
   asset: { en: "Asset", ja: "Asset" } satisfies Localized,
   noImage: { en: "No image", ja: "画像なし" } satisfies Localized,
   previous: { en: "Previous piece", ja: "前の作品" } satisfies Localized,

@@ -16,12 +16,15 @@ export type Localized = Record<Lang, string>;
 
 const STORAGE_KEY = "oshipin.lang";
 const listeners = new Set<() => void>();
+// The choice made in this page. Wins over storage so the switch still works when storage is blocked.
+let chosen: Lang | null = null;
 
 function isLang(value: unknown): value is Lang {
   return LANGUAGES.some((entry) => entry.code === value);
 }
 
 function readStored(): Lang {
+  if (chosen) return chosen;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     return isLang(stored) ? stored : DEFAULT_LANG;
@@ -31,15 +34,21 @@ function readStored(): Lang {
 }
 
 function subscribe(listener: () => void) {
+  // Another tab changed the language: drop the in-page choice and re-read storage.
+  const onStorage = () => {
+    chosen = null;
+    listener();
+  };
   listeners.add(listener);
-  window.addEventListener("storage", listener);
+  window.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", listener);
+    window.removeEventListener("storage", onStorage);
   };
 }
 
 function writeLang(lang: Lang) {
+  chosen = lang;
   try {
     window.localStorage.setItem(STORAGE_KEY, lang);
   } catch {
