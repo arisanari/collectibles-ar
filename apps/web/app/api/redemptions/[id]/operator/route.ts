@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * POST /api/redemptions/[id]/operator { action: "ship" | "exception" | "retry_retire" | "resume", note? }
  * OPERATOR (dry run) steps, guarded by BOTH assertDevnetServerSigningAllowed() and the operator secret header
  * (TWINFOLD_OPERATOR_TOKEN, constant-time compare). `ship`: ONLY from `locked`, recording the dry-run shipping
- * step ("保険付き配送相当（dry run、実配送なし）"; no tracking, no personal data). `exception`: safe stop.
+ * step ("Insured-shipping equivalent (dry run, nothing actually shipped)"; no tracking, no personal data). `exception`: safe stop.
  * `retry_retire`: exception (from received) -> retire again. `resume`: exception (from locked/shipped) -> that status.
  * `busy` is taken synchronously after the last await before the state change, so it cannot interleave with an owner cancel.
  * The operator `note` is kept in the operator view / audit only; it never reaches the public Passport or asset API.
@@ -50,24 +50,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "invalid_input: action must be ship | exception | retry_retire | resume" }, { status: 400 });
   }
   const rt = runtimeOf(r.id);
-  if (rt.busy) return NextResponse.json({ error: "処理中です" }, { status: 409 });
+  if (rt.busy) return NextResponse.json({ error: "Processing" }, { status: 409 });
 
   await reconcileRedemption(r, Date.now() + 10_000);
 
   // ---- no await from here to the end of the state change ----
-  if (rt.busy) return NextResponse.json({ error: "処理中です" }, { status: 409 });
+  if (rt.busy) return NextResponse.json({ error: "Processing" }, { status: 409 });
   rt.busy = true;
   let retire = false;
   let ok = false;
   try {
     if (action === "ship") ok = markShipped(r).ok;
-    else if (action === "exception") ok = markException(r, note.note ? `operator stop: ${note.note}` : "operatorが例外停止にしました").ok;
+    else if (action === "exception") ok = markException(r, note.note ? `operator stop: ${note.note}` : "The operator stopped this on exception").ok;
     else if (action === "resume") ok = markResumed(r).ok;
     else if (r.status === "exception" && r.exceptionFrom === "received") ok = retire = markReceived(r).ok;
   } finally {
     rt.busy = false;
   }
-  if (!ok) return NextResponse.json({ error: `この操作は現在の状態（${r.status}）では実行できません`, status: r.status }, { status: 409 });
+  if (!ok) return NextResponse.json({ error: `This action cannot be run in the current state (${r.status})`, status: r.status }, { status: 409 });
   if (retire) await runRetire(r);
   return NextResponse.json(r);
 }

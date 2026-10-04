@@ -8,27 +8,27 @@
 import type { ProvenanceEvent, RedeemedProvenancePassport, Redemption, TwinfoldAsset } from "../contract";
 
 export const PASSPORT_LIMITATIONS: string[] = [
-  "このPassportは、Vault退出（引き取り）までの来歴と、その時点の最終確認状態の記録です。",
-  "Vault退出後の現在の所有者、現物の現在の状態、真正性は保証しません。",
-  "blockchain上の記録は、作品の真正性や著作権を証明しません。onchainで確かなのは、Assetの発行・移転・失効の履歴だけです。",
-  "状態の記載は、画像等からのTwinfoldの所見であり、第三者による鑑定・グレーディングではありません。",
-  "redeem後に再流通させるには、再確認（Trust Gate）と、Twinfold Vaultへのre-vaultが必要です。",
-  "このデモ（dry run）では実配送を行わず、配送先などの個人情報も記録していません。",
+  "This Passport records provenance up to Vault exit (redemption) and the last verified state at that time.",
+  "It does not guarantee the current owner, the current condition of the physical item, or its authenticity after Vault exit.",
+  "Records on the blockchain do not prove a work's authenticity or copyright. Onchain, only the history of the Asset's issue, transfer and retirement is certain.",
+  "Condition notes are OshiPin's own observations from images and other material. They are not a third-party appraisal or grading.",
+  "To circulate it again after redemption, it must be re-verified (Trust Gate) and re-vaulted into the OshiPin Vault.",
+  "This demo (dry run) ships nothing and records no personal data such as a delivery address.",
 ];
 
 export const PASSPORT_XR_CONDITIONS =
-  "流通Assetは失効（burn）済みのため、Spatial Client（iPhone AR／Vision Pro）の壁・棚には表示されません。Passportは来歴の閲覧用で、XR表示の権利ではありません。再流通には再確認とre-vaultが必要です。";
+  "The circulating Asset has been retired (burned), so it no longer appears on the walls or shelves of the Spatial Clients (iPhone AR / Vision Pro). The Passport is for viewing provenance and is not a right to display in XR. Circulating it again needs re-verification and re-vaulting.";
 
 /**
  * The ONLY free text a redeem step may carry into the public Passport: fixed, system-generated notes.
  * Operator notes (and `exception` events, which carry them) never reach the Passport.
  */
 export const PASSPORT_STEP_NOTES: Record<string, string> = {
-  requested: "引き取り申請（dry run）",
-  locked: "流通Assetをredemption escrowへ移しました（流通停止）",
-  shipped: "保険付き配送相当（dry run、実配送なし）",
-  received: "受取確認（dry run、実配送なし）",
-  retired: "流通Assetを失効（burn）しました",
+  requested: "Redemption requested (dry run)",
+  locked: "Circulating Asset moved to the redemption escrow (out of circulation)",
+  shipped: "Insured-shipping equivalent (dry run, nothing actually shipped)",
+  received: "Receipt confirmed (dry run, nothing actually shipped)",
+  retired: "Circulating Asset retired (burned)",
 };
 
 export class PassportBuildError extends Error {}
@@ -54,7 +54,7 @@ export function buildPassport(asset: TwinfoldAsset, redemption: Redemption): Red
       source: "onchain",
       status: "confirmed",
       transaction: redemption.retireSignature,
-      metadata: { redeemStep: "retire", note: "流通Assetを失効（burn）" },
+      metadata: { redeemStep: "retire", note: "Circulating Asset retired (burned)" },
     });
   }
   const provenance = Array.from(byId.values())
@@ -87,7 +87,7 @@ export function buildPassport(asset: TwinfoldAsset, redemption: Redemption): Red
     redeemedAt: retiredAt,
     lastVerifiedAt: asset.physical.lastVerifiedAt,
     lastVerifiedCondition: asset.physical.condition,
-    custodyAtExit: `${asset.physical.custody.vault}のVaultで保管（Vault退出時点の記録: ${asset.physical.custody.status}）`,
+    custodyAtExit: `Kept in the ${asset.physical.custody.vault} Vault (record as of Vault exit: ${asset.physical.custody.status})`,
     provenance,
     onchain: { mint, transfers, lock: redemption.lockSignature, retire: redemption.retireSignature },
     limitations: PASSPORT_LIMITATIONS,

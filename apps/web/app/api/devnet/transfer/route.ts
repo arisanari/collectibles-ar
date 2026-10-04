@@ -127,7 +127,7 @@ export async function POST(request: Request) {
   if (authWallet && authLabel !== fromLabel) {
     recordAudit("transfer_refused", { wallet: authWallet, detail: `from ${fromLabel} is not the authenticated wallet` });
     return NextResponse.json(
-      { error: `認証されたwalletは送信元（${fromLabel}）のwalletと一致しません。自分のwalletからのみ送信できます` },
+      { error: `The authenticated wallet does not match the sender wallet (${fromLabel}). You can only send from your own wallet.` },
       { status: 403 }
     );
   }
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
   // An Asset in a redemption must not be sent anywhere (buyback or peer transfer).
   if (isAssetInRedemption(assetId)) {
     recordAudit("transfer_refused", { wallet: authWallet ?? undefined, detail: `${assetId}: asset is in a redemption` });
-    const record = { assetId, status: "failed" as const, error: "この作品はredeem手続き中のため、移転できません" };
+    const record = { assetId, status: "failed" as const, error: "This work has a redeem procedure in progress, so it cannot be transferred" };
     save(record);
     return NextResponse.json(toResult(requestId, record), { status: 409 });
   }
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
       redemptionOpen: isAssetInRedemption(assetId),
     });
     if (!eligible) {
-      const message = `devnet: not eligible for Twinfold buyback: ${reasons.join("; ")}`;
+      const message = `devnet: not eligible for OshiPin buyback: ${reasons.join("; ")}`;
       const record = { assetId, status: "failed" as const, error: message };
       save(record);
       return NextResponse.json(toResult(requestId, record), { status: 409 });

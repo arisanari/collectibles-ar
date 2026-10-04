@@ -1,12 +1,12 @@
-# Twinfold
+# OshiPin
 
-**The ownership layer for real-world collectibles. Beachhead: display collectibles, starting with ukiyo-e prints on your wall.**
+**Summon what you own into your room. Real-world collectibles meet AR. Beachhead: ukiyo-e prints on your wall.**
 
-Twinfoldは、保管された現物コレクティブルを、検証可能なオンチェーン所有権、来歴、空間体験、現物受取へ接続します。
+OshiPinは、保管庫に置いたままの現物コレクティブルを、実寸で自分の部屋にARで召喚し、並べて、撮って、シェアできるようにします。オンチェーン所有権、来歴、現物受取にも接続します。売れば部屋から消えます。Vault保管中のAssetは、OshiPinが付けている現在の販売価格の80%で買取提示を受けられます（価格はOshiPinが変更しうる。redeem済みは対象外。devnetでは支払いを行いません）。
 
-> **Twinfold turns vaulted collectibles into transferable onchain ownership you can experience in space and redeem physically.**
+> **OshiPin turns vaulted collectibles into transferable onchain ownership you can summon into your room in AR and redeem physically.**
 
-Solanaが「Assetに何が起きたか」を記録し、Twinfoldが「それが所有者にとって何を意味するか」を空間の変化へ翻訳します。
+Solanaが「Assetに何が起きたか」を記録し、OshiPinが「それが所有者にとって何を意味するか」を空間の変化へ翻訳します。
 
 ## 提出先
 
@@ -18,9 +18,9 @@ Crypto World's Fair 2026（Colosseum）。開催期間 2026-09-14〜2026-10-12�
 |---|---|
 | Ownership Layer | 現物、証拠、保管、オンチェーンAsset、owner、redeemを接続する |
 | Spatial Ownership Experience | 所有・来歴・移転をPlace、Pull、Appear／Disappearとして体験させる |
-| Wall Display Collectibles Vertical | 実物、顧客、供給者、運用、収益仮説を最初に検証する |
+| Wall Display Collectibles Vertical（最初のカテゴリ） | 実物、顧客、供給者、運用、収益仮説を最初に検証する |
 
-最初のReference Assetは江戸・明治の浮世絵・古版画です（著作権消滅、国際的なディーラー・オークション・状態評価〈摺り、退色、裏打ち、トリミング〉が確立、原摺りは新規供給がなく、退色リスクがあるのでVault保管と壁での鑑賞がトレードオフになり、贋作・後摺りが多いので来歴と状態の記録を分けて残す価値があります）。拡張として棚に飾るカテゴリを想定し、メーカー公認3Dを前提としたフィギュア（Metaplex Coreのroyaltyで二次流通からメーカーへ還元できるという仮説は未検証です）と、3D twinの例としての郷土玩具・伝統こけしを含みます。切手は履歴（かつてのbeachhead）としてのみ残ります。アニメ原画・セルは権利上除外しています。Twinfoldは「コレクティブルNFTサービス」ではなく、これらはreal-world collectibles全体へ展開するための最初の市場です。Twinfoldは鑑定機関を名乗らず、現物所有権と既存の鑑定機関が発行する鑑定書を分けて記録します。
+カテゴリの拡張順は、最初が壁の浮世絵、次が棚（フィギュア・こけし・郷土玩具）、その先がカードと部屋全体です。最初のReference Assetは江戸・明治の浮世絵・古版画です（著作権消滅、国際的なディーラー・オークション・状態評価〈摺り、退色、裏打ち、トリミング〉が確立、原摺りは新規供給がなく、退色リスクがあるのでVault保管と壁での鑑賞がトレードオフになり、贋作・後摺りが多いので来歴と状態の記録を分けて残す価値があります）。拡張として棚に飾るカテゴリを想定し、メーカー公認3Dを前提としたフィギュア（Metaplex Coreのroyaltyで二次流通からメーカーへ還元できるという仮説は未検証です）と、3D twinの例としての郷土玩具・伝統こけしを含みます。切手は履歴（かつてのbeachhead）としてのみ残ります。アニメ原画・セルは権利上除外しています。OshiPinは「コレクティブルNFTサービス」ではなく、これらはreal-world collectibles全体へ展開するための最初の市場です。OshiPinは鑑定機関を名乗らず、現物所有権と既存の鑑定機関が発行する鑑定書を分けて記録します。
 
 ## Core Experience
 
@@ -102,6 +102,8 @@ AGENTS.md    AIエージェント共通ガイド（CLAUDE.mdはsymlink）
 ```
 
 秘密鍵、APIキー、個人情報、権利未確認の高精細画像をリポジトリへ保存しません。
+
+リポジトリ名・コード内部名（TwinfoldCore、TwinfoldAsset、APIパス、fixtureのidなど）は Twinfold のままです。
 
 ## 事前開発の開示
 

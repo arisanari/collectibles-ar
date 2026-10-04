@@ -30,35 +30,35 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const rt = runtimeOf(r.id);
 
   if (r.status === "cancelled") return NextResponse.json(r);
-  if (rt.busy) return refuse(409, "処理中です。しばらくしてから再試行してください");
+  if (rt.busy) return refuse(409, "Processing. Please try again in a moment.");
   await reconcileRedemption(r, Date.now() + 10_000);
 
   // A lock that landed on chain but is not recorded yet must be recorded before we decide anything (RPC, not DAS).
   if (r.status === "requested") {
     const lock = r.lockRequestId ? getRequest(r.lockRequestId) : undefined;
     if (lock && (lock.status === "submitted" || lock.status === "confirmed" || lock.submitting)) {
-      return refuse(409, "Phantomの署名が処理中、または確定しています。画面を更新して、lock済みになってから取り消してください", { status: r.status });
+      return refuse(409, "The Phantom signature is being processed or is already final. Refresh, and cancel once it is locked.", { status: r.status });
     }
     const escrow = escrowAddress();
     if (escrow) {
       const owner = await fetchOwnerViaRpc(r.assetAddress);
-      if (owner === null) return refuse(502, "Assetの状態をdevnetから読み取れませんでした。時間をおいて再試行してください");
+      if (owner === null) return refuse(502, "Could not read the Asset's state from devnet. Please try again later.");
       if (owner === escrow && r.status === "requested") markLocked(r, lock?.signature);
     }
   }
 
   // ---- no await between the status check and taking `busy` ----
-  if (rt.busy) return refuse(409, "処理中です。しばらくしてから再試行してください");
+  if (rt.busy) return refuse(409, "Processing. Please try again in a moment.");
   if (r.status !== "requested" && r.status !== "locked") {
     recordRefusal(r.wallet, `redemption ${r.id.slice(0, 6)}: cancel refused in ${r.status}`);
-    return refuse(409, r.status === "exception" ? "例外停止中のため取り消せません（operatorの対応待ちです）" : "発送後は取り消せません", { status: r.status });
+    return refuse(409, r.status === "exception" ? "Stopped on exception, so it cannot be cancelled (awaiting operator)" : "Cannot be cancelled after shipping", { status: r.status });
   }
   rt.busy = true;
   try {
     if (r.status === "requested") {
       const withdrawn = withdrawLockRequest(r);
-      if (!withdrawn.ok) return refuse(409, "Phantomの署名が処理中です。確定後に取り消してください", { status: r.status });
-      if (!markCancelled(r, undefined).ok) return refuse(409, "この状態では取り消せません", { status: r.status });
+      if (!withdrawn.ok) return refuse(409, "The Phantom signature is being processed. Cancel after it is final.", { status: r.status });
+      if (!markCancelled(r, undefined).ok) return refuse(409, "Cannot be cancelled in this state", { status: r.status });
       return NextResponse.json(r);
     }
 
@@ -74,18 +74,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       const result = await escrowTransferTo({ assetAddress: r.assetAddress, to: r.wallet, onSubmitted: (s) => (rt.returnSignature = s) });
       if (result.error || !result.signature) {
         recordRefusal(r.wallet, `redemption ${r.id.slice(0, 6)}: return from escrow failed`);
-        return refuse(502, result.error ?? "escrowからの返却に失敗しました", { status: r.status });
+        return refuse(502, result.error ?? "Returning from escrow failed", { status: r.status });
       }
       if (!markCancelled(r, result.signature).ok) {
         // The state machine refused after the Asset already moved: surface it, never report success.
         console.error(`redemption ${r.id.slice(0, 6)}: cancel refused by the state machine after the return was sent`);
-        return refuse(409, "取り消しを記録できませんでした。operatorの確認が必要です", { status: r.status });
+        return refuse(409, "Could not record the cancellation. Operator review is needed.", { status: r.status });
       }
       return NextResponse.json(r);
     } catch (error) {
       // Return sent but confirmation uncertain: stay `locked`; reconcile cancels only once rt.returnSignature is confirmed.
       console.error("redemption cancel failed", error instanceof Error ? error.message : "unknown error");
-      return refuse(502, rt.returnSignature ? "返却の確定を確認中です。しばらくして画面を更新してください" : "escrowからの返却に失敗しました。Assetはescrowに残っています", { status: r.status });
+      return refuse(502, rt.returnSignature ? "Confirming the return. Please refresh in a moment." : "Returning from escrow failed. The Asset remains in escrow.", { status: r.status });
     }
   } finally {
     rt.busy = false;

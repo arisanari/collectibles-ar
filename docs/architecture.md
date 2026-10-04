@@ -1,7 +1,7 @@
-# Twinfold Technical Architecture
+# OshiPin Technical Architecture
 
 > ステータス: Colosseum MVP技術ベースライン
-> 最終更新: 2026-10-02
+> 最終更新: 2026-10-05（表示名を OshiPin に変更、見せ方を更新）。前回 2026-10-02
 >
 > beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21、同日中に見直し）→ 壁に掛ける浮世絵・版画（2026-09-21確定、最初の供給とデモは江戸・明治の浮世絵・古版画）。**提出までのbeachhead変更はこれが最後で、以後は変更しない。**切手は履歴にだけ残り、棚（フィギュア・こけし・郷土玩具）は拡張カテゴリとして残る。
 
@@ -284,7 +284,7 @@ ownerがWebでVaulted Ownershipを選ぶ
 
 現物はVaultから動かさず、オンチェーンownerだけを移転できる。保管状態に例外が出た場合はAssetを `exception` として表示停止し、解消までtransfer／redeemを許可しない。
 
-`PhysicalDescriptor.custody.status` は4値: `vaulted`（Twinfold運用のVaultに預けている）、`released`（redeem完了により現物を出庫し、Passportだけが残る）、`exception`（不一致・要解消の異常状態、表示停止）、`pending_intake`（実物は記録済みだが、まだTwinfold運用のVaultへ登録・移送されていない。個人の自己保管など、RWA登録前の中間状態。異常ではないので`exception`とは区別する）。
+`PhysicalDescriptor.custody.status` は4値: `vaulted`（OshiPin運用のVaultに預けている）、`released`（redeem完了により現物を出庫し、Passportだけが残る）、`exception`（不一致・要解消の異常状態、表示停止）、`pending_intake`（実物は記録済みだが、まだOshiPin運用のVaultへ登録・移送されていない。個人の自己保管など、RWA登録前の中間状態。異常ではないので`exception`とは区別する）。
 
 #### G. Physical Ownership、redeem、配送ドライラン
 
@@ -500,8 +500,8 @@ canDisplay =
 ### 署名とservice wallet（devnet、開発用）
 
 - **端末連携**: iPhoneはWebのlink codeを交換して得た端末固有・失効可能なtoken（Bearer）だけを持つ。鍵は持たない。tokenでできるのは依頼の作成と状態の読み取りで、署名・承認はできない。
-- **ownerが承認する移転**（売却、送る、redeemのlock）: 依頼を作るのはWebまたは連携端末、承認はWebでownerのPhantom署名（`signTransaction`）。サーバーは準備した取引のmessageとowner署名を検証してから送信し、手数料支払者はTwinfoldのvault wallet。サーバーはownerの鍵で署名しない。
-- **取得**: Twinfoldのvault walletが送り手としてサーバー署名する（支払いなし、devnetのみ）。
+- **ownerが承認する移転**（売却、送る、redeemのlock）: 依頼を作るのはWebまたは連携端末、承認はWebでownerのPhantom署名（`signTransaction`）。サーバーは準備した取引のmessageとowner署名を検証してから送信し、手数料支払者はOshiPinのvault wallet。サーバーはownerの鍵で署名しない。
+- **取得**: OshiPinのvault walletが送り手としてサーバー署名する（支払いなし、devnetのみ）。
 - **redemption escrow wallet**: redeemのlockはownerがAssetをescrowへ移す承認（`redeem_lock`、宛先はサーバー側で固定）。取消時の返却と失効（burn）はescrowが署名し、手数料はvaultが払う。失敗時は`exception`で安全側に止まり、再試行はoperatorだけが行う。
 - **operator**: dry runの発送記録と例外処理は、サーバー署名の開発用gate（`TWINFOLD_DEVNET_SERVER_SIGNING`）と別の共有secret（`TWINFOLD_OPERATOR_TOKEN`）の両方で守る。operatorのメモは公開Passportに出さない。
 - **永続化**: redemptionとPassportは`apps/web/.data/`（git管理外、開発用のファイル保存）に原子的に書く。本番ではDBに置き換える。個人情報（氏名・住所・電話）は保存しない。

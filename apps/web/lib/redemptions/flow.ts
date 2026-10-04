@@ -127,13 +127,13 @@ export async function runRetire(r: Redemption): Promise<void> {
       if (helius.burnt) return void (await finalizeFromChain(r));
       snapshot = await loadSnapshot(r, helius);
     } catch {
-      return void markException(r, "Assetの状態をdevnetから読み取れませんでした（RPC）。operatorが再試行してください");
+      return void markException(r, "Could not read the Asset's state from devnet (RPC). The operator should retry.");
     }
-    if (helius.ownership.owner !== escrowAddress()) return void markException(r, "Assetがescrow walletにありません。失効（burn）は行いませんでした");
+    if (helius.ownership.owner !== escrowAddress()) return void markException(r, "The Asset is not in the escrow wallet. Retirement (burn) was not performed.");
     saveSnapshot(r.assetId, snapshot);
     try {
       const result = await escrowBurn({ assetAddress: r.assetAddress, onSubmitted: (signature) => (rt.burnSignature = signature) });
-      if (result.error || !result.signature) return void markException(r, result.error ?? "burnに失敗しました");
+      if (result.error || !result.signature) return void markException(r, result.error ?? "burn failed");
       finalizeRetired(r, result.signature);
     } catch (error) {
       if (rt.burnSignature) {
@@ -142,7 +142,7 @@ export async function runRetire(r: Redemption): Promise<void> {
         return;
       }
       console.error("redemption retire failed", error instanceof Error ? error.message : "unknown error");
-      markException(r, "失効（burn）の送信に失敗しました（vault walletのSOL残高、escrow、またはRPCを確認してください）。Assetはescrowに残っています");
+      markException(r, "Sending the retirement (burn) failed (check the vault wallet's SOL balance, the escrow, or the RPC). The Asset remains in escrow.");
     }
   } finally {
     rt.busy = false;
@@ -156,7 +156,7 @@ export async function finalizeFromChain(r: Redemption): Promise<void> {
   for (const s of signatures) {
     if (isBurnTransaction(await getTransaction(s.signature))) return void finalizeRetired(r, s.signature);
   }
-  markException(r, "Assetはburn済みですが、burn instructionを含むtransactionを特定できませんでした。operatorの確認が必要です");
+  markException(r, "The Asset is burned, but the transaction containing the burn instruction could not be identified. Operator review is needed.");
 }
 
 /**
@@ -191,7 +191,7 @@ export async function reconcileRedemption(r: Redemption, now = Date.now()): Prom
       if (await exceptionIfOwnerBack(r)) return;
       const { helius } = await readChain(r);
       if (helius.burnt) await finalizeFromChain(r);
-      else if (now - Date.parse(r.updatedAt) > RECEIVED_STUCK_MS) markException(r, "失効（burn）が完了しませんでした。Assetはescrowに残っています。operatorが再試行してください");
+      else if (now - Date.parse(r.updatedAt) > RECEIVED_STUCK_MS) markException(r, "Retirement (burn) did not complete. The Asset remains in escrow. The operator should retry.");
     } else if (r.status === "retired") {
       tryWritePassport(r);
     }
@@ -206,7 +206,7 @@ export async function reconcileRedemption(r: Redemption, now = Date.now()): Prom
 async function exceptionIfOwnerBack(r: Redemption): Promise<boolean> {
   const owner = await fetchOwnerViaRpc(r.assetAddress);
   if (decideOwnerBack(owner, r.wallet) === "exception") {
-    markException(r, "発送後にAssetがescrowから依頼者のwalletへ戻っています（手続き外の移転）。operatorの確認が必要です");
+    markException(r, "After shipping, the Asset moved from escrow back to the requester's wallet (a transfer outside the procedure). Operator review is needed.");
     return true;
   }
   return false;

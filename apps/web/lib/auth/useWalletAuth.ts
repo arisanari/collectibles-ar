@@ -108,7 +108,7 @@ export function useWalletAuth() {
         const current = walletRef.current;
         if (!current) return;
         if (key && key.toString() === current) return;
-        void clearSession("switched", "ウォレットが切り替わりました。再度署名してください。");
+        void clearSession("switched", "Your wallet changed. Please sign in again.");
       }) as never);
       phantom.on("disconnect", (() => {
         currentKeyRef.current = null;
@@ -150,7 +150,7 @@ export function useWalletAuth() {
           const key = trusted?.publicKey.toString() ?? null;
           currentKeyRef.current = key;
           if (key && key !== data.wallet) {
-            await clearSession("switched", "ウォレットが切り替わりました。再度署名してください。");
+            await clearSession("switched", "Your wallet changed. Please sign in again.");
             return;
           }
         }
@@ -172,7 +172,7 @@ export function useWalletAuth() {
   useEffect(() => {
     if (status !== "authenticated" || !expiresAt) return;
     const ms = new Date(expiresAt).getTime() - Date.now();
-    const timer = window.setTimeout(() => void clearSession("expired", "セッションの有効期限が切れました。再度署名してください。"), Math.max(ms, 0));
+    const timer = window.setTimeout(() => void clearSession("expired", "Your session expired. Please sign in again."), Math.max(ms, 0));
     return () => window.clearTimeout(timer);
   }, [status, expiresAt, clearSession]);
 
@@ -180,7 +180,7 @@ export function useWalletAuth() {
     const phantom = getPhantom();
     if (!phantom) {
       setStatus("no_wallet");
-      setDetail("Phantomが見つかりません。拡張機能をインストールしてください。");
+      setDetail("Phantom was not found. Please install the extension.");
       return;
     }
     attachListeners(phantom);
@@ -194,7 +194,7 @@ export function useWalletAuth() {
       currentKeyRef.current = address;
     } catch {
       setStatus("rejected");
-      setDetail("接続が拒否されました。");
+      setDetail("The connection was declined.");
       return;
     }
 
@@ -207,7 +207,7 @@ export function useWalletAuth() {
         signature = (await phantom.signMessage(new TextEncoder().encode(challenge.data.message), "utf8")).signature;
       } catch {
         setStatus("rejected");
-        setDetail("署名が拒否されました。費用は発生せず、何も送信されていません。");
+        setDetail("The signature was declined. No fee was charged and nothing was sent.");
         return;
       }
       const verified = await postJson("/api/auth/verify", {
@@ -218,16 +218,16 @@ export function useWalletAuth() {
       if (!verified.ok) {
         if (verified.data.error === "expired" || verified.data.error === "unknown_nonce") {
           setStatus("expired");
-          setDetail("チャレンジの有効期限が切れました。もう一度お試しください。");
+          setDetail("The sign-in challenge expired. Please try again.");
         } else {
           setStatus("error");
-          setDetail(`署名の検証に失敗しました (${verified.data.error ?? verified.status})`);
+          setDetail(`Signature verification failed (${verified.data.error ?? verified.status})`);
         }
         return;
       }
       if (stale(address)) {
         // Account changed (or another attempt started) while signing: do not treat as authenticated.
-        await clearSession("switched", "署名中にウォレットが切り替わりました。再度署名してください。");
+        await clearSession("switched", "Your wallet changed while signing. Please sign in again.");
         return;
       }
       walletRef.current = verified.data.wallet;
@@ -236,7 +236,7 @@ export function useWalletAuth() {
       setStatus("authenticated");
     } catch {
       setStatus("error");
-      setDetail("認証に失敗しました。もう一度お試しください。");
+      setDetail("Sign-in failed. Please try again.");
     }
   }, [attachListeners, clearSession]);
 

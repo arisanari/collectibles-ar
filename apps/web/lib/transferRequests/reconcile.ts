@@ -46,7 +46,7 @@ export async function reconcileWithChain(t: ReconcileTarget, now = Date.now()): 
       const again = await fetchSignatureState(t.signature);
       if (again.state === "confirmed") return t.onConfirmed("signature");
       if (again.state === "failed") return t.onFailed(again.error ?? "transaction failed on devnet", false);
-      t.onFailed("承認の有効期限（ブロックハッシュ）が切れ、送信した取引は確定しませんでした。もう一度承認してください", true);
+      t.onFailed("The approval expired (blockhash) and the submitted transaction did not confirm. Please approve again.", true);
     }
   } catch {
     // leave the status as it is; the next read tries again

@@ -88,7 +88,7 @@ test("entitlement: requested still circulates; locked/shipped/exception stop it 
   for (const s of ["locked", "shipped", "received", "exception"]) {
     const e = redemptionEntitlement(redemption(s, []));
     assert.equal(e.canDisplay, false);
-    assert.match(e.reason, /redeem手続き中（流通停止）/);
+    assert.match(e.reason, /Redemption in progress \(out of circulation\)/);
   }
   const retired = redemptionEntitlement(redemption("retired", []));
   assert.equal(retired.canDisplay, false);

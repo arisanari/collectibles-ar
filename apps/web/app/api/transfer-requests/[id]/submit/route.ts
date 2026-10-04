@@ -62,10 +62,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       // reconcileRequest (on later reads) settles it from getSignatureStatuses / the on-chain owner.
       console.error("transfer-requests/submit: confirmation uncertain, staying submitted", error instanceof Error ? error.message : "unknown error");
     } else if (error instanceof BlockhashExpiredError) {
-      markFailed(r, "承認の有効期限（ブロックハッシュ）が切れました。もう一度承認してください", true);
+      markFailed(r, "The approval expired (blockhash). Please approve again.", true);
     } else {
       console.error("transfer-requests/submit failed", error instanceof Error ? error.message : "unknown error");
-      markFailed(r, "devnetへの送信に失敗しました（vault walletのSOL残高、またはRPCを確認してください）", true);
+      markFailed(r, "Sending to devnet failed (check the vault wallet's SOL balance or the RPC)", true);
     }
   } finally {
     r.submitting = false;

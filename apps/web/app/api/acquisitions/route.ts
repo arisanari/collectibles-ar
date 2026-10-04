@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     return refuse(403, error instanceof Error ? error.message : "devnet server signing disabled");
   }
   const vaultWallet = devnetWalletAddressOrNull("vault");
-  if (!vaultWallet) return refuse(503, "Twinfold vault wallet is not configured on this server");
+  if (!vaultWallet) return refuse(503, "OshiPin vault wallet is not configured on this server");
   if (wallet === vaultWallet) return refuse(400, "invalid_input: the vault wallet cannot acquire from itself");
 
   const offchainRecord = findOffchainRecord(assetId);
@@ -78,10 +78,10 @@ export async function POST(request: Request) {
     recordAudit("acquisition_refused", { wallet, detail: `${assetId}: ${pre.reasons.join("; ")}` });
     return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: pre.reasons });
   }
-  if (findOpenByAsset(assetId)) return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["この作品は別の取得を処理中です"] });
+  if (findOpenByAsset(assetId)) return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["This work is being processed by another acquisition"] });
   if (isAssetInRedemption(assetId)) {
     recordAudit("acquisition_refused", { wallet, detail: `${assetId}: asset is in a redemption` });
-    return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["この作品はredeem手続き中です"] });
+    return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["This work has a redeem procedure in progress"] });
   }
   const reserved = reserveAcquisition({
     id: requestId,
@@ -93,14 +93,14 @@ export async function POST(request: Request) {
   });
   if (!reserved.ok) {
     if (reserved.reason === "store_full") return refuse(429, "too many acquisitions, retry later");
-    return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["この作品は別の取得を処理中です"] });
+    return refuse(409, NOT_ACQUIRABLE_MESSAGE, { reasons: ["This work is being processed by another acquisition"] });
   }
   const acq = reserved.acquisition;
   // The per-wallet cap counts only reservations that actually happened (refusals above never consume a slot).
   if (!takeSlot("acquire", wallet, ACQUISITIONS_PER_HOUR)) {
     markAcqFailed(acq, "rate_limited");
     recordAudit("acquisition_refused", { wallet, detail: "acquisition cap reached" });
-    return refuse(429, "rate_limited: 取得の回数が上限（1時間あたり）に達しました。しばらくしてから再試行してください");
+    return refuse(429, "rate_limited: Acquisition limit reached (per hour). Please try again later.");
   }
 
   // ---- asynchronous part: the acquisition is already reserved ----
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       return refuse(503, "vault_low_balance", { message: VAULT_LOW_BALANCE_MESSAGE });
     }
     console.error(`POST /api/acquisitions: pre-send check failed for ${assetId}`, error instanceof Error ? error.message : "unknown error");
-    markAcqFailed(acq, "devnetの状態を確認できませんでした。時間をおいて再試行してください");
+    markAcqFailed(acq, "Could not check the state on devnet. Please try again later.");
     return refuse(502, "could not verify the asset on devnet");
   }
 
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
           // fall through to failed; the record stays reconcilable (sendUncertain)
         }
         acq.sendUncertain = true;
-        markAcqFailed(acq, "devnetへの送信に失敗しました（vault walletのSOL残高、またはRPCを確認してください）");
+        markAcqFailed(acq, "Sending to devnet failed (check the vault wallet's SOL balance or the RPC)");
       }
     })
     .finally(signalSubmitted);

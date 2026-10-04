@@ -14,8 +14,8 @@ import { assertDevnetServerSigningAllowed } from "../solana/devnetSigningGuard";
 import { devnetRpcUrl } from "../solana/devnetTransfer";
 import { assertVaultFunded } from "../transferRequests/chain";
 
-export const ESCROW_NOT_CONFIGURED_MESSAGE = "Twinfoldのredemption escrow walletが未設定です（scripts/solana: npm run wallets:generate）";
-export const ESCROW_LABEL = "Twinfold Redemption Escrow";
+export const ESCROW_NOT_CONFIGURED_MESSAGE = "The OshiPin redemption escrow wallet is not configured (scripts/solana: npm run wallets:generate)";
+export const ESCROW_LABEL = "OshiPin Redemption Escrow";
 
 export function escrowAddress(): string | null {
   return devnetWalletAddressOrNull("escrow");
@@ -59,7 +59,7 @@ export async function escrowTransferTo(params: {
   const { umi, vaultSigner, escrowSigner, escrowAddress: escrow } = setup();
   await assertVaultFunded();
   const asset = await fetchAssetV1(umi, umiPublicKey(params.assetAddress));
-  if (asset.owner.toString() !== escrow) return { error: "Assetはescrowにありません（所有者がescrowではありません）" };
+  if (asset.owner.toString() !== escrow) return { error: "The Asset is not in escrow (the owner is not the escrow wallet)" };
   const blockhash = await umi.rpc.getLatestBlockhash();
   const builder = transfer(umi, { asset, newOwner: umiPublicKey(params.to), authority: escrowSigner, payer: vaultSigner }).setBlockhash(blockhash);
   const sent = await builder.send(umi, { preflightCommitment: "confirmed" });
@@ -75,7 +75,7 @@ export async function escrowBurn(params: { assetAddress: string; onSubmitted?: (
   const { umi, vaultSigner, escrowSigner, escrowAddress: escrow } = setup();
   await assertVaultFunded();
   const asset = await fetchAssetV1(umi, umiPublicKey(params.assetAddress));
-  if (asset.owner.toString() !== escrow) return { error: "Assetはescrowにありません（所有者がescrowではありません）" };
+  if (asset.owner.toString() !== escrow) return { error: "The Asset is not in escrow (the owner is not the escrow wallet)" };
   const blockhash = await umi.rpc.getLatestBlockhash();
   const builder = burn(umi, { asset, authority: escrowSigner, payer: vaultSigner }).setBlockhash(blockhash);
   const sent = await builder.send(umi, { preflightCommitment: "confirmed" });

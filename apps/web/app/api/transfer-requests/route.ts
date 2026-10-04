@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
   if (!takeSlot("transfer-create", wallet, CREATES_PER_HOUR)) {
     recordAudit("transfer_refused", { wallet, detail: "request creation cap reached" });
-    return NextResponse.json({ error: "rate_limited: 依頼の作成回数が上限（1時間あたり）に達しました。しばらくしてから再試行してください" }, { status: 429 });
+    return NextResponse.json({ error: "rate_limited: Request creation limit reached (per hour). Please try again later." }, { status: 429 });
   }
 
   const promise = createFlow({ requestId, assetId, kind, wallet, origin, toWalletRaw: boundedString(body?.toWallet, 44) });
@@ -113,15 +113,15 @@ async function createFlow(p: {
   }
   if (heliusAsset.burnt || heliusAsset.ownership.owner !== wallet) {
     recordAudit("transfer_refused", { wallet, detail: `request for ${assetId}: not the on-chain owner` });
-    return err(403, "not_owner: このwalletはdevnet上の現在の所有者ではありません");
+    return err(403, "not_owner: This wallet is not the current owner on devnet");
   }
 
   if (findOpenRedemption(assetId)) {
     recordAudit("transfer_refused", { wallet, detail: `request for ${assetId}: asset is in a redemption` });
-    return err(409, "in_redemption", { message: "この作品はredeem手続き中のため、売却・送信できません" });
+    return err(409, "in_redemption", { message: "This work has a redeem procedure in progress, so it cannot be sold or sent" });
   }
   const open = findOpenByAsset(assetId);
-  if (open) return err(409, "open_request_exists", { requestId: open.id, message: "この作品には処理中の依頼があります" });
+  if (open) return err(409, "open_request_exists", { requestId: open.id, message: "This work has a request in progress" });
 
   const offchainRecord = findOffchainRecord(assetId);
   let toWallet: string;
@@ -136,10 +136,10 @@ async function createFlow(p: {
     });
     if (!eligibility.eligible || !offchainRecord?.commerce) return err(409, "not_eligible", { reasons: eligibility.reasons });
     const vault = devnetWalletAddressOrNull("vault");
-    if (!vault) return err(503, "Twinfold vault wallet is not configured on this server");
+    if (!vault) return err(503, "OshiPin vault wallet is not configured on this server");
     const commerce = offchainRecord.commerce;
     toWallet = vault;
-    toLabel = "Twinfold Vault";
+    toLabel = "OshiPin Vault";
     quote = {
       basis: { amount: commerce.twinfoldPrice.amount, currency: commerce.twinfoldPrice.currency },
       rate: commerce.buybackRate,
@@ -153,7 +153,7 @@ async function createFlow(p: {
     // Twinfold's own wallets are reached only through buyback / redeem, never a plain send (an Asset could be stranded in escrow).
     if (isTwinfoldOperatedWallet(to, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
       recordAudit("transfer_refused", { wallet, detail: "send to a Twinfold-operated wallet refused" });
-      return err(400, "invalid_input: Twinfoldのwalletへは「Twinfoldに売る」または引き取りを使ってください");
+      return err(400, "invalid_input: To send to an OshiPin wallet, use Sell to OshiPin or Redeem instead");
     }
     toWallet = to;
   }

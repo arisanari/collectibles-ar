@@ -1,12 +1,30 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LanguageSelect, useI18n, type Localized } from "../lib/i18n";
 import { shortAddress } from "../lib/labels";
 import { useAuth } from "./AuthProvider";
 
+const copy = {
+  home: { en: "OshiPin home", ja: "OshiPin ホーム" },
+  mainNav: { en: "Main navigation", ja: "メインナビゲーション" },
+  discover: { en: "Discover", ja: "見つける" },
+  collection: { en: "Collection", ja: "コレクション" },
+  myCollection: { en: "My collection", ja: "マイコレクション" },
+  signOut: { en: "Sign out", ja: "サインアウト" },
+  install: { en: "Install Phantom", ja: "Phantomをインストール" },
+  connecting: { en: "Connecting…", ja: "接続中…" },
+  signing: { en: "Sign in Phantom…", ja: "Phantomで署名…" },
+  retry: { en: "Retry", ja: "再試行" },
+  connect: { en: "Connect Phantom", ja: "Phantomに接続" },
+  tagline: { en: "Real-world provenance, spatially alive.", ja: "実物の来歴を、空間で生かす。" },
+} satisfies Record<string, Localized>;
+
 export function SiteHeader() {
+  const { t } = useI18n();
   const auth = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -30,45 +48,49 @@ export function SiteHeader() {
 
   return (
     <header className="nav shell">
-      <Link className="brand" href="/" aria-label="Twinfold home">
-        <span className="brandMark"><i /><i /></span>
-        TWINFOLD
+      <Link className="brand" href="/" aria-label={t(copy.home)}>
+        <Image className="brandMark" src="/brand/oshipin-mark.svg" alt="" width={24} height={30} priority />
+        OSHIPIN
       </Link>
-      <nav aria-label="Main navigation">
-        <Link href="/" className={!onCollection ? "active" : ""} aria-current={!onCollection ? "page" : undefined}>Discover</Link>
-        <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>Collection</Link>
+      <nav aria-label={t(copy.mainNav)}>
+        <Link href="/" className={!onCollection ? "active" : ""} aria-current={!onCollection ? "page" : undefined}>{t(copy.discover)}</Link>
+        <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
       </nav>
-      <div className="walletMenuWrap">
-        {authedWallet ? (
-          <>
-            <button className="wallet connected" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
-              <span className="statusDot" />{shortAddress(authedWallet)} <span aria-hidden="true">▾</span>
+      <div className="navRight">
+        <LanguageSelect />
+        <div className="walletMenuWrap">
+          {authedWallet ? (
+            <>
+              <button className="wallet connected" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+                <span className="statusDot" />{shortAddress(authedWallet)} <span aria-hidden="true">▾</span>
+              </button>
+              {menuOpen && (
+                <div className="walletMenu" role="menu">
+                  <span className="demoBadge">DEVNET</span>
+                  <Link role="menuitem" href="/collection" onClick={() => setMenuOpen(false)}>{t(copy.myCollection)}</Link>
+                  <button role="menuitem" onClick={() => { setMenuOpen(false); void auth.logout(); }}>{t(copy.signOut)}</button>
+                </div>
+              )}
+            </>
+          ) : auth.status === "no_wallet" ? (
+            <a className="wallet" href="https://phantom.com/download" target="_blank" rel="noreferrer">{t(copy.install)}</a>
+          ) : auth.status === "connecting" || auth.status === "awaiting_signature" ? (
+            <button className="wallet" disabled>
+              <span className="statusDot" />{auth.status === "connecting" ? t(copy.connecting) : t(copy.signing)}
             </button>
-            {menuOpen && (
-              <div className="walletMenu" role="menu">
-                <span className="demoBadge">DEVNET</span>
-                <Link role="menuitem" href="/collection" onClick={() => setMenuOpen(false)}>My collection</Link>
-                <button role="menuitem" onClick={() => { setMenuOpen(false); void auth.logout(); }}>Sign out</button>
-              </div>
-            )}
-          </>
-        ) : auth.status === "no_wallet" ? (
-          <a className="wallet" href="https://phantom.com/download" target="_blank" rel="noreferrer">Install Phantom</a>
-        ) : auth.status === "connecting" || auth.status === "awaiting_signature" ? (
-          <button className="wallet" disabled>
-            <span className="statusDot" />{auth.status === "connecting" ? "Connecting…" : "Sign in Phantom…"}
-          </button>
-        ) : (
-          <button className="wallet" onClick={startSignIn}>
-            <span className="statusDot" />
-            {["rejected", "expired", "switched", "error"].includes(auth.status) ? "Retry" : "Connect Phantom"}
-          </button>
-        )}
+          ) : (
+            <button className="wallet" onClick={startSignIn}>
+              <span className="statusDot" />
+              {["rejected", "expired", "switched", "error"].includes(auth.status) ? t(copy.retry) : t(copy.connect)}
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );
 }
 
 export function SiteFooter() {
-  return <footer className="shell"><span>TWINFOLD / TOKYO</span><p>Real-world provenance, spatially alive.</p><span>© 2026</span></footer>;
+  const { t } = useI18n();
+  return <footer className="shell"><span>OSHIPIN / TOKYO</span><p>{t(copy.tagline)}</p><span>© 2026</span></footer>;
 }

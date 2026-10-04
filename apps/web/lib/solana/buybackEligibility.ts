@@ -27,24 +27,24 @@ export function evaluateBuybackEligibility(params: {
   const { offchainRecord, currentOwner, burnt, wallet, redemptionOpen } = params;
 
   if (!offchainRecord?.commerce) {
-    return { eligible: false, reasons: ["no Twinfold price set for this asset"] };
+    return { eligible: false, reasons: ["no OshiPin price set for this asset"] };
   }
 
   const reasons: string[] = [];
-  if (redemptionOpen) reasons.push("redeem（現物の引き取り）手続き中のため、売却できません");
-  if (burnt) reasons.push("Assetが失効（burn）しています");
+  if (redemptionOpen) reasons.push("Cannot sell while a redeem (physical item redemption) is in progress");
+  if (burnt) reasons.push("The Asset has been retired (burned)");
   if (currentOwner !== wallet) {
-    reasons.push("このwalletはdevnet上の現在の所有者ではありません");
+    reasons.push("This wallet is not the current owner on devnet");
   }
   const custodyStatus = offchainRecord.physical?.custody.status;
   if (custodyStatus !== "vaulted") {
-    reasons.push(`Vault保管中ではないため、Twinfoldへの売却の対象外です（custody: ${custodyStatus ?? "unknown"}）`);
+    reasons.push(`Not Vaulted, so not eligible to sell to OshiPin (custody: ${custodyStatus ?? "unknown"})`);
   }
   const alreadyRedeemed = offchainRecord.provenance.some(
     (event) => event.kind === "redeemed" && event.status === "confirmed"
   );
   if (alreadyRedeemed) {
-    reasons.push("現物を引き取り済み（redeem済み）のため、対象外です");
+    reasons.push("The physical item has been redeemed, so it is not eligible");
   }
 
   return { eligible: reasons.length === 0, reasons };

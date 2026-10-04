@@ -5,9 +5,9 @@
 
 import { loadDevnetKeypair, type DevnetWalletLabel } from "./devnetKeys";
 
-export const PHANTOM_SIGNING_REQUIRED_MESSAGE = "このwalletの署名にはPhantomでの署名が必要です（未対応）。WebのMy collectionで承認してください";
+export const PHANTOM_SIGNING_REQUIRED_MESSAGE = "Signing for this wallet requires Phantom (not supported here). Approve it in My collection on the web.";
 export const SERVER_SIGNING_DISABLED_MESSAGE =
-  "サーバー署名の転送は無効です。所有者本人がWebのMy collectionでPhantom署名して承認してください";
+  "Server-signed transfers are disabled. The owner must approve with a Phantom signature in My collection on the web.";
 
 /**
  * Local-testing-only escape hatch: TWINFOLD_DEVNET_ALLOW_UNAUTHENTICATED_TRANSFER=1.
