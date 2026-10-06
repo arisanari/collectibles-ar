@@ -230,7 +230,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let provenance: [ProvenanceEvent]
     public let physical: PhysicalDescriptor?
     public let commerce: Commerce?
-    // ---- Graded card assets (SlabAR). Mirrors the card fields of `TwinfoldAsset` in apps/web/lib/contract.ts.
+    // ---- Graded card assets (Collectibles AR). Mirrors the card fields of `TwinfoldAsset` in apps/web/lib/contract.ts.
     // All optional so the dormant ukiyo-e / kokeshi fixtures still decode. `grade` ... `vaultId` are THIRD-PARTY
     // claims (PSA grade, Collector Crypt insured value / Vault record) copied from NFT metadata, not onchain facts.
     /// "card" for graded card assets.
@@ -249,6 +249,10 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let vaultId: String?
     /// "collectorCrypt" when the asset was recognized as Collector Crypt issued.
     public let source: String?
+    /// `true` = `source` is "collectorCrypt" (the card came out of our openPack call, or its collection is a configured
+    /// Collector Crypt collection). `false` = listed as a card by metadata shape only: clients show `UNVERIFIED SOURCE`.
+    /// `nil` = the server did not evaluate it (dormant fixtures, assets not from the card list).
+    public let sourceVerified: Bool?
     /// Collector Crypt Pull memo; only for assets opened through the Pull flow.
     public let gachaMemo: String?
     /// Image URL from the NFT metadata, read at runtime (never bundled). `display.imageUrl` carries the same URL.
@@ -280,6 +284,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         vault: String? = nil,
         vaultId: String? = nil,
         source: String? = nil,
+        sourceVerified: Bool? = nil,
         gachaMemo: String? = nil,
         imageUrl: String? = nil,
         rehearsal: Bool? = nil,
@@ -305,6 +310,7 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.vault = vault
         self.vaultId = vaultId
         self.source = source
+        self.sourceVerified = sourceVerified
         self.gachaMemo = gachaMemo
         self.imageUrl = imageUrl
         self.rehearsal = rehearsal

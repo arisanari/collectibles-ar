@@ -8,7 +8,12 @@
 // HELIUS_API_KEY is read from process.env here (server-side only) and must
 // never be exposed as NEXT_PUBLIC_*.
 
-const HELIUS_DEVNET_RPC = "https://devnet.helius-rpc.com";
+export type HeliusNetwork = "devnet" | "mainnet";
+
+const HELIUS_HOSTS: Record<HeliusNetwork, string> = {
+  devnet: "https://devnet.helius-rpc.com",
+  mainnet: "https://mainnet.helius-rpc.com",
+};
 
 function getApiKey(): string {
   const key = process.env.HELIUS_API_KEY;
@@ -21,9 +26,11 @@ function getApiKey(): string {
   return key;
 }
 
-async function rpc<T>(method: string, params: unknown): Promise<T> {
+// `network` defaults to devnet. "mainnet" is only used for READ-ONLY DAS reads (getAssetsByOwner) by
+// app/api/solana/assets; nothing in the app signs or sends a transaction on mainnet.
+async function rpc<T>(method: string, params: unknown, network: HeliusNetwork = "devnet"): Promise<T> {
   const apiKey = getApiKey();
-  const response = await fetch(`${HELIUS_DEVNET_RPC}/?api-key=${apiKey}`, {
+  const response = await fetch(`${HELIUS_HOSTS[network]}/?api-key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: "twinfold", method, params }),
@@ -81,13 +88,24 @@ export function getAsset(assetAddress: string): Promise<HeliusAsset> {
   return rpc<HeliusAsset>("getAsset", { id: assetAddress });
 }
 
-/** DAS getAssetsByOwner: every Asset (of any standard DAS indexes) a wallet owns. */
-export function getAssetsByOwner(ownerAddress: string): Promise<HeliusAssetsByOwnerResult> {
-  return rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", {
-    ownerAddress,
-    page: 1,
-    limit: 1000,
-  });
+/** Pages of 1000 read by getAssetsByOwner. A wallet with more than MAX_OWNER_PAGES * 1000 assets is truncated. */
+const OWNER_PAGE_LIMIT = 1000;
+const MAX_OWNER_PAGES = 5;
+
+/**
+ * DAS getAssetsByOwner: every Asset (of any standard DAS indexes) a wallet owns. Devnet is one call as before;
+ * mainnet wallets can hold many NFTs, so it keeps reading pages (up to MAX_OWNER_PAGES) while a page is full.
+ */
+export async function getAssetsByOwner(ownerAddress: string, network: HeliusNetwork = "devnet"): Promise<HeliusAssetsByOwnerResult> {
+  const first = await rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", { ownerAddress, page: 1, limit: OWNER_PAGE_LIMIT }, network);
+  if (network === "devnet") return first;
+  let items = first.items;
+  for (let page = 2; page <= MAX_OWNER_PAGES && items.length === (page - 1) * OWNER_PAGE_LIMIT; page++) {
+    const next = await rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", { ownerAddress, page, limit: OWNER_PAGE_LIMIT }, network);
+    if (next.items.length === 0) break;
+    items = items.concat(next.items);
+  }
+  return { total: first.total, items };
 }
 
 /**

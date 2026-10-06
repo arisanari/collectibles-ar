@@ -19,6 +19,12 @@ public enum TwinfoldCoreResources {
         let filename = (imageUrl as NSString).lastPathComponent
         let baseName = (filename as NSString).deletingPathExtension
         let ext = (filename as NSString).pathExtension.isEmpty ? "png" : (filename as NSString).pathExtension
-        return bundle.url(forResource: baseName, withExtension: ext, subdirectory: "artworks")
+        if let url = bundle.url(forResource: baseName, withExtension: ext, subdirectory: "artworks") { return url }
+        // The Web serves SVG art (`/artworks/twinfold-demo-card-1.svg`); the Swift bundle only carries the PNG render
+        // of the same name (scripts/sync-fixtures.sh), so an `.svg` reference falls back to its `.png`.
+        if ext.lowercased() == "svg" {
+            return bundle.url(forResource: baseName, withExtension: "png", subdirectory: "artworks")
+        }
+        return nil
     }
 }

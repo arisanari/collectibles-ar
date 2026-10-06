@@ -9,8 +9,8 @@ import type { RedemptionsState } from "../lib/redemptions/useRedemptions";
 const text = {
   title: { en: "Redeem the physical item", ja: "引き取り手続き" },
   note: {
-    en: "This is a dry run of redeeming the physical item. Nothing is shipped and no delivery address is recorded. Stopping the circulating Asset (lock) needs your approval in Phantom. When receipt is confirmed the Asset is retired (burned) and a Passport is issued. SlabAR's vault wallet pays the network fee.",
-    ja: "現物の引き取り（redeem）のdry runです。実配送は行わず、配送先も記録しません。流通Assetの停止（lock）はPhantomでの承認が必要で、受取確認でAssetが失効（burn）し、Passportが発行されます。送信手数料はSlabARのvault walletが負担します。",
+    en: "This is a dry run of redeeming the physical item. Nothing is shipped and no delivery address is recorded. Stopping the circulating Asset (lock) needs your approval in Phantom. When receipt is confirmed the Asset is retired (burned) and a Passport is issued. The Twinfold (legacy demo) vault wallet pays the network fee.",
+    ja: "現物の引き取り（redeem）のdry runです。実配送は行わず、配送先も記録しません。流通Assetの停止（lock）はPhantomでの承認が必要で、受取確認でAssetが失効（burn）し、Passportが発行されます。送信手数料はTwinfold（旧デモ）のvault walletが負担します。",
   },
   cancelledBase: { en: "Cancelled.", ja: "取り消されました。" },
   cancelledReturned: {

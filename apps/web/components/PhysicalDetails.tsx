@@ -7,7 +7,7 @@ import { explorerAddressUrl } from "../lib/labels";
 
 /**
  * Physical layer of an Asset (Issue #22): physical ID, condition, rights, custody, last verified and the
- * Asset address, each with its source label. The address is an onchain fact; the rest are SlabAR's
+ * Asset address, each with its source label. The address is an onchain fact; the rest are Twinfold's (legacy demo)
  * off-chain records (evidence or interpretation). None of this is an authenticity or condition guarantee.
  * Condition, rights and the other values are asset data and shown as recorded.
  */

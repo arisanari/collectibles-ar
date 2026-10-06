@@ -186,6 +186,18 @@ test("heliusCardToAsset: attributes only -> card, source undefined, sourceVerifi
   assert.equal(b.sourceVerified, false);
 });
 
+test("heliusCardToAsset: collection mismatch but opened via this app's pack -> verified; otherwise unverified", () => {
+  const item = das({ grouping: [{ group_key: "collection", group_value: "SomeOtherCollection" }] });
+  const viaPack = n.heliusCardToAsset(item, { collectionAddresses: [COLL], openedViaPack: true });
+  assert.equal(viaPack.source, "collectorCrypt");
+  assert.equal(viaPack.sourceVerified, true);
+  const notViaPack = n.heliusCardToAsset(item, { collectionAddresses: [COLL], openedViaPack: false });
+  assert.equal("source" in notViaPack, false);
+  assert.equal(notViaPack.sourceVerified, false);
+  // a collection match stays verified without a pack record
+  assert.equal(n.heliusCardToAsset(das({ grouping: [{ group_key: "collection", group_value: COLL }] }), { collectionAddresses: [COLL] }).sourceVerified, true);
+});
+
 test("heliusCardToAsset: neither collection nor attributes -> null", () => {
   assert.equal(n.heliusCardToAsset(das({ content: { json_uri: "", metadata: { name: "Plain" } }, grouping: [] })), null);
   assert.equal(n.heliusCardToAsset(das({ content: { json_uri: "", metadata: { name: "Plain" } }, grouping: [] }), { collectionAddresses: [COLL] }), null);
@@ -220,12 +232,12 @@ test("MockGachaProvider: DEMO DATA, waiting then opened, same memo -> same card"
   assert.equal(third.state, "opened");
   assert.equal(second.won.nft_address, third.won.nft_address);
   const asset = n.openPackToAsset({ won: second.won, memo, owner: "DemoWallet", chainConfirmed: true });
-  assert.match(asset.title, /^SlabAR Demo Card #[123]$/);
+  assert.match(asset.title, /^Collectibles AR Demo Card #[123]$/);
   assert.equal(asset.category, "card");
   assert.equal(asset.source, "collectorCrypt");
   assert.equal(asset.gachaMemo, memo);
   assert.ok(asset.gradingId.startsWith("DEMO-"));
-  assert.ok(asset.imageUrl.startsWith("/artworks/slabar-demo-card-"));
+  assert.ok(asset.imageUrl.startsWith("/artworks/twinfold-demo-card-"));
 });
 
 test("resolveGachaBaseUrl: devnet default over https, mainnet refused, localhost only outside production", () => {

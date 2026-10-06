@@ -1,8 +1,8 @@
 import XCTest
 @testable import TwinfoldCore
 
-/// Card fields on `TwinfoldAsset` (SlabAR). Mirrors the fixture cards in fixtures/demo/assets.json
-/// ("SlabAR Demo Card #1-#3", owner walletC, DEMO DATA).
+/// Card fields on `TwinfoldAsset` (Collectibles AR). Mirrors the fixture cards in fixtures/demo/assets.json
+/// ("Collectibles AR Demo Card #1-#3", owner walletC, DEMO DATA).
 final class CardAssetModelTests: XCTestCase {
     private let walletC = "DEMOwalletC3333333333333333333333333333333"
 
@@ -23,7 +23,7 @@ final class CardAssetModelTests: XCTestCase {
             XCTAssertNotNil(card.gachaMemo)
             XCTAssertEqual(card.imageUrl, card.display.imageUrl)
         }
-        XCTAssertEqual(cards.first { $0.id == "tf-card-DEMO-1-C" }?.title, "SlabAR Demo Card #1")
+        XCTAssertEqual(cards.first { $0.id == "tf-card-DEMO-1-C" }?.title, "Collectibles AR Demo Card #1")
     }
 
     func testDormantFixturesStillDecodeWithoutCardFields() async throws {

@@ -16,6 +16,7 @@ import { markFailed, markPrepared } from "../../../../../lib/transferRequests/st
 import { isTwinfoldOperatedWallet } from "../../../../../lib/redemptions/decide";
 import { escrowAddress } from "../../../../../lib/redemptions/chain";
 import { findOpenByAsset as findOpenRedemption, getRedemption } from "../../../../../lib/redemptions/store";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ const PREPARE_PER_HOUR = 20;
  * blockhash) until the request itself expires.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { webOnly: true, mutating: true });
   if (!access.ok) return access.response;
   const { id } = await context.params;
@@ -62,7 +65,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "in_redemption" }, { status: 409 });
   }
   if (r.kind === "send" && isTwinfoldOperatedWallet(r.toWallet, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
-    markFailed(r, "Cannot send to an SlabAR wallet (use Sell to SlabAR or Redeem instead)", false);
+    markFailed(r, "Cannot send to a Twinfold (legacy demo) wallet (use Sell to Twinfold or Redeem instead)", false);
     return NextResponse.json({ error: "destination_not_allowed" }, { status: 409 });
   }
   if (r.kind === "redeem_lock") {
@@ -81,7 +84,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (r.kind === "buyback") {
     const vault = devnetWalletAddressOrNull("vault");
     if (!vault || vault !== r.toWallet) {
-      markFailed(r, "The buyback destination (SlabAR Vault) has changed, so this request is no longer valid", false);
+      markFailed(r, "The buyback destination (Twinfold Vault, legacy demo) has changed, so this request is no longer valid", false);
       return NextResponse.json({ error: "destination_changed" }, { status: 409 });
     }
     try {

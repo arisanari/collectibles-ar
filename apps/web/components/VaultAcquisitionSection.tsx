@@ -54,10 +54,10 @@ function VaultCard({ asset, authed, onAcquire }: { asset: TwinfoldAsset; authed:
 }
 
 /**
- * "Available from SlabAR": Assets the SlabAR vault wallet holds on devnet.
+ * Dormant legacy demo ("Available from Twinfold"): Assets the Twinfold (legacy demo) vault wallet holds on devnet.
  * Acquisition = the vault wallet signs a devnet transfer to the signed-in wallet. No payment;
- * the price is SlabAR's off-chain display value (demo placeholder). The Asset's physical
- * original stays in SlabAR's Vault.
+ * the price is Twinfold's off-chain display value (demo placeholder). The Asset's physical
+ * original stays in Twinfold's (legacy demo) Vault. Not used for Collector Crypt cards.
  */
 export function VaultAcquisitionSection() {
   const auth = useAuth();

@@ -11,8 +11,8 @@ export const PASSPORT_LIMITATIONS: string[] = [
   "This Passport records provenance up to Vault exit (redemption) and the last verified state at that time.",
   "It does not guarantee the current owner, the current condition of the physical item, or its authenticity after Vault exit.",
   "Records on the blockchain do not prove a work's authenticity or copyright. Onchain, only the history of the Asset's issue, transfer and retirement is certain.",
-  "Condition notes are SlabAR's own observations from images and other material. They are not a third-party appraisal or grading.",
-  "To circulate it again after redemption, it must be re-verified (Trust Gate) and re-vaulted into the SlabAR Vault.",
+  "Condition notes are Twinfold's (legacy demo) own observations from images and other material. They are not a third-party appraisal or grading.",
+  "To circulate it again after redemption, it must be re-verified (Trust Gate) and re-vaulted into the Twinfold Vault.",
   "This demo (dry run) ships nothing and records no personal data such as a delivery address.",
 ];
 

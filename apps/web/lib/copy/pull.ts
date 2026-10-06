@@ -1,29 +1,76 @@
-// UI copy for /pull and the card display (SlabAR). English first, Japanese second.
+// UI copy for /pull and the card display (Collectibles AR). English first, Japanese second.
 // Wording rules (AGENTS.md section 3): odds / EV / stock / buyback rate are Collector Crypt's published values,
 // shown as received; no promise-of-outcome wording (see AGENTS.md section 3); buyback is performed by Collector Crypt.
 import type { Localized } from "../i18n";
 
 export const cardUi = {
   claimNote: {
-    en: "Grade, insured value and vault are claims by the grading company and Collector Crypt. SlabAR has not verified them.",
-    ja: "グレード・保険価値・Vaultは鑑定会社とCollector Cryptの記載です。SlabARは検証していません。",
+    en: "Grade, insured value and vault are claims by the grading company and Collector Crypt. Collectibles AR has not verified them.",
+    ja: "グレード・保険価値・Vaultは鑑定会社とCollector Cryptの記載です。Collectibles ARは検証していません。",
   },
   grade: { en: "Grade", ja: "グレード" },
   gradingId: { en: "Grading ID", ja: "鑑定番号" },
   insured: { en: "Insured value", ja: "保険価値" },
   insuredNote: { en: "Collector Crypt's figure", ja: "Collector Cryptの記載値" },
-  vault: { en: "Vault", ja: "Vault" },
-  vaultId: { en: "Vault ID", ja: "Vault ID" },
+  vault: { en: "Vault (Collector Crypt's record)", ja: "Vault（Collector Cryptの記録）" },
+  vaultId: { en: "Vault ID (Collector Crypt's record)", ja: "Vault ID（Collector Cryptの記録）" },
   mint: { en: "Mint", ja: "Mint" },
   memo: { en: "Pull memo", ja: "Pull memo" },
   verify: { en: "Verify the draw (VRF, Collector Crypt)", ja: "抽選の検証（VRF・Collector Crypt）" },
   noImage: { en: "Image not available", ja: "画像を取得できません" },
   owner: { en: "Owner", ja: "所有者" },
+  // Passport: three sections that are never mixed (docs/mvp.md section 6).
+  factTitle: { en: "Onchain fact", ja: "Onchain fact（オンチェーンの事実）" },
+  factNote: {
+    en: "Read from the Solana chain: mint, owner and the transfer signature.",
+    ja: "Solanaのチェーンから読み取った値です。mint、所有者、移転の署名。",
+  },
+  claimsTitle: { en: "Third-party claims", ja: "Third-party claims（第三者の主張）" },
+  claimsNote: {
+    en: "Written by PSA and Collector Crypt. Collectibles AR has not verified them, and the chain does not prove them.",
+    ja: "PSAとCollector Cryptの記載です。Collectibles ARは検証しておらず、チェーンが証明するものでもありません。",
+  },
+  interpTitle: { en: "Collectibles AR interpretation", ja: "Collectibles AR interpretation（Collectibles ARの解釈）" },
+  interpNote: {
+    en: "Display formatting only. The image is loaded from the NFT metadata at runtime. This is not a guarantee of authenticity, condition or value.",
+    ja: "表示用の整形だけです。画像はNFTメタデータから実行時に読み込みます。真正性・状態・価値を保証するものではありません。",
+  },
+  transferSig: { en: "Transfer signature", ja: "移転の署名" },
+  transferPending: {
+    en: "Pull transaction (reported by Collector Crypt, not confirmed on chain yet)",
+    ja: "Pull取引（Collector Cryptの報告。チェーン上ではまだ確認できていません）",
+  },
+  psaCert: { en: "Check the cert on PSA", ja: "PSAで鑑定番号を確認" },
+  explorer: { en: "Solana Explorer", ja: "Solana Explorer" },
+  sourceMatched: {
+    en: "Matches a Collector Crypt collection set in Collectibles AR (by its collection address)",
+    ja: "Collectibles ARに設定したCollector Cryptのcollectionと一致（collectionアドレスによる判定）",
+  },
+  sourceFromPull: {
+    en: "Came out of the Collector Crypt openPack call made here",
+    ja: "このアプリで行ったCollector Cryptのパック開封から出たカード",
+  },
+  fetchedAt: { en: "Fetched", ja: "取得日時" },
   unverifiedBadge: { en: "UNVERIFIED SOURCE", ja: "UNVERIFIED SOURCE" },
   unverifiedNote: {
     en: "Not confirmed as issued by Collector Crypt. It is shown because its metadata looks like a graded card, and it is kept out of the AR list.",
     ja: "Collector Cryptが発行したものとは確認できていません。メタデータが鑑定カードの形式のため表示しており、ARの対象からは除外しています。",
   },
+} satisfies Record<string, Localized>;
+
+// Card Passport page (/passport/<card id>): three sections plus a one-line pointer to Collector Crypt for buyback.
+export const cardPassportUi = {
+  eyebrow: { en: "CARD PASSPORT", ja: "CARD PASSPORT" },
+  buybackLine: {
+    en: "Buyback is performed by Collector Crypt, within 72 hours; the rate is set per machine.",
+    ja: "買取はCollector Cryptが行います。72時間以内、率は台ごとに異なります。",
+  },
+  gachaSiteLink: { en: "Open the Collector Crypt gacha site", ja: "Collector Cryptのガチャサイトを開く" },
+  signInToView: {
+    en: "This card is read from your wallet. Sign in with Phantom in My Collection, then open this page again.",
+    ja: "このカードはウォレットから読み取ります。My CollectionでPhantomにサインインしてから、このページをもう一度開いてください。",
+  },
+  openCollection: { en: "Open My Collection", ja: "My Collectionを開く" },
 } satisfies Record<string, Localized>;
 
 export const pullUi = {
@@ -43,7 +90,7 @@ export const pullUi = {
   odds: { en: "Odds", ja: "確率" },
   ev: { en: "EV", ja: "EV" },
   stock: { en: "Stock", ja: "在庫" },
-  buyback: { en: "Instant buyback", ja: "即時買取率" },
+  buyback: { en: "Collector Crypt instant buyback", ja: "Collector Cryptの即時買取率" },
   tier: {
     common: { en: "common", ja: "common" },
     uncommon: { en: "uncommon", ja: "uncommon" },
@@ -51,14 +98,14 @@ export const pullUi = {
     epic: { en: "epic", ja: "epic" },
   },
   published: {
-    en: "Collector Crypt's published value. SlabAR does not guarantee these figures.",
-    ja: "Collector Cryptの公表値です。SlabARが保証するものではありません。",
+    en: "Collector Crypt's published value. Collectibles AR does not guarantee these figures.",
+    ja: "Collector Cryptの公表値です。Collectibles ARが保証するものではありません。",
   },
   demoValue: { en: "DEMO DATA value (made up)", ja: "DEMO DATAの値（架空）" },
   fetchedAt: { en: "Fetched", ja: "取得時刻" },
   buybackNote: {
-    en: "Buyback is performed by Collector Crypt, within 72 hours; the rate is set per machine. SlabAR does not guarantee these figures.",
-    ja: "買取はCollector Cryptが行います。72時間以内、率は台ごとに異なります。SlabARが保証するものではありません。",
+    en: "Buyback is performed by Collector Crypt, within 72 hours; the rate is set per machine. Collectibles AR does not guarantee these figures.",
+    ja: "買取はCollector Cryptが行います。72時間以内、率は台ごとに異なります。Collectibles ARが保証するものではありません。",
   },
   machinesLoading: { en: "Loading machines…", ja: "台を読み込み中…" },
   machinesFailed: { en: "Could not load the machines. Please try again in a moment.", ja: "台を取得できませんでした。時間をおいて再度お試しください。" },
@@ -93,11 +140,12 @@ export const pullUi = {
     submitting: { en: "Sending the signed transaction…", ja: "署名済みの取引を送信中…" },
     opening: { en: "Waiting for Collector Crypt to open the pack…", ja: "Collector Cryptの開封を待っています…" },
     openingPaused: {
-      en: "Still waiting. The payment may not have settled yet. You can check again with the same memo.",
-      ja: "まだ開封されていません。支払いの確定待ちかもしれません。同じmemoでもう一度確認できます。",
+      en: "The payment could not be confirmed. Check again, or start a new pull.",
+      ja: "支払いを確認できませんでした。もう一度確認するか、新しくPullしてください。",
     },
     openingBusy: { en: "Collector Crypt is busy. Retrying with the same memo…", ja: "Collector Cryptが混み合っています。同じmemoで再試行中…" },
     resumed: { en: "Resumed an unfinished pull with its saved memo.", ja: "保存したmemoで未完了のPullを再開しました。" },
+    resuming: { en: "Checking the saved memo before resuming…", ja: "再開する前に、保存したmemoの状態を確認しています…" },
   },
   attempts: { en: "check", ja: "確認" },
   checkAgain: { en: "Check again (same memo)", ja: "もう一度確認（同じmemo）" },
@@ -115,7 +163,60 @@ export const pullUi = {
     unauthenticated: { en: "Please sign in with Phantom again.", ja: "Phantomで再度サインインしてください。" },
     memoNotOwned: { en: "This memo does not belong to the signed-in wallet.", ja: "このmemoはサインイン中のウォレットのものではありません。" },
     invalidTransaction: { en: "Phantom returned a transaction this app could not accept. No payment was sent.", ja: "Phantomが返した取引を受け付けられませんでした。支払いは送信されていません。" },
+    previousUnpaid: {
+      en: "The previous pull failed before payment. No payment was made. You can pull again.",
+      ja: "前回のPullは支払い前に失敗しました。支払いは発生していません。もう一度引けます。",
+    },
+    refunded: {
+      en: "The previous pull was refunded (Collector Crypt's record). Nothing is pending. You can pull again.",
+      ja: "前回のPullは返金済みです（Collector Cryptの記録）。保留中のものはありません。もう一度引けます。",
+    },
+    unconfirmedPayment: {
+      en: "Payment not confirmed yet. If you signed, check again with the same memo. You can also pull again (this memo stays in the list below).",
+      ja: "支払いはまだ確認できていません。署名済みの場合は、同じmemoでもう一度確認してください。新しくPullすることもできます（このmemoは下の一覧に残ります）。",
+    },
     generic: { en: "Something went wrong.", ja: "問題が発生しました。" },
+  },
+  expiredUnpaid: {
+    en: "The transaction expired (about 1 minute) before it was sent. No payment was made. Create a new pull.",
+    ja: "取引の有効期限（約1分）が切れました。支払いは発生していません。新しいPullを作り直してください。",
+  },
+  recreate: { en: "Create a new pull", ja: "新しいPullを作り直す" },
+  detailsLabel: { en: "Details", ja: "詳細" },
+  detailsHttp: { en: "HTTP", ja: "HTTP" },
+  detailsCode: {
+    wallet_not_signer: {
+      en: "The wallet that signed differs from the connected wallet.",
+      ja: "署名した wallet が接続中の wallet と違う。",
+    },
+    invalid_transaction: {
+      en: "The signed transaction could not be read. Nothing was sent.",
+      ja: "署名済みの取引を読み取れませんでした。送信していません。",
+    },
+    memo_not_owned: {
+      en: "This memo does not belong to the connected wallet.",
+      ja: "このmemoは接続中のwalletのものではありません。",
+    },
+    rate_limited: {
+      en: "Too many requests from this wallet.",
+      ja: "このwalletからのリクエストが多すぎます。",
+    },
+    tx_expired: {
+      en: "The transaction expired before it was sent.",
+      ja: "取引が送信前に期限切れになりました。",
+    },
+    signature_too_slow: {
+      en: "Signing took too long, so the transaction was not sent.",
+      ja: "署名に時間がかかったため、送信しませんでした。",
+    },
+    network: {
+      en: "This app could not reach its own server.",
+      ja: "このアプリのサーバーに接続できませんでした。",
+    },
+    unpaid_window_closed: {
+      en: "No payment was seen within 2 hours of creating this pack, so it is treated as failed.",
+      ja: "パック作成から2時間以内に支払いを確認できなかったため、失敗として扱います。",
+    },
   },
   resultTitle: { en: "Result", ja: "結果" },
   collectionLink: { en: "Open My Collection", ja: "My Collectionを開く" },

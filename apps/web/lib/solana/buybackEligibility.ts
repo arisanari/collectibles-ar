@@ -27,7 +27,7 @@ export function evaluateBuybackEligibility(params: {
   const { offchainRecord, currentOwner, burnt, wallet, redemptionOpen } = params;
 
   if (!offchainRecord?.commerce) {
-    return { eligible: false, reasons: ["no SlabAR price set for this asset"] };
+    return { eligible: false, reasons: ["no Twinfold (legacy demo) price set for this asset"] };
   }
 
   const reasons: string[] = [];
@@ -38,7 +38,7 @@ export function evaluateBuybackEligibility(params: {
   }
   const custodyStatus = offchainRecord.physical?.custody.status;
   if (custodyStatus !== "vaulted") {
-    reasons.push(`Not Vaulted, so not eligible to sell to SlabAR (custody: ${custodyStatus ?? "unknown"})`);
+    reasons.push(`Not Vaulted, so not eligible to sell to Twinfold (custody: ${custodyStatus ?? "unknown"})`);
   }
   const alreadyRedeemed = offchainRecord.provenance.some(
     (event) => event.kind === "redeemed" && event.status === "confirmed"

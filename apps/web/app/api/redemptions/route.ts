@@ -11,6 +11,7 @@ import { getAsset } from "../../../lib/solana/heliusClient";
 import { findOffchainRecord } from "../../../lib/solana/normalize";
 import { authorize } from "../../../lib/transferRequests/access";
 import { findOpenByAsset as findOpenTransferRequest } from "../../../lib/transferRequests/store";
+import { refuseMainnet } from "../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ const refuse = (status: number, error: string, extra: object = {}) => NextRespon
  * NO personal data is accepted: a body with name/address/phone/etc. is refused. No real shipping happens.
  */
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { mutating: true });
   if (!access.ok) return access.response;
   const wallet = access.auth.wallet;

@@ -1,9 +1,9 @@
-# SlabAR Technical Architecture
+# Collectibles AR Technical Architecture
 
 > ステータス: Colosseum MVP技術ベースライン
-> 最終更新: 2026-10-06（SlabARへ転換。Collector Cryptの実物カードをARで出す構成に全面書き換え）。前回 2026-10-05（OshiPin）
+> 最終更新: 2026-10-07（Collectibles ARに改名。2026-10-06にSlabARとして転換した内容のまま、名称のみ更新。Collector Cryptの実物カードをARで出す構成に全面書き換え）。前回 2026-10-05（OshiPin）
 >
-> beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21）→ 壁に掛ける浮世絵・版画（2026-09-21〜2026-10-06、10/05にOshiPin改名）→ **Collector Cryptの実物ポケカをARで出すSlabAR（2026-10-06）**。浮世絵、自前Vault、Twinfold buyback offer、redeem escrow、こけしは履歴で、コードとfixtureは休眠として残る。
+> beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21）→ 壁に掛ける浮世絵・版画（2026-09-21〜2026-10-06、10/05にOshiPin改名）→ **Collector Cryptの実物ポケカをARで出すCollectibles AR（2026-10-06にSlabARとして決定、2026-10-07に改名）**。浮世絵、自前Vault、Twinfold buyback offer、redeem escrow、こけしは履歴で、コードとfixtureは休眠として残る。
 
 この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準は [MVP Acceptance Criteria](./mvp.md)、実装順と日程は [Build Order](./build-order.md) を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。Collector Crypt APIの詳細は `.claude/skills/collector-crypt-gacha` を参照する。
 
@@ -19,7 +19,7 @@ Solana上の実物カード資産（Collector Crypt）を共通モデルへ変�
 ```
 
 - 署名はWeb（Phantom）だけ。結果はlink済みiPhoneのARに出る。
-- 在庫・Vault保管・発送・買取はCollector Cryptが担う。SlabARは現物を持たない。
+- 在庫・Vault保管・発送・買取はCollector Cryptが担う。Collectibles ARは現物を持たない。
 - 収益はホストした台の手数料（Collector Cryptの `can_adopt` による自分の台コード。承認待ちで、提出時は仕組みの提示まで）。
 
 Spatial ClientはSwiftUI + RealityKitを共通実装（Swift Package `TwinfoldCore`／`TwinfoldSpatial`）とし、MVPのPrimary ClientはiPhone ARとする。ARKitなどplatform固有処理は `apps/ios` のAdapterへ隔離し、Apple Vision Pro（`apps/visionos`）は同じPackageを使うHero／secondary clientとして扱う。2026-09-18にUnity + AR FoundationからSwiftUI + RealityKitへ切り替えた。
@@ -215,7 +215,7 @@ Webが台の一覧を要求（GachaProvider.listMachines）
 
 - `x-api-key` を付けるとmemoに自分のslugが付き、`/api/getWinners?slug=` やAblyのlive winnersで自分経由の引きを識別できる。keyが無くてもPlay系endpointは動く。
 - 開封期限は発行から2時間。同じmemoの再送は同じ結果を返す（冪等）。
-- Webは署名前に、対象の台、価格、network、transactionの目的を表示する。「必ず当たる」「保証」「投資」「儲かる」と書かない。確率・EV・買取率にはCollector Cryptの公表値であり、SlabARが保証するものではないと併記する。
+- Webは署名前に、対象の台、価格、network、transactionの目的を表示する。「必ず当たる」「保証」「投資」「儲かる」と書かない。確率・EV・買取率にはCollector Cryptの公表値であり、Collectibles ARが保証するものではないと併記する。
 - devnetのPullを売上と呼ばない。
 - Invoiced API（`/api/v1`、自前決済のパートナー向け）はP0では使わない。
 
@@ -249,8 +249,8 @@ Passportは三区分を別の表示にし、まとめて「確認済み」と表
 | 区分 | 内容 | 例 |
 |---|---|---|
 | onchain fact | chainで確認できる事実 | mint address、owner、transfer／Pullの署名、Pullのmemo |
-| 第三者の主張 | PSAやCollector Cryptが述べていること | PSAのグレード・鑑定番号（PSA cert verifyへのリンク）、`Authenticated`、Insured Value、Vault・Vault ID。SlabARが検証したとは書かない |
-| SlabAR interpretation | SlabARによる表示用の整形・解釈 | 表示名の整形、「Collector Cryptの記録では〜」という注記 |
+| 第三者の主張 | PSAやCollector Cryptが述べていること | PSAのグレード・鑑定番号（PSA cert verifyへのリンク）、`Authenticated`、Insured Value、Vault・Vault ID。Collectibles ARが検証したとは書かない |
+| Collectibles AR interpretation | Collectibles ARによる表示用の整形・解釈 | 表示名の整形、「Collector Cryptの記録では〜」という注記 |
 
 - Pullのmemoと `/verify-selection/<memo>`（VRF検証）へのリンクを置く。
 - blockchain／NFT／Passportが真正性・配送後の現物状態を保証するとは書かない。
@@ -271,7 +271,7 @@ Webが GET /api/buyback/available?nft= を呼び、可否・額（USDC、6桁）
 → 空間からDisappear（confirmed後5分以内）
 ```
 
-- 買取を行うのはCollector Crypt。SlabARが買い取るとは書かない。
+- 買取を行うのはCollector Crypt。Collectibles ARが買い取るとは書かない。
 - 署名失敗・取引失敗時はownerと配置を維持し、`failed` と再試行導線を表示する。
 - XR表現をオンチェーン確定より先に消さない（pendingは半透明などで区別する）。
 
@@ -310,7 +310,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 | A. 初回利用 | Collector | Web + Phantom | 認証、session、端末連携 | 署名検証用address | Web／iPhoneが同じwalletへ安全に接続 |
 | B. 台・Pull・開封 | Collector | Web + Phantom | memo記録（冪等）、正規化 | Collector Crypt Gacha API、Solana | カードがwalletへ入り、My Collection（DEVNET）に出る |
 | C. Appear | Collector | iPhone AR | 通知、Entitlement、共通モデル | Backend経由 | カードが実寸で空間に出る |
-| D. Passport | Collector | iPhone AR | 三区分の整形 | PSA cert verify、VRF検証へのリンク | onchain fact／第三者の主張／SlabAR interpretationを区別して表示 |
+| D. Passport | Collector | iPhone AR | 三区分の整形 | PSA cert verify、VRF検証へのリンク | onchain fact／第三者の主張／Collectibles AR interpretationを区別して表示 |
 | E. 買取 | Collector | Web + Phantom | pending管理、owner同期、Entitlement更新 | Collector Crypt buyback、Solana | 空間からDisappear |
 | F. mainnet read-only | Collector | Web／iPhone | 読み取りとEntitlement | Helius（mainnet、読み取り） | `MAINNET (read-only)` で表示 |
 | G. 例外 | System | Backend | retry、冪等、表示停止 | Collector Crypt、RPC／DAS再照会 | 不整合時は安全側へ倒す |
@@ -324,7 +324,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 | Wallet | Phantom | 決定・準備済み | 開発専用walletをSolana devnetで使用。署名はWebだけ |
 | RWA provider | Collector Crypt Gacha API | 決定（2026-10-06） | 在庫・Vault・発送・買取。devnetは `dev-gacha.collectorcrypt.com`。API keyと `can_adopt` はDiscordで申請中（承認待ち） |
 | Solana data | Helius | 決定・準備済み | RPC、DAS、transaction取得。mainnetは読み取りだけ |
-| Asset standard | pNFT／Core／cNFT（Collector Crypt由来） | 決定 | SlabARはmintしない。standardごとの取得経路を `SolanaAssetProvider` に隔離 |
+| Asset standard | pNFT／Core／cNFT（Collector Crypt由来） | 決定 | Collectibles ARはmintしない。standardごとの取得経路を `SolanaAssetProvider` に隔離 |
 | Backend API | TypeScript／Node.js REST API | 技術方針のみ決定 | Hosting serviceは未選定。server routeがCollector Crypt APIを呼ぶ |
 | Database | PostgreSQL | 技術方針のみ決定 | Providerは未選定。ローカルは `.data/` のファイル保存 |
 | Primary Spatial client | SwiftUI + RealityKit + ARKit | 決定（2026-09-18にUnityから変更） | `packages/TwinfoldCore` をiOSとvisionOSで共有。`apps/ios` がARKit Adapter |
@@ -377,10 +377,10 @@ Backendは在庫・Vault・発送・買取の記録を持たない。これら�
 
 ### RWA provider: Collector Crypt
 
-Collector Cryptは実物カードの在庫、Vault保管、発送、買取、法務を担う。SlabARは現物を持たない。
+Collector Cryptは実物カードの在庫、Vault保管、発送、買取、法務を担う。Collectibles ARは現物を持たない。
 
-- 在庫とガチャの確率・EV・価格・買取率の正本はCollector Crypt（`/api/machines`）。SlabARは値をそのまま表示する。
-- 鑑定（PSA等）、保険価値、Vault記録は第三者の主張で、SlabARが検証・保証しない。
+- 在庫とガチャの確率・EV・価格・買取率の正本はCollector Crypt（`/api/machines`）。Collectibles ARは値をそのまま表示する。
+- 鑑定（PSA等）、保険価値、Vault記録は第三者の主張で、Collectibles ARが検証・保証しない。
 - 配送・買取・返金の責任主体はCollector Crypt。
 - 前の版のRWA Adapter（Physical Asset、証拠、権利、Vault、Trust Gate、redeem、Passport）は、自前Vault・浮世絵向けの設計で、休眠。
 
@@ -439,7 +439,7 @@ type Entitlement = {
 - 休眠（旧redeem用）: `rwa_verified` / `vaulted` / `redeemed`
 - Post-MVP: `frozen` / `burned` / `condition_updated` / `passport_issued`
 
-`id` はTwinfold内部の安定ID、`address` は外部識別子とする。`ProvenanceEvent.source` は、onchain fact（`onchain`）、第三者の主張（PSA、Collector Cryptの記録。`offchain_evidence` に写し、出典を `metadata` に持つ）、SlabAR interpretation（`twinfold_interpretation`）の三区分に対応する。UIで混同しない。
+`id` はTwinfold内部の安定ID、`address` は外部識別子とする。`ProvenanceEvent.source` は、onchain fact（`onchain`）、第三者の主張（PSA、Collector Cryptの記録。`offchain_evidence` に写し、出典を `metadata` に持つ）、Collectibles AR interpretation（`twinfold_interpretation`）の三区分に対応する。UIで混同しない。
 
 Collector Crypt由来のカードのattributes（`Grading Company`、`The Grade`、`Grading ID`、`Insured Value`、`Vault`、`Vault ID` など）から上の拡張fieldへ写す規則は `.claude/skills/collector-crypt-gacha` を参照する。欠けているattributeは推測で埋めない。カード画像はmetadataのURLから実行時に読み、repoに保存しない。
 

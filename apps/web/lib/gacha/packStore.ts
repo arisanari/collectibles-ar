@@ -13,9 +13,23 @@
 // Stored values are public (wallet address, memo, pack type, mint address, signature); nothing secret.
 //
 // MVP LIMITATION: single process, local disk.
+import type { TwinfoldAsset } from "../contract";
 import { readJsonFile, writeJsonFileAtomic } from "../persist/jsonFile";
 
 export type GachaPackState = "generated" | "submitted" | "opened" | "failed";
+
+/**
+ * Why the last submit / open did not go through. `code` is ours (wallet_not_signer, invalid_transaction, rate_limited,
+ * tx_expired, busy_pending, busy_opening, machine_off_balance, upstream_error, server_error). `message` is Collector Crypt's
+ * `error` / `message` / `details` (clipped), never a header, key or signed transaction.
+ */
+export type GachaPackError = {
+  at: string; // ISO 8601
+  stage: "submit" | "open";
+  code: string;
+  httpStatus: number;
+  message: string;
+};
 
 export type GachaPackRecord = {
   wallet: string; // the signed-in wallet that created the pack (DEMO DATA: the demo player address)
@@ -29,6 +43,17 @@ export type GachaPackRecord = {
   nftAddress?: string;
   /** Time the card was first received. Used as the provenance event time so the same memo gives the same output. */
   openedAt?: number;
+  /**
+   * The card as /api/gacha/open last returned it (same normalizer), so GET /api/gacha/packs gives the iPhone the same
+   * output for the same memo without asking Collector Crypt or DAS again. Public data only (image URL from NFT metadata).
+   */
+  asset?: TwinfoldAsset;
+  /** Image URL found through DAS when openPack carried none; kept so DAS is asked once per memo, not on every call. */
+  imageUrl?: string;
+  /** DAS `interface` found with it. */
+  assetInterface?: string;
+  /** The most recent refusal (upstream or ours). Cleared when the pack is submitted or opened. */
+  lastError?: GachaPackError;
 };
 
 export const MAX_PACKS = 5000;
@@ -39,13 +64,13 @@ const FILE = "gacha-packs.json";
 
 type Persisted = { packs: Record<string, GachaPackRecord> };
 
-const g = globalThis as unknown as { __slabarGachaPacks?: Map<string, GachaPackRecord> };
+const g = globalThis as unknown as { __twinfoldGachaPacks?: Map<string, GachaPackRecord> };
 
 function load(): Map<string, GachaPackRecord> {
-  if (g.__slabarGachaPacks) return g.__slabarGachaPacks;
+  if (g.__twinfoldGachaPacks) return g.__twinfoldGachaPacks;
   const data = readJsonFile<Persisted>(FILE, { packs: {} });
-  g.__slabarGachaPacks = new Map(Object.entries(data.packs));
-  return g.__slabarGachaPacks;
+  g.__twinfoldGachaPacks = new Map(Object.entries(data.packs));
+  return g.__twinfoldGachaPacks;
 }
 
 function persist() {
@@ -63,7 +88,7 @@ function persist() {
 
 /** Test hook: forget the in-memory copy so the next call re-reads the file (simulates a restart). */
 export function reloadFromDiskForTests() {
-  g.__slabarGachaPacks = undefined;
+  g.__twinfoldGachaPacks = undefined;
 }
 
 function evictOldest(records: GachaPackRecord[], limit: number) {
@@ -90,6 +115,25 @@ export function getPack(memo: string): GachaPackRecord | undefined {
 export function getOwnedPack(memo: string, wallet: string): GachaPackRecord | undefined {
   const record = load().get(memo);
   return record && record.wallet === wallet ? record : undefined;
+}
+
+/** The server's view of one memo for GET /api/gacha/pack/status (`createdAt` = when the pack was issued, ISO 8601). */
+export type PackStatusLocal = { state: GachaPackState; lastError: GachaPackError | null; createdAt: string };
+
+/**
+ * The record a status read may show. A real wallet only sees its own records; someone else's memo, an unknown memo and a
+ * DEMO DATA record all look the same (`forbidden`). A DEMO DATA caller (`wallet` null) only sees DEMO DATA records, and an
+ * unknown memo is `unknown` there (a demo /api/gacha/open creates its record on demand).
+ */
+export function getPackStatusLocal(memo: string, wallet: string | null): { kind: "ok"; local: PackStatusLocal } | { kind: "forbidden" } | { kind: "unknown" } {
+  const record = load().get(memo);
+  if (wallet === null) {
+    if (!record) return { kind: "unknown" };
+    if (!record.demo) return { kind: "forbidden" };
+  } else if (!record || record.demo || record.wallet !== wallet) {
+    return { kind: "forbidden" };
+  }
+  return { kind: "ok", local: { state: record.state, lastError: record.lastError ?? null, createdAt: new Date(record.createdAt).toISOString() } };
 }
 
 /**
@@ -119,6 +163,7 @@ export function recordGenerated(input: { memo: string; wallet: string; packType:
 export function markSubmitted(record: GachaPackRecord, now = Date.now()): GachaPackRecord {
   if (record.state === "opened") return record;
   record.state = "submitted";
+  delete record.lastError;
   record.updatedAt = now;
   persist();
   return record;
@@ -128,12 +173,50 @@ export function markSubmitted(record: GachaPackRecord, now = Date.now()): GachaP
 export function markOpened(record: GachaPackRecord, result: { txSignature?: string; nftAddress: string }, now = Date.now()): GachaPackRecord {
   if (record.state === "opened") return record;
   record.state = "opened";
+  delete record.lastError;
   record.nftAddress = result.nftAddress;
   if (result.txSignature) record.txSignature = result.txSignature;
   record.openedAt = now;
   record.updatedAt = now;
   persist();
   return record;
+}
+
+/**
+ * Keeps the normalized card (and the DAS lookups behind it) on an opened record. A change in the stored card bumps
+ * `updatedAt` so a feed client polling with `since` sees it (for example the Pull event turning confirmed).
+ */
+export function recordAsset(
+  record: GachaPackRecord,
+  snapshot: { asset: TwinfoldAsset; imageUrl?: string; assetInterface?: string },
+  now = Date.now()
+): GachaPackRecord {
+  const before = JSON.stringify([record.asset, record.imageUrl, record.assetInterface]);
+  record.asset = snapshot.asset;
+  if (snapshot.imageUrl) record.imageUrl = snapshot.imageUrl;
+  if (snapshot.assetInterface) record.assetInterface = snapshot.assetInterface;
+  if (JSON.stringify([record.asset, record.imageUrl, record.assetInterface]) !== before) {
+    record.updatedAt = now;
+    persist();
+  }
+  return record;
+}
+
+/**
+ * The opened (non-demo) record of `wallet` whose card is `nftAddress`, or undefined. This is a fact about THIS app: the
+ * card reached the wallet through our own openPack call. Another wallet's record, a record not yet opened and a
+ * DEMO DATA record never match.
+ */
+export function findOpenedByNft(wallet: string, nftAddress: string): GachaPackRecord | undefined {
+  for (const record of Array.from(load().values())) {
+    if (!record.demo && record.state === "opened" && record.wallet === wallet && record.nftAddress === nftAddress) return record;
+  }
+  return undefined;
+}
+
+/** Records the feed may show: the real wallet's own records, or (DEMO DATA) the anonymous demo records. */
+export function listPacksForWallet(wallet: string | null): GachaPackRecord[] {
+  return Array.from(load().values()).filter((r) => (wallet === null ? r.demo : !r.demo && r.wallet === wallet));
 }
 
 /** The upstream refused a relay / open. Does nothing to an opened record. The memo stays usable. */
@@ -143,4 +226,49 @@ export function markFailed(record: GachaPackRecord, now = Date.now()): GachaPack
   record.updatedAt = now;
   persist();
   return record;
+}
+
+export const LAST_ERROR_MESSAGE_MAX = 500;
+
+/** Collapses whitespace and clips to LAST_ERROR_MESSAGE_MAX characters. */
+export function clipMessage(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > LAST_ERROR_MESSAGE_MAX ? `${flat.slice(0, LAST_ERROR_MESSAGE_MAX - 1)}…` : flat;
+}
+
+/**
+ * Keeps why a submit / open failed on the record (and prints one server log line, memo / wallet / status / code / message
+ * only). Does not change `state`: that is markFailed's job, and our own checks (wallet_not_signer ...) sent nothing.
+ * An opened record is left alone (its card is what matters). Returns the stored error.
+ */
+export function recordError(
+  record: GachaPackRecord,
+  input: { stage: GachaPackError["stage"]; code: string; httpStatus: number; message: string },
+  now = Date.now()
+): GachaPackError {
+  const lastError: GachaPackError = {
+    at: new Date(now).toISOString(),
+    stage: input.stage,
+    code: input.code,
+    httpStatus: input.httpStatus,
+    message: clipMessage(input.message),
+  };
+  if (!record.demo) {
+    console.error(`[gacha ${input.stage}]`, { memo: record.memo, wallet: record.wallet, httpStatus: lastError.httpStatus, code: lastError.code, message: lastError.message });
+  }
+  if (record.state === "opened") return lastError;
+  record.lastError = lastError;
+  record.updatedAt = now;
+  persist();
+  return lastError;
+}
+
+/**
+ * The signed transaction can no longer land, so no payment happened: its blockhash expired. Collector Crypt reports that
+ * as a message mentioning blockhash / expired / block height, or as a bare HTTP 500 for a transaction our own signer check
+ * already accepted (`signerVerified`). Used only for a Pull submit; a buyback is not classified.
+ */
+export function isTxExpiredFailure(input: { httpStatus: number; message: string; signerVerified: boolean }): boolean {
+  if (/blockhash|expired|block height/i.test(input.message)) return true;
+  return input.httpStatus === 500 && input.signerVerified;
 }

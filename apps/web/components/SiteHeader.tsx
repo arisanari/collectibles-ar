@@ -9,7 +9,7 @@ import { shortAddress } from "../lib/labels";
 import { useAuth } from "./AuthProvider";
 
 const copy = {
-  home: { en: "SlabAR home", ja: "SlabAR ホーム" },
+  home: { en: "Collectibles AR home", ja: "Collectibles AR ホーム" },
   mainNav: { en: "Main navigation", ja: "メインナビゲーション" },
   discover: { en: "Discover", ja: "見つける" },
   pull: { en: "Pull", ja: "Pull" },
@@ -51,8 +51,8 @@ export function SiteHeader() {
   return (
     <header className="nav shell">
       <Link className="brand" href="/" aria-label={t(copy.home)}>
-        <Image className="brandMark" src="/brand/slabar-mark.svg" alt="" width={24} height={30} priority />
-        SLABAR
+        <Image className="brandMark" src="/brand/collectibles-ar-mark.svg" alt="" width={24} height={30} priority />
+        COLLECTIBLES AR
       </Link>
       <nav aria-label={t(copy.mainNav)}>
         <Link href="/" className={!onCollection && !onPull ? "active" : ""} aria-current={!onCollection && !onPull ? "page" : undefined}>{t(copy.discover)}</Link>
@@ -95,5 +95,5 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   const { t } = useI18n();
-  return <footer className="shell"><span>SLABAR / TOKYO</span><p>{t(copy.tagline)}</p><span>© 2026</span></footer>;
+  return <footer className="shell"><span>COLLECTIBLES AR / TOKYO</span><p>{t(copy.tagline)}</p><span>© 2026</span></footer>;
 }

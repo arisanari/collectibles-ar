@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:gacha": "node --experimental-strip-types --no-warnings --test scripts/gacha-normalize.test.mjs scripts/gacha-store.test.mjs"
+    "test:gacha": "node --experimental-strip-types --no-warnings --test scripts/gacha-normalize.test.mjs scripts/gacha-store.test.mjs scripts/gacha-feed.test.mjs scripts/mainnet-assets.test.mjs"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "1.10.0",

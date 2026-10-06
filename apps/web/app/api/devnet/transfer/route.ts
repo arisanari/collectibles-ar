@@ -18,6 +18,7 @@ import {
   unauthenticatedTransferEscapeEnabled,
 } from "../../../../lib/solana/devnetAuthz";
 import type { DevnetTransferResult } from "../../../../lib/contract";
+import { refuseMainnet } from "../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,8 @@ export const dynamic = "force-dynamic";
  * 409 and nothing is sent.
  */
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   try {
     assertDevnetServerSigningAllowed();
   } catch (error) {
@@ -201,7 +204,7 @@ export async function POST(request: Request) {
       redemptionOpen: isAssetInRedemption(assetId),
     });
     if (!eligible) {
-      const message = `devnet: not eligible for SlabAR buyback: ${reasons.join("; ")}`;
+      const message = `devnet: not eligible for Twinfold (legacy demo) buyback: ${reasons.join("; ")}`;
       const record = { assetId, status: "failed" as const, error: message };
       save(record);
       return NextResponse.json(toResult(requestId, record), { status: 409 });

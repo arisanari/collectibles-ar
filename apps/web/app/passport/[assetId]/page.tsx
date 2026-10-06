@@ -3,10 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import type { RedeemedProvenancePassport } from "../../../lib/contract";
+import type { RedeemedProvenancePassport, TwinfoldAsset } from "../../../lib/contract";
+import { cardPassportUi } from "../../../lib/copy/pull";
 import { explorerAddressUrl, explorerTxUrl } from "../../../lib/labels";
 import { useI18n, type Localized } from "../../../lib/i18n";
+import { MockAssetProvider } from "../../../lib/providers/mockAssetProvider";
+import { SolanaAssetProvider } from "../../../lib/providers/solanaAssetProvider";
+import { CardAssetCard } from "../../../components/CardAssetCard";
+import { useAuth } from "../../../components/AuthProvider";
 import { ProvenanceList } from "../../../components/ProvenanceList";
+
+const mockProvider = new MockAssetProvider();
+const solanaProvider = new SolanaAssetProvider();
+
+// Collector Crypt's gacha site for the network the card is on (devnet card: dev-gacha, mainnet card: gacha).
+const gachaSiteUrl = (network: "devnet" | "mainnet") =>
+  network === "mainnet" ? "https://gacha.collectorcrypt.com" : "https://dev-gacha.collectorcrypt.com";
+
+const isDemoCardId = (id: string) => id.startsWith("tf-card-DEMO-");
+const looksLikeCardId = (id: string) => id.startsWith("tf-card-");
 
 const text = {
   loading: { en: "Loading…", ja: "読み込み中…" },
@@ -36,20 +51,42 @@ const text = {
   retiredSuffix: { en: " (retired)", ja: "（失効済み）" },
   onchainBurn: { en: "On-chain (burn)", ja: "On-chain（burn）" },
   interpretationNote: {
-    en: "SlabAR interpretation (not an appraisal)",
-    ja: "SlabAR interpretation（鑑定ではない）",
+    en: "Collectibles AR interpretation (not an appraisal)",
+    ja: "Collectibles AR interpretation（鑑定ではない）",
   },
   signaturesTitle: { en: "Onchain signatures (devnet)", ja: "Onchain signatures（devnet）" },
   lockLabel: { en: "Lock (out of circulation)", ja: "Lock（流通停止）" },
   retireLabel: { en: "Retire (burn)", ja: "Retire（burn）" },
   provenanceTitle: { en: "Provenance (up to Vault exit)", ja: "Provenance（Vault退出まで）" },
   provenanceNote: {
-    en: "On-chain, Off-chain evidence and SlabAR interpretation are shown separately. The dry-run steps involve no real shipping.",
-    ja: "On-chain / Off-chain evidence / SlabAR interpretation を区別して表示します。dry runの手順は実配送を伴いません。",
+    en: "On-chain, Off-chain evidence and Collectibles AR interpretation are shown separately. The dry-run steps involve no real shipping.",
+    ja: "On-chain / Off-chain evidence / Collectibles AR interpretation を区別して表示します。dry runの手順は実配送を伴いません。",
   },
 } satisfies Record<string, Localized>;
 
-type Load = { state: "loading" } | { state: "missing" } | { state: "error" } | { state: "ready"; passport: RedeemedProvenancePassport };
+type Load =
+  | { state: "loading" }
+  | { state: "missing" }
+  | { state: "error" }
+  | { state: "ready"; passport: RedeemedProvenancePassport }
+  | { state: "card"; asset: TwinfoldAsset; demo: boolean; fetchedAt: string };
+
+/**
+ * A graded card (category "card") for this id or mint: the DEMO fixture without any network, otherwise the signed-in
+ * wallet's devnet cards, then its mainnet cards (read-only). null when it is not a card the wallet holds.
+ */
+async function findCard(assetId: string, wallet: string | null): Promise<{ asset: TwinfoldAsset; demo: boolean } | null> {
+  if (isDemoCardId(assetId)) {
+    const asset = await mockProvider.getAsset(assetId).catch(() => null);
+    return asset?.category === "card" ? { asset, demo: true } : null;
+  }
+  if (!wallet) return null;
+  const pick = (assets: TwinfoldAsset[]) => assets.find((a) => a.category === "card" && (a.id === assetId || a.address === assetId));
+  const devnet = pick(await solanaProvider.getAssets(wallet).catch(() => []));
+  if (devnet) return { asset: devnet, demo: false };
+  const mainnet = pick(await solanaProvider.getMainnetCards(wallet).catch(() => []));
+  return mainnet ? { asset: mainnet, demo: false } : null;
+}
 
 /**
  * Public Redeemed Provenance Passport (Issue #28 / #42). A record of provenance and the last verified state
@@ -58,33 +95,64 @@ type Load = { state: "loading" } | { state: "missing" } | { state: "error" } | {
 export default function PassportPage({ params }: { params: Promise<{ assetId: string }> }) {
   const { assetId } = use(params);
   const { lang, t } = useI18n();
-  const [load, setLoad] = useState<Load>({ state: "loading" });
+  const auth = useAuth();
+  const wallet = auth.status === "authenticated" ? auth.wallet : null;
+  // A card that is not a DEMO fixture is read from the signed-in wallet, so wait for the session check first.
+  const ready = isDemoCardId(assetId) || auth.sessionChecked;
+  const key = `${assetId}|${wallet ?? ""}`;
+  const [result, setResult] = useState<{ key: string; load: Load } | null>(null);
 
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
-    fetch(`/api/passports/${encodeURIComponent(assetId)}`, { cache: "no-store" })
-      .then(async (res) => {
+    const done = (load: Load) => !cancelled && setResult({ key, load });
+    findCard(assetId, wallet)
+      .then(async (card) => {
         if (cancelled) return;
-        if (res.status === 404) return setLoad({ state: "missing" });
-        if (!res.ok) return setLoad({ state: "error" });
-        setLoad({ state: "ready", passport: (await res.json()) as RedeemedProvenancePassport });
+        if (card) return done({ state: "card", asset: card.asset, demo: card.demo, fetchedAt: new Date().toISOString() });
+        // Not a card: the redeemed provenance passport of a retired (dormant ukiyo-e) Asset.
+        const res = await fetch(`/api/passports/${encodeURIComponent(assetId)}`, { cache: "no-store" });
+        if (res.status === 404) return done({ state: "missing" });
+        if (!res.ok) return done({ state: "error" });
+        done({ state: "ready", passport: (await res.json()) as RedeemedProvenancePassport });
       })
-      .catch(() => !cancelled && setLoad({ state: "error" }));
+      .catch(() => done({ state: "error" }));
     return () => {
       cancelled = true;
     };
-  }, [assetId]);
+  }, [assetId, wallet, key, ready]);
+
+  const load: Load = ready && result?.key === key ? result.load : { state: "loading" };
 
   if (load.state === "loading") return <main className="shell passportPage"><p className="emptyState">{t(text.loading)}</p></main>;
-  if (load.state === "missing" || load.state === "error") {
+  if (load.state === "card") {
+    const { asset, demo, fetchedAt } = load;
     return (
       <main className="shell passportPage">
-        <div className="eyebrow">REDEEMED PROVENANCE PASSPORT</div>
+        <div className="eyebrow">{t(cardPassportUi.eyebrow)}</div>
+        <h1>Passport</h1>
+        <CardAssetCard asset={asset} demo={demo} fetchedAt={fetchedAt} />
+        <p className="slabClaimNote">
+          {t(cardPassportUi.buybackLine)}{" "}
+          <a href={gachaSiteUrl(demo ? "devnet" : asset.network)} target="_blank" rel="noreferrer">{t(cardPassportUi.gachaSiteLink)}</a>
+        </p>
+      </main>
+    );
+  }
+  if (load.state === "missing" || load.state === "error") {
+    const needSignIn = load.state === "missing" && !wallet && looksLikeCardId(assetId);
+    return (
+      <main className="shell passportPage">
+        <div className="eyebrow">{needSignIn ? t(cardPassportUi.eyebrow) : "REDEEMED PROVENANCE PASSPORT"}</div>
         <h1>Passport</h1>
         <p className="emptyState" role={load.state === "error" ? "alert" : undefined}>
-          {load.state === "missing" ? t(text.missing) : t(text.error)}
+          {needSignIn ? t(cardPassportUi.signInToView) : load.state === "missing" ? t(text.missing) : t(text.error)}
         </p>
-        <Link href="/" className="secondary linkButton">{t(text.backToDiscover)}</Link>
+        {needSignIn ? (
+          <Link href="/collection" className="secondary linkButton">{t(cardPassportUi.openCollection)}</Link>
+        ) : (
+          <Link href="/" className="secondary linkButton">{t(text.backToDiscover)}</Link>
+        )}
       </main>
     );
   }

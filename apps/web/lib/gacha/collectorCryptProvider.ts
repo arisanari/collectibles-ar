@@ -57,6 +57,19 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" && value !== "" ? value : undefined;
 }
 
+/** A string, or a short JSON rendering of an object / array (Collector Crypt's `details` is not always a string). */
+function asText(value: unknown): string | undefined {
+  if (typeof value === "string") return value !== "" ? value : undefined;
+  if (value !== null && typeof value === "object") {
+    try {
+      return JSON.stringify(value).slice(0, 500);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 export class CollectorCryptGachaProvider implements GachaProvider {
   readonly isDemoData = false;
   readonly network = "devnet" as const;
@@ -92,8 +105,12 @@ export class CollectorCryptGachaProvider implements GachaProvider {
   }
 
   private fail(status: number, body: JsonBody, fallback: string): never {
-    const message = asString(body.error) ?? asString(body.message) ?? fallback;
-    throw new GachaApiError(message, status, asString(body.details));
+    const error = asText(body.error);
+    const text = asText(body.message);
+    const message = error ?? text ?? fallback;
+    // Keep all three of error / message / details: the first one wins as the headline, the rest goes to details.
+    const details = [asText(body.details), error && text && text !== error ? text : undefined].filter(Boolean).join(" | ") || undefined;
+    throw new GachaApiError(message, status, details);
   }
 
   private absoluteUrl(value: string | undefined): string | undefined {
@@ -149,6 +166,16 @@ export class CollectorCryptGachaProvider implements GachaProvider {
     this.fail(status || 502, body, "Could not open the pack");
   }
 
+  /**
+   * GET /api/pack/status?memo= : what Collector Crypt itself recorded for a Pull (payment, card transfer, refund). Returns
+   * the raw body; lib/gacha/resume.ts `remoteFromCc` reads it. Not part of GachaProvider (the Mock has no upstream to ask).
+   */
+  async packStatus(memo: string): Promise<unknown> {
+    const { status, body } = await this.call(`/api/pack/status?memo=${encodeURIComponent(memo)}`);
+    if (status < 200 || status >= 300) this.fail(status || 502, body, "Could not read the pack status");
+    return body;
+  }
+
   async buybackAvailable(request: { nft: string }): Promise<BuybackAvailable> {
     const { status, body } = await this.call(`/api/buyback/available?nft=${encodeURIComponent(request.nft)}`);
     if (status < 200 || status >= 300) this.fail(status || 502, body, "Could not check buyback");
@@ -169,4 +196,9 @@ export class CollectorCryptGachaProvider implements GachaProvider {
       memo: asString(body.memo),
     };
   }
+}
+
+/** True for a provider that can ask Collector Crypt for a Pull's status (the real one; the DEMO DATA Mock cannot). */
+export function hasPackStatus(provider: GachaProvider): provider is GachaProvider & { packStatus(memo: string): Promise<unknown> } {
+  return typeof (provider as { packStatus?: unknown }).packStatus === "function";
 }

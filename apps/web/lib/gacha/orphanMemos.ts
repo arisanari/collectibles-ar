@@ -2,7 +2,7 @@
 // so each memo stays listed (localStorage, this browser only) until the player removes it. Public values only: memo,
 // pack type, public wallet address, time. Pure helpers so they can be unit tested; the hook does the storage I/O.
 
-export const ORPHAN_MEMOS_KEY = "slabar.pull.orphanMemos";
+export const ORPHAN_MEMOS_KEY = "twinfold.pull.orphanMemos";
 export const MAX_ORPHANS = 20;
 
 export type OrphanMemo = { memo: string; packType: string; wallet: string; droppedAt: string };

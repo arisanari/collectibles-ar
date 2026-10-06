@@ -102,7 +102,7 @@ export const custodyText: Record<PhysicalDescriptor["custody"]["status"], Locali
 export const sourceText: Record<ProvenanceEvent["source"], Localized> = {
   onchain: { en: "On-chain", ja: "オンチェーン" },
   offchain_evidence: { en: "Off-chain evidence", ja: "オフチェーンの証跡" },
-  twinfold_interpretation: { en: "SlabAR interpretation", ja: "SlabARの解釈" },
+  twinfold_interpretation: { en: "Collectibles AR interpretation", ja: "Collectibles ARの解釈" },
 };
 
 const kindText: Record<ProvenanceEvent["kind"], Localized> = {
@@ -156,23 +156,23 @@ export const assetCardUi = {
     en: "Rehearsal token for the redeem dry run. Not a Reference Asset.",
     ja: "redeem dry run用のリハーサルToken。Reference Assetではありません",
   } satisfies Localized,
-  offerHeading: { en: "SLABAR PRICE / BUYBACK OFFER", ja: "SLABAR価格 / 買取オファー" } satisfies Localized,
-  price: { en: "SlabAR price", ja: "SlabAR価格" } satisfies Localized,
+  offerHeading: { en: "TWINFOLD (LEGACY DEMO) PRICE / BUYBACK OFFER", ja: "TWINFOLD（旧デモ）価格 / 買取オファー" } satisfies Localized,
+  price: { en: "Twinfold price", ja: "Twinfold価格" } satisfies Localized,
   buyback: (pct: number): Localized => ({ en: `Buyback offer (${pct}%)`, ja: `買取オファー（${pct}%）` }),
   notEligible: { en: "Not eligible", ja: "対象外" } satisfies Localized,
   offerNote: {
-    en: "The buyback amount is an offer from SlabAR and does not guarantee a buyback or any price. No real payment is made on devnet.",
-    ja: "買取額はSlabARが提示するオファーであり、買取や価格を保証するものではありません。devnetでは実際の支払いは発生しません。",
+    en: "The buyback amount is an offer from Twinfold and does not guarantee a buyback or any price. No real payment is made on devnet.",
+    ja: "買取額はTwinfoldのオファーであり、買取や価格を保証するものではありません。devnetでは実際の支払いは発生しません。",
   } satisfies Localized,
   offerNotePlaceholder: { en: " Prices are demo placeholders.", ja: " 価格はデモ用の仮の値です" } satisfies Localized,
 };
 
 export const vault = {
-  eyebrow: { en: "FROM THE SLABAR VAULT", ja: "FROM THE SLABAR VAULT" } satisfies Localized,
-  heading: { en: "Available from SlabAR", ja: "SlabARから取得できる作品" } satisfies Localized,
+  eyebrow: { en: "FROM THE TWINFOLD VAULT (LEGACY DEMO)", ja: "FROM THE TWINFOLD VAULT（旧デモ）" } satisfies Localized,
+  heading: { en: "Available from Twinfold", ja: "Twinfoldから取得できる作品" } satisfies Localized,
   note: {
-    en: "Demo on Solana devnet: no payment is taken and prices are placeholders. The original stays in the SlabAR vault.",
-    ja: "Solana devnetでのデモです。支払いは発生せず、価格は仮の値です。現物はSlabARのVaultに保管されたままです。",
+    en: "Demo on Solana devnet: no payment is taken and prices are placeholders. The original stays in the Twinfold vault.",
+    ja: "Solana devnetでのデモです。支払いは発生せず、価格は仮の値です。現物はTwinfoldのVaultに保管されたままです。",
   } satisfies Localized,
   loading: { en: "Loading…", ja: "読み込み中…" } satisfies Localized,
   failed: { en: "Couldn't load available works right now.", ja: "いま取得できる作品を読み込めません。" } satisfies Localized,
@@ -186,13 +186,13 @@ export const vault = {
   hideProvenance: { en: "Hide provenance", ja: "来歴を閉じる" } satisfies Localized,
   dialogEyebrow: { en: "DEVNET · ACQUIRE", ja: "DEVNET · 取得" } satisfies Localized,
   dialogPrice: (price: string): Localized => ({
-    en: `Displayed price ${price} (SlabAR display value, placeholder)`,
-    ja: `表示価格 ${price}（SlabARの表示値・仮の値）`,
+    en: `Displayed price ${price} (Twinfold display value, placeholder)`,
+    ja: `表示価格 ${price}（Twinfoldの表示値・仮の値）`,
   }),
   confirmItems: [
     { en: "This is an acquisition on devnet. No payment is taken.", ja: "devnet上の取得であり、支払いは発生しません。" },
     { en: "The price is display-only (a placeholder).", ja: "価格は表示のみです（仮の値）。" },
-    { en: "The original stays in the SlabAR vault.", ja: "現物はSlabARのVaultに保管されたままです。" },
+    { en: "The original stays in the Twinfold vault.", ja: "現物はTwinfoldのVaultに保管されたままです。" },
   ] satisfies Localized[],
   processing: { en: "Processing…", ja: "処理中…" } satisfies Localized,
   cancel: { en: "Cancel", ja: "キャンセル" } satisfies Localized,

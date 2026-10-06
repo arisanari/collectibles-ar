@@ -25,6 +25,18 @@ export class SolanaAssetProvider implements AssetProvider {
     return (await response.json()) as TwinfoldAsset[];
   }
 
+  /**
+   * READ-ONLY mainnet view: the wallet's Collector Crypt cards (verified by collection address on the server),
+   * shown as MAINNET (read-only). Pull, buyback and transfer never go through mainnet.
+   */
+  async getMainnetCards(wallet: string): Promise<TwinfoldAsset[]> {
+    const response = await fetch(`/api/solana/assets?wallet=${encodeURIComponent(wallet)}&network=mainnet`);
+    if (!response.ok) {
+      throw new Error(`Failed to load mainnet cards for ${wallet}: HTTP ${response.status}`);
+    }
+    return (await response.json()) as TwinfoldAsset[];
+  }
+
   async getAsset(assetId: string): Promise<TwinfoldAsset> {
     const response = await fetch(`/api/solana/assets/${encodeURIComponent(assetId)}`);
     if (!response.ok) {

@@ -4,6 +4,7 @@ import { getGachaProvider } from "../../../../lib/gacha";
 import { gachaErrorResponse, isPlayerAddress, PACK_TYPE, requireSession } from "../../../../lib/gacha/routeUtils";
 import { recordGenerated } from "../../../../lib/gacha/packStore";
 import { takeSlot } from "../../../../lib/rateLimit";
+import { refuseMainnet } from "../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ const PACKS_PER_HOUR = 30;
  * Non-demo calls need the signed-in session and playerAddress must be that wallet.
  */
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const body = await readSmallJson(request);
   const demo = body?.demo === true;
   const session = await requireSession(request, demo);

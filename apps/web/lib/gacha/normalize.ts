@@ -8,7 +8,12 @@ import type { ProvenanceEvent, TwinfoldAsset } from "../contract";
 import type { HeliusAsset } from "../solana/heliusClient";
 import type { CcAttribute, CcOpenPackWon, GachaNetwork } from "./types";
 
-/** Verification page for a Pull's VRF selection (devnet host). A link to Collector Crypt's mechanism; SlabAR does not vouch for it. */
+/**
+ * Verification page for a Pull's VRF selection (devnet host). A link to Collector Crypt's mechanism; Collectibles AR does not vouch for it.
+ * The devnet host does serve the page: checked 2026-10-06, https://dev-gacha.collectorcrypt.com/verify-selection/<memo>
+ * answers 200 while an unknown path on the same host answers 404, so the route exists there and the devnet link stays
+ * on the devnet host (a devnet memo is not known to the mainnet host). Only devnet Pulls carry a memo in this app.
+ */
 export function gachaVerifyUrl(memo: string): string {
   return `https://dev-gacha.collectorcrypt.com/verify-selection/${encodeURIComponent(memo)}`;
 }
@@ -103,6 +108,41 @@ function cardDisplay(imageUrl: string | undefined): TwinfoldAsset["display"] {
   };
 }
 
+/**
+ * The single provenance event of an opened Pull: the NFT transfer to the player as reported by openPack.
+ * `confirmed` + `onchain` only when the signature was found on chain, otherwise `pending` + `offchain_evidence`.
+ */
+export function pullEvent(input: { assetId: string; memo: string; signature?: string; owner: string | null; occurredAt: string; confirmed: boolean }): ProvenanceEvent {
+  const { assetId, memo, signature, owner, occurredAt, confirmed } = input;
+  return {
+    id: `${assetId}-pull-${memo}`,
+    assetId,
+    kind: "transferred",
+    occurredAt,
+    source: confirmed ? "onchain" : "offchain_evidence",
+    status: confirmed ? "confirmed" : "pending",
+    ...(signature ? { transaction: signature } : {}),
+    metadata: {
+      via: "collectorCryptGacha",
+      memo,
+      ...(owner ? { to: owner } : {}),
+      note: confirmed
+        ? "NFT transfer to the player as reported by Collector Crypt openPack; the signature was found on chain"
+        : "NFT transfer to the player as reported by Collector Crypt openPack; the signature is not confirmed on chain yet",
+    },
+  };
+}
+
+/** The same asset once its Pull signature has been seen on chain (only the Pull event changes; its time and signature stay). */
+export function withPullConfirmed(asset: TwinfoldAsset): TwinfoldAsset {
+  const memo = asset.gachaMemo;
+  const event = asset.provenance.find((e) => memo !== undefined && e.id === `${asset.id}-pull-${memo}`);
+  if (!memo || !event || !event.transaction || event.status === "confirmed") return asset;
+  const owner = typeof event.metadata?.to === "string" ? event.metadata.to : null;
+  const confirmed = pullEvent({ assetId: asset.id, memo, signature: event.transaction, owner, occurredAt: event.occurredAt, confirmed: true });
+  return { ...asset, provenance: asset.provenance.map((e) => (e === event ? confirmed : e)) };
+}
+
 export type OpenPackToAssetInput = {
   won: CcOpenPackWon;
   memo: string;
@@ -139,23 +179,7 @@ export function openPackToAsset(input: OpenPackToAssetInput): TwinfoldAsset {
   const occurredAt = (input.now ?? new Date()).toISOString();
   const confirmed = Boolean(won.transactionSignature) && input.chainConfirmed === true;
 
-  const event: ProvenanceEvent = {
-    id: `${id}-pull-${memo}`,
-    assetId: id,
-    kind: "transferred",
-    occurredAt,
-    source: confirmed ? "onchain" : "offchain_evidence",
-    status: confirmed ? "confirmed" : "pending",
-    ...(won.transactionSignature ? { transaction: won.transactionSignature } : {}),
-    metadata: {
-      via: "collectorCryptGacha",
-      memo,
-      ...(owner ? { to: owner } : {}),
-      note: confirmed
-        ? "NFT transfer to the player as reported by Collector Crypt openPack; the signature was found on chain"
-        : "NFT transfer to the player as reported by Collector Crypt openPack; the signature is not confirmed on chain yet",
-    },
-  };
+  const event = pullEvent({ assetId: id, memo, signature: won.transactionSignature, owner, occurredAt, confirmed });
 
   return {
     id,
@@ -216,16 +240,28 @@ export function collectionAddressesFromEnv(env: Record<string, string | undefine
 
 /**
  * DAS asset -> TwinfoldAsset for My Collection. Returns null when the asset neither matches a configured Collector
- * Crypt collection nor has the graded-card attribute shape.
- * `source: "collectorCrypt"` + `sourceVerified: true` only for a collection match; a shape-only match keeps `source`
+ * Crypt collection nor has the graded-card attribute shape (with `requireVerified`: nor matches a configured collection).
+ * `source: "collectorCrypt"` + `sourceVerified: true` only for a collection match or `openedViaPack`; a shape-only match keeps `source`
  * undefined and `sourceVerified: false` (the UI shows UNVERIFIED SOURCE and the AR list excludes it).
  * Provenance is left empty: the list call does not fetch transaction history, and no event is invented.
  */
 export function heliusCardToAsset(
   asset: HeliusAsset,
-  options: { collectionAddresses?: readonly string[]; network?: "devnet" | "mainnet" } = {}
+  options: {
+    collectionAddresses?: readonly string[];
+    network?: "devnet" | "mainnet";
+    requireVerified?: boolean;
+    /**
+     * This app's own openPack delivered this asset to this wallet (a local pack record: opened, same wallet, same
+     * mint). That alone verifies the source, whatever the DAS collection is: Collector Crypt uses collections that
+     * differ per token standard, and the Pull is the evidence here.
+     */
+    openedViaPack?: boolean;
+  } = {}
 ): TwinfoldAsset | null {
-  const verified = isCollectorCryptCard(asset, options.collectionAddresses);
+  const verified = options.openedViaPack === true || isCollectorCryptCard(asset, options.collectionAddresses);
+  // `requireVerified` (mainnet, read-only): a collection match is the only way in; a metadata shape never qualifies.
+  if (options.requireVerified && !verified) return null;
   if (!verified && !looksLikeGradedCard(asset)) return null;
   const imageUrl = pickImageUrl(asset);
   return {
@@ -244,4 +280,18 @@ export function heliusCardToAsset(
     sourceVerified: verified,
     ...(imageUrl ? { imageUrl } : {}),
   };
+}
+
+/**
+ * Mainnet My Collection (read-only): only DAS assets whose collection is one of the configured mainnet Collector Crypt
+ * collections, as `source: "collectorCrypt"`, `sourceVerified: true`, `network: "mainnet"`. Burnt assets are skipped.
+ * No collection configured -> nothing is returned (a metadata shape is never enough on mainnet).
+ */
+export function mainnetCardsFromAssets(items: readonly HeliusAsset[], collectionAddresses: readonly string[]): TwinfoldAsset[] {
+  if (collectionAddresses.length === 0) return [];
+  return items.flatMap((item) => {
+    if (item.burnt) return [];
+    const card = heliusCardToAsset(item, { collectionAddresses, network: "mainnet", requireVerified: true });
+    return card ? [card] : [];
+  });
 }

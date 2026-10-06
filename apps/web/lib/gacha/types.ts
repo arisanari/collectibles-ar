@@ -1,6 +1,6 @@
 // Types for the GachaProvider boundary (AGENTS.md section 3: UI never calls Collector Crypt directly).
 // Shapes mirror Collector Crypt's Gacha API (https://docs.collectorcrypt.com/gacha/api, checked 2026-10-06).
-// Machine numbers (odds, ev, stock, instantBuyback) are passed through untouched: SlabAR does not compute them.
+// Machine numbers (odds, ev, stock, instantBuyback) are passed through untouched: Collectibles AR does not compute them.
 
 export type GachaNetwork = "devnet"; // fixed: the app never transacts on mainnet
 

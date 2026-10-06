@@ -3,15 +3,18 @@ import { readSmallJson } from "../../../../lib/auth/http";
 import { getGachaProvider } from "../../../../lib/gacha";
 import { BUYBACK_PER_HOUR, gachaErrorResponse, isDemoAddress, isWalletAddress, rateLimited, requireSession, requireSessionRead } from "../../../../lib/gacha/routeUtils";
 import { takeSlot } from "../../../../lib/rateLimit";
+import { refuseMainnet } from "../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Buyback is performed by Collector Crypt (72 hours, rate per machine); SlabAR only relays.
+ * Buyback is performed by Collector Crypt (72 hours, rate per machine); Collectibles AR only relays.
  * GET  /api/gacha/buyback?nft=<address>[&demo=1]            -> { available, amount (USDC, 6 decimals), timeRemaining (s) } (needs the web session unless demo)
  * POST /api/gacha/buyback { playerAddress, nftAddress, demo? } -> { serializedTransaction, refundAmount, memo } (player signs in Phantom, then /api/gacha/submit)
  */
 export async function GET(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const params = new URL(request.url).searchParams;
   const demo = params.get("demo") === "1";
   const nft = params.get("nft");
@@ -27,6 +30,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const body = await readSmallJson(request);
   const demo = body?.demo === true;
   const session = await requireSession(request, demo);

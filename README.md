@@ -1,14 +1,14 @@
-# SlabAR
+# Collectibles AR
 
-**SlabAR is the AR layer for real cards on Solana. Pull a pack, and the graded card appears life-size in the room you're in.**
+**Collectibles AR is the AR layer for real cards on Solana. Pull a pack, and the graded card appears life-size in the room you're in.**
 
-SlabAR は、Solana上の実物カード資産（Collector Cryptなど）を、引いた瞬間にその場の現実空間へ実寸で呼び出すARコレクション層です。ガチャはCollector Cryptの台をアプリ内でホストし、SlabARは「出す・並べる・撮る」を担います。収益はホストした台の手数料です。
+Collectibles AR は、Solana上の実物カード資産（Collector Cryptなど）を、引いた瞬間にその場の現実空間へ実寸で呼び出すARコレクション層です。ガチャはCollector Cryptの台をアプリ内でホストし、Collectibles ARは「出す・並べる・撮る」を担います。収益はホストした台の手数料です。
 
-> Solanaは所有の移転を解いた（発送せずに売買できる）。SlabARは「発送せずに見せびらかす」を解く。
+> Solanaは所有の移転を解いた（発送せずに売買できる）。Collectibles ARは「発送せずに見せびらかす」を解く。
 
 引いた瞬間に、その場に出る。現物はCollector CryptのVaultのまま。売り戻せば空間から消える。
 
-> 2026-10-06に、浮世絵のARコレクション（OshiPin）からカードのAR層（SlabAR）へプロダクトを転換しました。詳細は「事前開発と転換の開示」を参照してください。
+> 2026-10-06に、浮世絵のARコレクション（OshiPin）からカードのAR層へプロダクトを転換しました（転換時の名称はSlabAR、2026-10-07にCollectibles ARへ改名）。詳細は「事前開発と転換の開示」を参照してください。
 
 ## 提出先
 
@@ -47,17 +47,17 @@ Crypto World's Fair 2026（Colosseum）。開催期間 2026-09-14〜2026-10-12�
 
 ## Collector Cryptへの依存と責任分界
 
-- 在庫、Vault保管、発送、買取、法務はCollector Cryptが担います。SlabARは現物を持ちません
-- 台の価格、確率、EV、在庫、買取率はCollector Cryptの `/api/machines` の値をそのまま表示します。SlabARは計算・加工せず、保証もしません
+- 在庫、Vault保管、発送、買取、法務はCollector Cryptが担います。Collectibles ARは現物を持ちません
+- 台の価格、確率、EV、在庫、買取率はCollector Cryptの `/api/machines` の値をそのまま表示します。Collectibles ARは計算・加工せず、保証もしません
 - 買取はCollector Cryptが行います（72時間以内、台ごとの率）
-- PSAのグレード、`Authenticated`、Insured Value、Vault記録はCollector Cryptまたは鑑定機関の主張で、SlabARが検証したものではありません
-- Passportは、onchain fact（owner、mint、transfer）、第三者の主張、SlabAR interpretationを分けて表示します。blockchain、NFT、PassportはカードのAuthenticityや配送後の現物状態を保証しません
+- PSAのグレード、`Authenticated`、Insured Value、Vault記録はCollector Cryptまたは鑑定機関の主張で、Collectibles ARが検証したものではありません
+- Passportは、onchain fact（owner、mint、transfer）、第三者の主張、Collectibles AR interpretationを分けて表示します。blockchain、NFT、PassportはカードのAuthenticityや配送後の現物状態を保証しません
 - 収益線は、Collector Cryptの `can_adopt` による自分の台コード（既存台に1パックあたり最大10%の手数料）の仕様に基づく計画です。API keyと `can_adopt` の有効化は申請中で、承認前は未承認です。payoutはCollector Cryptが行います
 - Collector CryptのAPI keyが無くても、台の表示・Pull・開封は動きます（keyはサーバー側envの `COLLECTOR_CRYPT_API_KEY` で、公開しません）
 
 ## 免責
 
-ガチャの確率、EV、在庫、買取率はCollector Cryptの公表値で、SlabARが保証するものではありません。投資・利益・当選を約束するものではありません。devnetのPullは売上ではありません。mainnet、本番決済、実配送はアプリ内で行いません。
+ガチャの確率、EV、在庫、買取率はCollector Cryptの公表値で、Collectibles ARが保証するものではありません。投資・利益・当選を約束するものではありません。devnetのPullは売上ではありません。mainnet、本番決済、実配送はアプリ内で行いません。
 
 ## 再現手順
 
@@ -116,7 +116,7 @@ AGENTS.md    AIエージェント共通ガイド（CLAUDE.mdはsymlink）
 
 ## 事前開発と転換の開示
 
-Crypto World's Fair開幕（2026-09-14）以前に、事業文書、Web UIプロトタイプ、visionOSプロトタイプを作成しています。開幕後の2026-09-21から2026-10-06までは、壁に掛ける浮世絵・版画のARコレクション（2026-10-05にOshiPinへ改名）を作っていました。2026-10-06に、プロダクトをCollector Cryptの実物カードをARで出すSlabARへ転換しました。浮世絵・こけしのfixtureと、iPhone link、wallet署名、AR Placeの実装は、コードに残し（浮世絵とこけしは休眠）、転換後の製品で再利用します。開幕前のcommit、転換前の作業、転換後の作業はgit履歴で区別でき、提出時に開示します。
+Crypto World's Fair開幕（2026-09-14）以前に、事業文書、Web UIプロトタイプ、visionOSプロトタイプを作成しています。開幕後の2026-09-21から2026-10-06までは、壁に掛ける浮世絵・版画のARコレクション（2026-10-05にOshiPinへ改名）を作っていました。2026-10-06に、プロダクトをCollector Cryptの実物カードをARで出すSlabARへ転換し、2026-10-07にCollectibles ARへ改名しました。浮世絵・こけしのfixtureと、iPhone link、wallet署名、AR Placeの実装は、コードに残し（浮世絵とこけしは休眠）、転換後の製品で再利用します。開幕前のcommit、転換前の作業、転換後の作業はgit履歴で区別でき、提出時に開示します。
 
 ## 検証済み
 

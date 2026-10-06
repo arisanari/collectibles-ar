@@ -6,6 +6,7 @@ import { reconcileRedemption, withdrawLockRequest } from "../../../../../lib/red
 import { markCancelled, markLocked, recordRefusal, runtimeOf } from "../../../../../lib/redemptions/store";
 import { getRequest } from "../../../../../lib/transferRequests/store";
 import { assertDevnetServerSigningAllowed } from "../../../../../lib/solana/devnetSigningGuard";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ const refuse = (status: number, error: string, extra: object = {}) => NextRespon
  * `cancelled` is never inferred from a (possibly stale) DAS read.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { webOnly: true, mutating: true });
   if (!access.ok) return access.response;
   const { id } = await context.params;

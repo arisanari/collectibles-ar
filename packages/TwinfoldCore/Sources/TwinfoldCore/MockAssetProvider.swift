@@ -33,6 +33,8 @@ public actor MockAssetProvider: AssetProvider {
     /// timeout) returns the prior result instead of transferring again.
     /// Idempotency per AGENTS.md section 3.
     private var transferRequests: [String: ProvenanceEvent] = [:]
+    /// Pulls produced by `simulatePull()`, oldest first.
+    private var simulatedPulls: [GachaPackRecord] = []
 
     public init(bundle: Bundle? = nil) throws {
         let bundle = bundle ?? Bundle.module
@@ -64,6 +66,52 @@ public actor MockAssetProvider: AssetProvider {
 
     public func getAssets(wallet: String) async throws -> [TwinfoldAsset] {
         assets.map(materialize).filter { $0.owner == wallet }
+    }
+
+    /// Same shape as `SolanaAssetProvider.getAssets(wallet:network:)`. The fixture is DEMO DATA, never mainnet: only
+    /// `.devnet` (the fixture's own network) returns assets, `.mainnet` is always empty.
+    public func getAssets(wallet: String, network: ChainNetwork) async throws -> [TwinfoldAsset] {
+        guard network == .devnet else { return [] }
+        return try await getAssets(wallet: wallet)
+    }
+
+    /// The fixture card collector wallet (`fixtures/demo/wallets.json` walletC): owner of the three self-made demo
+    /// cards. `getRecentPacks(since:)` reports Pulls for this wallet.
+    public static let cardCollectorWallet = "DEMOwalletC3333333333333333333333333333333"
+
+    /// Same shape as `SolanaAssetProvider.getRecentPacks(since:)`: the Pulls produced by `simulatePull()` so far,
+    /// newest first, as `opened` records carrying the demo card. DEMO DATA (no network, no token).
+    public func getRecentPacks(since: Date? = nil) async throws -> GachaPacksResponse {
+        let packs = simulatedPulls
+            .filter { pack in
+                guard let since, let opened = pack.openedDate else { return true }
+                return opened >= since
+            }
+            .sorted { ($0.openedDate ?? .distantPast) > ($1.openedDate ?? .distantPast) }
+        return GachaPacksResponse(wallet: Self.cardCollectorWallet, packs: Array(packs.prefix(20)))
+    }
+
+    /// Recording helper (the tray's "Simulate pull (DEMO DATA)"): opens the next of the three demo cards (cycling)
+    /// as a new Pull with a fresh memo, so the same path as a real Pull (`getRecentPacks` -> Appear) runs without
+    /// the Web, Phantom or a network. Never a real transaction.
+    @discardableResult
+    public func simulatePull(now: Date = Date()) throws -> GachaPackRecord {
+        let cards = assets.filter { $0.category == "card" && $0.owner == Self.cardCollectorWallet }
+        guard !cards.isEmpty else { throw AssetProviderError.fixtureNotFound("demo cards in fixtures/demo/assets.json") }
+        let card = cards[simulatedPulls.count % cards.count]
+        let memo = "DEMO-MEMO-\(UUID().uuidString.prefix(8))"
+        let stamp = GachaDates.format(now)
+        let record = GachaPackRecord(
+            memo: memo,
+            packType: "demo_25",
+            state: .opened,
+            createdAt: stamp,
+            openedAt: stamp,
+            nftAddress: card.address,
+            asset: rebuild(card, owner: card.owner, provenance: card.provenance, gachaMemo: memo)
+        )
+        simulatedPulls.append(record)
+        return record
     }
 
     public func getAsset(assetId: String) async throws -> TwinfoldAsset {
@@ -110,7 +158,7 @@ public actor MockAssetProvider: AssetProvider {
         guard let commerce = asset.commerce else {
             return BuybackQuote(
                 assetId: asset.id, basis: .init(amount: 0, currency: "USDC"), rate: 0, offerAmount: 0,
-                currency: "USDC", eligible: false, reason: "demo: no OshiPin price set for this asset",
+                currency: "USDC", eligible: false, reason: "demo: no Twinfold (legacy demo) price set for this asset",
                 quoteId: quoteId, expiresAt: expiresAt
             )
         }
@@ -121,7 +169,7 @@ public actor MockAssetProvider: AssetProvider {
         }
         let custodyStatus = asset.physical?.custody.status
         if custodyStatus != "vaulted" {
-            reasons.append("Not Vaulted, so not eligible to sell to OshiPin (custody: \(custodyStatus ?? "unknown"))")
+            reasons.append("Not Vaulted, so not eligible to sell to Twinfold (custody: \(custodyStatus ?? "unknown"))")
         }
         let alreadyRedeemed = asset.provenance.contains { $0.kind == .redeemed && $0.status == .confirmed }
         if alreadyRedeemed {
@@ -138,7 +186,7 @@ public actor MockAssetProvider: AssetProvider {
             offerAmount: offerAmount,
             currency: commerce.twinfoldPrice.currency,
             eligible: eligible,
-            reason: eligible ? "demo: eligible for OshiPin buyback offer (checked \(checkedAt))" : reasons.joined(separator: "; "),
+            reason: eligible ? "demo: eligible for Twinfold (legacy demo) buyback offer (checked \(checkedAt))" : reasons.joined(separator: "; "),
             quoteId: quoteId,
             expiresAt: expiresAt
         )
@@ -197,6 +245,7 @@ public actor MockAssetProvider: AssetProvider {
         ownerOverrides.removeAll()
         extraProvenance.removeAll()
         transferRequests.removeAll()
+        simulatedPulls.removeAll()
     }
 
     // MARK: - Private
@@ -205,7 +254,11 @@ public actor MockAssetProvider: AssetProvider {
         let owner = ownerOverrides[asset.id] ?? asset.owner
         let extra = extraProvenance[asset.id] ?? []
         guard owner != asset.owner || !extra.isEmpty else { return asset }
-        return TwinfoldAsset(
+        return rebuild(asset, owner: owner, provenance: asset.provenance + extra, gachaMemo: asset.gachaMemo)
+    }
+
+    private func rebuild(_ asset: TwinfoldAsset, owner: String?, provenance: [ProvenanceEvent], gachaMemo: String?) -> TwinfoldAsset {
+        TwinfoldAsset(
             id: asset.id,
             network: asset.network,
             address: asset.address,
@@ -215,7 +268,7 @@ public actor MockAssetProvider: AssetProvider {
             titleLocalized: asset.titleLocalized,
             display: asset.display,
             spatialRepresentation: asset.spatialRepresentation,
-            provenance: asset.provenance + extra,
+            provenance: provenance,
             physical: asset.physical,
             commerce: asset.commerce,
             category: asset.category,
@@ -226,8 +279,11 @@ public actor MockAssetProvider: AssetProvider {
             vault: asset.vault,
             vaultId: asset.vaultId,
             source: asset.source,
-            gachaMemo: asset.gachaMemo,
-            imageUrl: asset.imageUrl
+            sourceVerified: asset.sourceVerified,
+            gachaMemo: gachaMemo,
+            imageUrl: asset.imageUrl,
+            rehearsal: asset.rehearsal,
+            redemption: asset.redemption
         )
     }
 }

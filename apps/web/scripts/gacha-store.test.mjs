@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 
-process.env.TWINFOLD_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "slabar-gacha-store-"));
+process.env.TWINFOLD_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "twinfold-gacha-store-"));
 register("./ts-resolve-hooks.mjs", import.meta.url);
 const store = await import("../lib/gacha/packStore.ts");
 const { checkWalletIsSigner, requiredSigners } = await import("../lib/gacha/submitCheck.ts");
@@ -18,11 +18,26 @@ const orphans = await import("../lib/gacha/orphanMemos.ts");
 const { openPackForUi, isStatusConfirmed } = await import("../lib/gacha/openResult.ts");
 const { MockGachaProvider } = await import("../lib/gacha/mockProvider.ts");
 const web3 = await import("@solana/web3.js");
+const { resolveResume, remoteFromCc, UNPAID_WINDOW_MS } = await import("../lib/gacha/resume.ts");
+const statusRoute = await import("../app/api/gacha/pack/status/route.ts");
+const openRoute = await import("../app/api/gacha/open/route.ts");
 
 const T0 = 1_800_000_000_000;
 const pack = (over = {}) => ({ memo: `memo-${Math.random().toString(36).slice(2)}`, wallet: "WalletA", packType: "pokemon_25", ...over });
 
 // ---- pack store -----------------------------------------------------------------------------------------------
+
+test("findOpenedByNft matches only an opened, non-demo record of the same wallet and mint", () => {
+  const mine = store.recordGenerated(pack({ wallet: "WalletFind" }), T0);
+  assert.equal(store.findOpenedByNft("WalletFind", "NftFind"), undefined, "not opened yet");
+  store.markOpened(mine, { nftAddress: "NftFind", txSignature: "SigFind" }, T0 + 1);
+  assert.equal(store.findOpenedByNft("WalletFind", "NftFind"), mine);
+  assert.equal(store.findOpenedByNft("WalletOther", "NftFind"), undefined, "another wallet's record does not verify");
+  assert.equal(store.findOpenedByNft("WalletFind", "NftOther"), undefined, "another mint");
+  const demo = store.recordGenerated(pack({ wallet: "DEMO-FIND", demo: true }), T0);
+  store.markOpened(demo, { nftAddress: "NftDemoFind" }, T0 + 1);
+  assert.equal(store.findOpenedByNft("DEMO-FIND", "NftDemoFind"), undefined, "DEMO DATA never verifies");
+});
 
 test("recordGenerated creates one record per memo and is idempotent (never reset, never re-owned)", () => {
   const input = pack();
@@ -252,4 +267,270 @@ test("cachedMachines: concurrent requests share one upstream call", async () => 
   assert.equal(calls, 1);
   assert.equal(a, b);
   assert.equal(b, c);
+});
+
+// ---- lastError (why a submit / open failed) and blockhash expiry ----------------------------------------------
+
+const silently = (fn) => {
+  const original = console.error;
+  const lines = [];
+  console.error = (...args) => lines.push(args);
+  try {
+    return { result: fn(), lines };
+  } finally {
+    console.error = original;
+  }
+};
+
+test("recordError keeps stage / code / status / clipped message, survives a restart, and logs one line without secrets", () => {
+  const r = store.recordGenerated(pack({ wallet: "WalletErr" }), T0);
+  const long = `x${"y".repeat(800)}`;
+  const { result, lines } = silently(() => store.recordError(r, { stage: "submit", code: "upstream_error", httpStatus: 500, message: long }, T0 + 5));
+  assert.equal(result.stage, "submit");
+  assert.equal(result.code, "upstream_error");
+  assert.equal(result.httpStatus, 500);
+  assert.equal(result.at, new Date(T0 + 5).toISOString());
+  assert.ok(result.message.length <= store.LAST_ERROR_MESSAGE_MAX);
+  assert.equal(r.lastError, result);
+  assert.equal(r.updatedAt, T0 + 5);
+  assert.equal(r.state, "generated"); // recording does not move the state
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0][0], "[gacha submit]");
+  assert.deepEqual(Object.keys(lines[0][1]).sort(), ["code", "httpStatus", "memo", "message", "wallet"]);
+  store.reloadFromDiskForTests();
+  assert.deepEqual(store.getOwnedPack(r.memo, "WalletErr").lastError, result);
+});
+
+test("lastError is cleared by a later submit / open and never written onto an opened record", () => {
+  const r = store.recordGenerated(pack(), T0);
+  silently(() => store.recordError(r, { stage: "submit", code: "wallet_not_signer", httpStatus: 400, message: "m" }, T0 + 1));
+  assert.equal(r.lastError.code, "wallet_not_signer");
+  store.markSubmitted(r, T0 + 2);
+  assert.equal(r.lastError, undefined);
+  silently(() => store.recordError(r, { stage: "open", code: "upstream_error", httpStatus: 502, message: "m" }, T0 + 3));
+  assert.equal(r.lastError.stage, "open");
+  store.markOpened(r, { nftAddress: "NftE", txSignature: "SigE" }, T0 + 4);
+  assert.equal(r.lastError, undefined);
+  silently(() => store.recordError(r, { stage: "open", code: "busy_opening", httpStatus: 503, message: "m" }, T0 + 5));
+  assert.equal(r.lastError, undefined);
+});
+
+test("DEMO DATA records log nothing and stay out of the file", () => {
+  const r = store.recordGenerated(pack({ demo: true, wallet: "DEMO-PLAYER-WALLET" }), T0);
+  const { lines } = silently(() => store.recordError(r, { stage: "submit", code: "upstream_error", httpStatus: 400, message: "m" }, T0 + 1));
+  assert.equal(lines.length, 0);
+  assert.equal(r.lastError.code, "upstream_error");
+});
+
+test("isTxExpiredFailure: blockhash / expired / block height wording, or a bare 500 after our signer check passed", () => {
+  const f = store.isTxExpiredFailure;
+  assert.equal(f({ httpStatus: 400, message: "Blockhash not found", signerVerified: true }), true);
+  assert.equal(f({ httpStatus: 502, message: "transaction has expired", signerVerified: false }), true);
+  assert.equal(f({ httpStatus: 400, message: "block height exceeded", signerVerified: true }), true);
+  assert.equal(f({ httpStatus: 500, message: "Internal Server Error", signerVerified: true }), true);
+  assert.equal(f({ httpStatus: 500, message: "Internal Server Error", signerVerified: false }), false); // no signer check, no claim
+  assert.equal(f({ httpStatus: 400, message: "insufficient funds", signerVerified: true }), false);
+  assert.equal(f({ httpStatus: 429, message: "Too many pending packs", signerVerified: true }), false);
+  assert.equal(f({ httpStatus: 502, message: "Collector Crypt could not be reached", signerVerified: true }), false);
+});
+
+test("Mock submit failure flags (DEMO DATA only) throw GachaApiError; the normal path still succeeds", async () => {
+  const { MOCK_FAIL_SUBMIT, MOCK_FAIL_EXPIRED } = await import("../lib/gacha/mockProvider.ts");
+  const { GachaApiError } = await import("../lib/gacha/types.ts");
+  const provider = new MockGachaProvider();
+  await assert.rejects(provider.submitSigned({ signedTransaction: MOCK_FAIL_SUBMIT }), (e) => e instanceof GachaApiError && e.status === 400);
+  await assert.rejects(provider.submitSigned({ signedTransaction: MOCK_FAIL_EXPIRED }), (e) => e instanceof GachaApiError && store.isTxExpiredFailure({ httpStatus: e.status, message: e.message, signerVerified: false }));
+  assert.equal((await provider.submitSigned({ signedTransaction: "" })).success, true);
+});
+
+test("CollectorCryptGachaProvider keeps error, message and details of a refusal", async () => {
+  const { CollectorCryptGachaProvider } = await import("../lib/gacha/collectorCryptProvider.ts");
+  const { GachaApiError } = await import("../lib/gacha/types.ts");
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: "Transaction failed", message: "Blockhash not found", details: { logs: ["a"] } }), { status: 500 });
+  try {
+    const provider = new CollectorCryptGachaProvider({ baseUrl: "http://localhost:9", apiKey: "SECRET-KEY-VALUE" });
+    await assert.rejects(provider.submitSigned({ signedTransaction: "AAAA" }), (e) => {
+      assert.ok(e instanceof GachaApiError);
+      assert.equal(e.status, 500);
+      const text = `${e.message} ${e.details}`;
+      assert.match(text, /Transaction failed/);
+      assert.match(text, /Blockhash not found/);
+      assert.match(text, /logs/);
+      assert.doesNotMatch(text, /SECRET-KEY-VALUE/);
+      return true;
+    });
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+// ---- resuming a saved memo (lib/gacha/resume.ts), pack status route, open route `unpaid` ------------------------
+
+const NOW = T0 + 10 * UNPAID_WINDOW_MS;
+const fresh = NOW - 60_000; // issued a minute ago
+const old = NOW - UNPAID_WINDOW_MS - 1; // issued just over 2 hours ago
+const R = (paid, opened = false, refunded = false) => ({ paid, opened, refunded });
+
+test("resolveResume: opened locally or remotely -> open the card again", () => {
+  assert.deepEqual(resolveResume({ state: "opened", createdAt: fresh }, R(true, true), NOW), { action: "open" });
+  assert.deepEqual(resolveResume({ state: "opened", createdAt: old }, null, NOW), { action: "open" });
+  assert.deepEqual(resolveResume({ state: "submitted", createdAt: fresh }, R(true, true), NOW), { action: "open" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: old }, R(true, true), NOW), { action: "open" });
+});
+
+test("resolveResume: paid but not opened -> keep polling (even when the local record says failed)", () => {
+  assert.deepEqual(resolveResume({ state: "submitted", createdAt: fresh }, R(true), NOW), { action: "poll" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, R(true), NOW), { action: "poll" });
+  assert.deepEqual(resolveResume({ state: "submitted", createdAt: old }, R(true), NOW), { action: "poll" });
+});
+
+test("resolveResume: failed locally and not paid (or Collector Crypt silent) -> not resumed", () => {
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, R(false), NOW), { action: "drop", reason: "failed_unpaid" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, null, NOW), { action: "drop", reason: "failed_unpaid" });
+  assert.deepEqual(resolveResume({ state: "failed" }, null, NOW), { action: "drop", reason: "failed_unpaid" });
+});
+
+test("resolveResume: generated / submitted and unpaid -> unconfirmed inside 2 hours, failed after", () => {
+  for (const state of ["generated", "submitted"]) {
+    assert.deepEqual(resolveResume({ state, createdAt: fresh }, R(false), NOW), { action: "unconfirmed" });
+    assert.deepEqual(resolveResume({ state, createdAt: NOW - UNPAID_WINDOW_MS }, R(false), NOW), { action: "unconfirmed" }); // exactly 2h is still inside
+    assert.deepEqual(resolveResume({ state, createdAt: old }, R(false), NOW), { action: "drop", reason: "expired_unpaid" });
+    assert.deepEqual(resolveResume({ state, createdAt: new Date(old).toISOString() }, R(false), NOW), { action: "drop", reason: "expired_unpaid" });
+    assert.deepEqual(resolveResume({ state, createdAt: fresh }, null, NOW), { action: "unconfirmed" });
+    assert.deepEqual(resolveResume({ state }, R(false), NOW), { action: "unconfirmed" }); // unknown issue time: never dropped silently
+    assert.deepEqual(resolveResume({ state, createdAt: "not a date" }, R(false), NOW), { action: "unconfirmed" });
+  }
+});
+
+test("resolveResume: refunded -> dropped as refunded (before paid / unpaid are considered), but an opened card wins", () => {
+  assert.deepEqual(resolveResume({ state: "submitted", createdAt: fresh }, R(true, false, true), NOW), { action: "drop", reason: "refunded" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, R(false, false, true), NOW), { action: "drop", reason: "refunded" });
+  assert.deepEqual(resolveResume({ state: "submitted", createdAt: fresh }, R(true, true, true), NOW), { action: "open" });
+});
+
+test("remoteFromCc: reads Collector Crypt's /api/pack/status (opened, never paid, unknown memo, refunded, garbage)", () => {
+  // opened (observed 2026-10-07): pack confirmed + send confirmed
+  assert.deepEqual(remoteFromCc({ memo: "m", pack: { status: "confirmed", webhook_received: true, refunded: null, refund_transaction_signature: null }, send: { status: "confirmed", nft_address: "Nft" }, buyback: [] }), R(true, true, false));
+  // the failed Pull: a pack row but status null, no send
+  assert.deepEqual(remoteFromCc({ memo: "m", pack: { status: null, webhook_received: null, refunded: null, refund_transaction_signature: null }, send: null, buyback: [] }), R(false, false, false));
+  // memo Collector Crypt does not know
+  assert.deepEqual(remoteFromCc({ memo: "m", pack: null, send: null, buyback: [] }), R(false, false, false));
+  // paid, not opened yet
+  assert.deepEqual(remoteFromCc({ pack: { status: "confirmed", webhook_received: true }, send: null }), R(true, false, false));
+  assert.deepEqual(remoteFromCc({ pack: { status: null, webhook_received: true }, send: null }), R(true, false, false));
+  // refunded: a flag or a refund signature
+  assert.equal(remoteFromCc({ pack: { status: "confirmed", refunded: true }, send: null }).refunded, true);
+  assert.equal(remoteFromCc({ pack: { status: "confirmed", refunded: null, refund_transaction_signature: "RefundSig" }, send: null }).refunded, true);
+  assert.equal(remoteFromCc({ pack: { status: "confirmed", refunded: false }, send: null }).refunded, false);
+  // no answer we can read
+  assert.equal(remoteFromCc(null), null);
+  assert.equal(remoteFromCc("oops"), null);
+  assert.equal(remoteFromCc([]), null);
+});
+
+test("getPackStatusLocal: the owner sees state / lastError / createdAt; a foreign or unknown memo is forbidden; DEMO DATA is separate", () => {
+  const mine = store.recordGenerated(pack({ wallet: "StatusWalletA" }), T0);
+  store.markSubmitted(mine, T0 + 1);
+  store.markFailed(mine, T0 + 2);
+  store.recordError(mine, { stage: "submit", code: "tx_expired", httpStatus: 500, message: "Blockhash not found" }, T0 + 3);
+  const seen = store.getPackStatusLocal(mine.memo, "StatusWalletA");
+  assert.equal(seen.kind, "ok");
+  assert.equal(seen.local.state, "failed");
+  assert.equal(seen.local.createdAt, new Date(T0).toISOString());
+  assert.equal(seen.local.lastError.code, "tx_expired");
+  assert.deepEqual(store.getPackStatusLocal(mine.memo, "StatusWalletB"), { kind: "forbidden" });
+  assert.deepEqual(store.getPackStatusLocal("no-such-memo", "StatusWalletA"), { kind: "forbidden" });
+  assert.deepEqual(store.getPackStatusLocal(mine.memo, null), { kind: "forbidden" }); // a DEMO DATA caller cannot read a real record
+  const demo = store.recordGenerated(pack({ wallet: "DEMO-PLAYER-WALLET", demo: true }), T0);
+  assert.equal(store.getPackStatusLocal(demo.memo, null).kind, "ok");
+  assert.equal(store.getPackStatusLocal(demo.memo, null).local.lastError, null);
+  assert.deepEqual(store.getPackStatusLocal(demo.memo, "StatusWalletA"), { kind: "forbidden" }); // and a real wallet cannot read a demo one
+  assert.deepEqual(store.getPackStatusLocal("no-such-demo-memo", null), { kind: "unknown" });
+});
+
+const statusGet = (query) => statusRoute.GET(new Request(`http://localhost:3000/api/gacha/pack/status${query}`));
+
+test("pack/status route (DEMO DATA): the documented shape, 404 unknown, 403 for a real record, 400 for a bad memo", async () => {
+  const demo = store.recordGenerated(pack({ wallet: "DEMO-PLAYER-WALLET", demo: true }), Date.now());
+  store.markFailed(demo);
+  const ok = await statusGet(`?memo=${demo.memo}&demo=1`);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("cache-control"), "no-store");
+  const body = await ok.json();
+  assert.deepEqual(Object.keys(body).sort(), ["isDemoData", "local", "memo", "remote"]);
+  assert.equal(body.memo, demo.memo);
+  assert.deepEqual(Object.keys(body.local).sort(), ["createdAt", "lastError", "state"]);
+  assert.equal(body.local.state, "failed");
+  assert.equal(body.local.lastError, null);
+  assert.equal(body.remote, null); // DEMO DATA has no Collector Crypt to ask
+  assert.equal(body.isDemoData, true);
+
+  assert.equal((await statusGet("?memo=never-seen-memo&demo=1")).status, 404);
+  const real = store.recordGenerated(pack({ wallet: "StatusRealWallet" }), Date.now());
+  const foreign = await statusGet(`?memo=${real.memo}&demo=1`);
+  assert.equal(foreign.status, 403);
+  assert.equal((await foreign.json()).error, "memo_not_owned");
+  assert.equal((await statusGet("?demo=1")).status, 400);
+  assert.equal((await statusGet("?memo=a b&demo=1")).status, 400);
+  assert.equal((await statusGet(`?memo=${real.memo}&network=mainnet`)).status, 400);
+});
+
+test("pack/status route: without a web session it is refused (never 200)", async () => {
+  const real = store.recordGenerated(pack({ wallet: "StatusRealWallet2" }), Date.now());
+  const res = await statusGet(`?memo=${real.memo}`);
+  assert.notEqual(res.status, 200);
+  assert.ok(res.status === 401 || res.status === 500);
+  assert.doesNotMatch(JSON.stringify(await res.json()), /StatusRealWallet2/);
+});
+
+test("CollectorCryptGachaProvider.packStatus asks GET /api/pack/status?memo= and throws on a refusal", async () => {
+  const { CollectorCryptGachaProvider } = await import("../lib/gacha/collectorCryptProvider.ts");
+  const { hasPackStatus } = await import("../lib/gacha/collectorCryptProvider.ts");
+  const { GachaApiError } = await import("../lib/gacha/types.ts");
+  const original = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    seen.push({ url: String(url), method: init?.method });
+    return String(url).includes("bad") ? new Response(JSON.stringify({ error: "boom" }), { status: 500 }) : new Response(JSON.stringify({ memo: "cc-1", pack: { status: null }, send: null, buyback: [] }), { status: 200 });
+  };
+  try {
+    const provider = new CollectorCryptGachaProvider({ baseUrl: "http://localhost:9" });
+    assert.equal(hasPackStatus(provider), true);
+    assert.equal(hasPackStatus(new MockGachaProvider()), false);
+    assert.deepEqual(remoteFromCc(await provider.packStatus("cc-1")), R(false));
+    assert.equal(seen[0].url, "http://localhost:9/api/pack/status?memo=cc-1");
+    assert.equal(seen[0].method, "GET");
+    await assert.rejects(provider.packStatus("bad-memo"), (e) => e instanceof GachaApiError && e.status === 500);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+const openPost = (body) =>
+  openRoute.POST(new Request("http://localhost:3000/api/gacha/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+
+test("open route: a failed record that Collector Crypt still reports as waiting answers 409 unpaid; a failed record that opens still opens", async () => {
+  // DEMO DATA (the mock answers `waiting` on the first call, then opens): same code path as a real record.
+  const failed = store.recordGenerated(pack({ wallet: "DEMO-PLAYER-WALLET", demo: true }), Date.now());
+  store.markFailed(failed);
+  store.recordError(failed, { stage: "submit", code: "upstream_error", httpStatus: 500, message: "x" });
+  const first = await openPost({ memo: failed.memo, playerAddress: "DEMO-PLAYER-WALLET", demo: true });
+  assert.equal(first.status, 409);
+  const body = await first.json();
+  assert.equal(body.code, "unpaid");
+  assert.equal(body.error, "unpaid");
+  assert.equal(body.lastError.code, "upstream_error");
+  assert.equal(failed.state, "failed");
+  const second = await openPost({ memo: failed.memo, playerAddress: "DEMO-PLAYER-WALLET", demo: true });
+  assert.equal(second.status, 200);
+  assert.equal((await second.json()).state, "opened");
+  assert.equal(failed.state, "opened");
+
+  // A record that is not failed still answers waiting (200), as before.
+  const normal = store.recordGenerated(pack({ wallet: "DEMO-PLAYER-WALLET", demo: true }), Date.now());
+  store.markSubmitted(normal);
+  const waiting = await openPost({ memo: normal.memo, playerAddress: "DEMO-PLAYER-WALLET", demo: true });
+  assert.equal(waiting.status, 200);
+  assert.equal((await waiting.json()).state, "waiting");
 });

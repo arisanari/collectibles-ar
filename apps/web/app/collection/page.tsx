@@ -19,7 +19,7 @@ import { useRedemptions } from "../../lib/redemptions/useRedemptions";
 import { useTransferRequests } from "../../lib/transferRequests/useTransferRequests";
 import walletsFixture from "../../lib/fixtures/demo/wallets.json";
 
-// SlabAR: the DEMO DATA wallet owns the self-made dummy cards (walletA keeps the dormant ukiyo-e / kokeshi fixtures).
+// Collectibles AR: the DEMO DATA wallet owns the self-made dummy cards (walletA keeps the dormant ukiyo-e / kokeshi fixtures).
 const demoWallet = (walletsFixture as Record<string, { label: string; address: string }>).walletC;
 const mockProvider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
@@ -75,10 +75,23 @@ const text = {
     en: "Creates a request and asks Phantom to sign it (devnet, no payment)",
     ja: "依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）",
   },
-  sell: { en: "Sell to SlabAR (approve in Phantom)", ja: "SlabARに売る（Phantomで承認）" },
+  networkLabel: { en: "Network:", ja: "ネットワーク:" },
+  networkDevnet: { en: "Devnet", ja: "Devnet" },
+  networkMainnet: { en: "Mainnet (read-only)", ja: "Mainnet（読み取り専用）" },
+  mainnetNote: {
+    en: "Display only. Pull, buyback and transfer are not done in this app.",
+    ja: "表示だけ。Pull・買取・送金はこのアプリでは行わない",
+  },
+  mainnetAsset: { en: "mainnet card", ja: "mainnetのカード" },
+  mainnetEmpty: {
+    en: "No Collector Crypt cards found in this wallet on mainnet.",
+    ja: "このウォレットにはmainnetのCollector Cryptカードが見つかりません。",
+  },
+  sell: { en: "Sell to Twinfold (legacy demo; approve in Phantom)", ja: "Twinfold（旧デモ）に売る（Phantomで承認）" },
 } satisfies Record<string, Localized>;
 
-type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean };
+type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean; fetchedAt: string };
+type Network = "devnet" | "mainnet";
 
 export default function CollectionPage() {
   const { t } = useI18n();
@@ -90,26 +103,33 @@ export default function CollectionPage() {
   const redemptionSignature = rd.redemptions.map((r) => `${r.id}:${r.status}`).join(",");
   const [demoOn, setDemoOn] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  // Mainnet is a read-only view of the signed-in wallet's real cards; devnet stays the default.
+  const [network, setNetwork] = useState<Network>("devnet");
 
   // Authenticated devnet view takes precedence over the fixture view.
   const demo = !authedWallet && demoOn;
-  const key = authedWallet ? `devnet:${authedWallet}` : demo ? "demo" : null;
+  const mainnet = Boolean(authedWallet) && network === "mainnet";
+  const key = authedWallet ? `${mainnet ? "mainnet" : "devnet"}:${authedWallet}` : demo ? "demo" : null;
 
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
-    const load = authedWallet ? solanaProvider.getAssets(authedWallet) : mockProvider.getAssets(demoWallet.address);
+    const load = authedWallet
+      ? mainnet
+        ? solanaProvider.getMainnetCards(authedWallet)
+        : solanaProvider.getAssets(authedWallet)
+      : mockProvider.getAssets(demoWallet.address);
     load
       .then((assets) => {
-        if (!cancelled) setResult({ key, assets, failed: false });
+        if (!cancelled) setResult({ key, assets, failed: false, fetchedAt: new Date().toISOString() });
       })
       .catch(() => {
-        if (!cancelled) setResult({ key, assets: [], failed: true });
+        if (!cancelled) setResult({ key, assets: [], failed: true, fetchedAt: new Date().toISOString() });
       });
     return () => {
       cancelled = true;
     };
-  }, [key, authedWallet, redemptionSignature]);
+  }, [key, authedWallet, mainnet, redemptionSignature]);
 
   const current = key && result?.key === key ? result : null;
   const status = !key ? "idle" : !current ? "loading" : current.failed ? "error" : "ready";
@@ -147,8 +167,16 @@ export default function CollectionPage() {
           <div className="eyebrow">{t(text.eyebrow)}</div>
           <h1>{t(text.title)}</h1>
           <p className="collectionWallet">
-            <span className="statusDot" />{shortAddress(addr)} <span className="demoBadge">{demo ? "DEMO DATA" : "DEVNET"}</span>
+            <span className="statusDot" />{shortAddress(addr)} <span className="demoBadge">{demo ? "DEMO DATA" : mainnet ? "MAINNET (read-only)" : "DEVNET"}</span>
           </p>
+          {authedWallet && (
+            <div className="networkSwitch" role="group" aria-label={t(text.networkLabel)}>
+              <span>{t(text.networkLabel)}</span>
+              <button type="button" aria-pressed={!mainnet} onClick={() => setNetwork("devnet")}>{t(text.networkDevnet)}</button>
+              <button type="button" aria-pressed={mainnet} onClick={() => setNetwork("mainnet")}>{t(text.networkMainnet)}</button>
+            </div>
+          )}
+          {mainnet && <p className="emptyState small">{t(text.mainnetNote)}</p>}
           {demo && (
             <p className="emptyState small">
               {t(text.demoNote)}
@@ -158,19 +186,20 @@ export default function CollectionPage() {
         </div>
         <div className="collectionStat">
           <strong>{status === "ready" ? assets.length.toString().padStart(2, "0") : "--"}</strong>
-          <span>{demo ? t(text.demoAsset) : t(text.devnetAsset)}</span>
+          <span>{demo ? t(text.demoAsset) : mainnet ? t(text.mainnetAsset) : t(text.devnetAsset)}</span>
         </div>
       </section>
 
-      {authedWallet && <PendingRequestsPanel tr={tr} />}
-      {authedWallet && <RedemptionPanel rd={rd} />}
-      {authedWallet && <DeviceLinkPanel />}
+      {/* The panels below act on devnet (approvals, redeem dry run, iPhone link). The mainnet view is display only. */}
+      {authedWallet && !mainnet && <PendingRequestsPanel tr={tr} />}
+      {authedWallet && !mainnet && <RedemptionPanel rd={rd} />}
+      {authedWallet && !mainnet && <DeviceLinkPanel />}
 
       {status === "loading" && <p className="emptyState">{t(text.loading)}</p>}
       {status === "error" && <p className="emptyState" role="alert">{t(text.loadFailed)}</p>}
       {status === "ready" && assets.length === 0 && (
         <div className="emptyState">
-          <p>{t(text.empty)}</p>
+          <p>{t(mainnet ? text.mainnetEmpty : text.empty)}</p>
           <Link href="/" className="secondary linkButton">{t(text.backToDiscover)}</Link>
         </div>
       )}
@@ -178,13 +207,13 @@ export default function CollectionPage() {
         <div className="grid devnetGrid collectionGrid">
           {assets.map((asset) => asset.category === "card" ? (
             <div key={asset.id} className="collectionCell">
-              <CardAssetCard asset={asset} demo={demo} />
+              <CardAssetCard asset={asset} demo={demo} fetchedAt={current?.fetchedAt} />
             </div>
           ) : (
             <div key={asset.id} className="collectionCell">
               <AssetCard asset={asset} demo={demo} showCommerce />
-              {authedWallet && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}
-              {authedWallet && asset.commerce && !asset.redemption?.open && (
+              {authedWallet && !mainnet && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}
+              {authedWallet && !mainnet && asset.commerce && !asset.redemption?.open && (
                 <button
                   className="secondary sellButton"
                   onClick={() => void tr.createBuyback(asset.id)}

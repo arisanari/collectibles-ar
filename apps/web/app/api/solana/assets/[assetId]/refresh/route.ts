@@ -4,6 +4,7 @@ import { resolveAssetAddress } from "../../../../../../lib/solana/assetRegistry"
 import type { Entitlement } from "../../../../../../lib/contract";
 import { redemptionEntitlement } from "../../../../../../lib/redemptions/overlay";
 import { findEffectiveByAsset } from "../../../../../../lib/redemptions/store";
+import { refuseMainnet } from "../../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,8 @@ export const dynamic = "force-dynamic";
  * (Phase 3) and Backend session model exist.
  */
 export async function POST(request: Request, context: { params: Promise<{ assetId: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const { assetId } = await context.params;
   const body = (await request.json().catch(() => null)) as { wallet?: string } | null;
   const wallet = body?.wallet;

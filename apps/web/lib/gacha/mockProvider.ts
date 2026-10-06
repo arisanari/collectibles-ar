@@ -1,5 +1,5 @@
 // MockGachaProvider: DEMO DATA only. No network. One machine and a pool of three self-made dummy cards
-// (fixtures/demo/assets.json, owner walletC: "SlabAR Demo Card #1..#3", placeholder SVG art, no real card names or images).
+// (fixtures/demo/assets.json, owner walletC: "Collectibles AR Demo Card #1..#3", placeholder SVG art, no real card names or images).
 // Responses use Collector Crypt's wire shapes so the same normalizer and UI run on Mock and on the real provider.
 import type { TwinfoldAsset } from "../contract";
 import assetsFixture from "../fixtures/demo/assets.json";
@@ -17,10 +17,18 @@ import type {
   SubmitSignedRequest,
   SubmitSignedResult,
 } from "./types";
+import { GachaApiError } from "./types";
+
+/**
+ * Test-only submit failures for DEMO DATA (nothing is ever signed there, so `signedTransaction` is free to carry them;
+ * the /pull page sends one when the URL has ?fail=submit or ?fail=expired). The real provider ignores these.
+ */
+export const MOCK_FAIL_SUBMIT = "DEMO-FAIL-SUBMIT";
+export const MOCK_FAIL_EXPIRED = "DEMO-FAIL-EXPIRED";
 
 const DEMO_MACHINE: GachaMachine = {
   code: "demo_25",
-  name: "SlabAR Demo Machine (DEMO DATA)",
+  name: "Collectibles AR Demo Machine (DEMO DATA)",
   price: 25,
   instantBuyback: 85,
   odds: { common: 0.75, uncommon: 0.2, rare: 0.04, epic: 0.01 },
@@ -86,7 +94,7 @@ export class MockGachaProvider implements GachaProvider {
    * memo -> number of openPack calls, so the first call answers `waiting` (exercises the retry path).
    * Kept on globalThis because route handlers create a provider per request.
    */
-  private calls: Map<string, number> = (globalThis as unknown as { __slabarMockGachaCalls?: Map<string, number> }).__slabarMockGachaCalls ??= new Map();
+  private calls: Map<string, number> = (globalThis as unknown as { __twinfoldMockGachaCalls?: Map<string, number> }).__twinfoldMockGachaCalls ??= new Map();
 
   async listMachines(): Promise<GachaMachine[]> {
     return [DEMO_MACHINE];
@@ -99,7 +107,8 @@ export class MockGachaProvider implements GachaProvider {
   }
 
   async submitSigned(request: SubmitSignedRequest): Promise<SubmitSignedResult> {
-    void request;
+    if (request.signedTransaction === MOCK_FAIL_SUBMIT) throw new GachaApiError("Simulated submit failure (DEMO DATA)", 400, "demo test flag ?fail=submit");
+    if (request.signedTransaction === MOCK_FAIL_EXPIRED) throw new GachaApiError("Transaction expired: block height exceeded (DEMO DATA)", 500, "demo test flag ?fail=expired");
     return { success: true, signature: "DEMO-TX-SUBMIT", confirmationStatus: "demo" };
   }
 

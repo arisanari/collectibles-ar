@@ -7,8 +7,8 @@ export const MACHINES_TTL_MS = 30_000;
 
 export type MachinesPayload = { machines: GachaMachine[]; fetchedAt: string };
 
-const g = globalThis as unknown as { __slabarMachinesCache?: Map<string, { at: number; payload: MachinesPayload }> };
-const cache: Map<string, { at: number; payload: MachinesPayload }> = (g.__slabarMachinesCache ??= new Map());
+const g = globalThis as unknown as { __twinfoldMachinesCache?: Map<string, { at: number; payload: MachinesPayload }> };
+const cache: Map<string, { at: number; payload: MachinesPayload }> = (g.__twinfoldMachinesCache ??= new Map());
 // Concurrent requests for the same key share ONE upstream call (a page load fires the request more than once).
 const inflight = new Map<string, Promise<MachinesPayload>>();
 

@@ -102,9 +102,9 @@ export type TwinfoldAsset = {
   provenance: ProvenanceEvent[];
   physical?: PhysicalDescriptor;
   commerce?: Commerce;
-  // ---- Graded card assets (SlabAR, 2026-10-06). All optional so the dormant ukiyo-e / kokeshi fixtures stay valid.
+  // ---- Graded card assets (Collectibles AR, 2026-10-06). All optional so the dormant ukiyo-e / kokeshi fixtures stay valid.
   // Everything from `grade` to `vaultId` is a THIRD-PARTY claim (PSA grade, Collector Crypt insured value and
-  // Vault record) copied from the NFT metadata; it is not an onchain fact and SlabAR has not verified it.
+  // Vault record) copied from the NFT metadata; it is not an onchain fact and Collectibles AR has not verified it.
   // Keep these names identical in packages/TwinfoldCore (TwinfoldModels.swift).
   category?: "card";
   grade?: string; // attribute "The Grade", e.g. "GEM-MT 10"

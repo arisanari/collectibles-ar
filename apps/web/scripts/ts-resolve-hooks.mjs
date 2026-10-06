@@ -9,6 +9,14 @@ export async function resolve(specifier, context, nextResolve) {
       // fall through to the default resolution
     }
   }
+  // `next/server`, `next/headers`: next's package has no "exports" map, so plain Node needs the ".js" the bundler adds.
+  if (/^next\/[a-z]+$/.test(specifier)) {
+    try {
+      return await nextResolve(`${specifier}.js`, context);
+    } catch {
+      // fall through to the default resolution
+    }
+  }
   return nextResolve(specifier, context);
 }
 

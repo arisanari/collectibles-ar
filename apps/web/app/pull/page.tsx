@@ -26,11 +26,24 @@ const stageText = (state: PullState) => {
     case "submitting":
       return pullUi.stage.submitting;
     case "opening":
-      return state.paused ? pullUi.stage.openingPaused : state.busyRetry ? pullUi.stage.openingBusy : pullUi.stage.opening;
+      return state.paused
+        ? pullUi.stage.openingPaused
+        : state.busyRetry
+          ? pullUi.stage.openingBusy
+          : state.resumed && state.attempts === 0
+            ? pullUi.stage.resuming
+            : pullUi.stage.opening;
     default:
       return null;
   }
 };
+
+const HINTED = ["wallet_not_signer", "invalid_transaction", "memo_not_owned", "rate_limited", "tx_expired", "signature_too_slow", "unpaid_window_closed", "network"] as const;
+
+/** A plain-language line for the error codes this app produces itself; Collector Crypt's own codes show only their message. */
+function codeHint(code: string, t: (text: { en: string; ja: string }) => string): string | null {
+  return (HINTED as readonly string[]).includes(code) ? t(pullUi.detailsCode[code as (typeof HINTED)[number]]) : null;
+}
 
 /** Pull page: machine info (Collector Crypt's values as received), Pull button, result card. */
 export default function PullPage() {
@@ -68,12 +81,20 @@ export default function PullPage() {
   const { state } = pull;
   const inProgress = ["creating", "signing", "submitting"].includes(state.stage) || (state.stage === "opening" && !state.paused);
   const connecting = auth.status === "connecting" || auth.status === "awaiting_signature";
-  const canPull = Boolean(machine) && !inProgress && !(state.resumable && (state.stage === "failed" || state.stage === "opening"));
+  // An expired, unpaid transaction: only a fresh Pull makes sense (its own button replaces the plain Pull button).
+  const expiredUnpaid = state.stage === "failed" && state.error === "expired" && state.unpaid === true;
+  const canPull = Boolean(machine) && !inProgress && !expiredUnpaid && !(state.resumable && (state.stage === "failed" || state.stage === "opening"));
   const message = stageText(state);
   const valueNote = isDemo ? t(pullUi.demoValue) : t(pullUi.published);
   // The badge waits until the provider is known: the user chose DEMO DATA, or the machines answer said which one it is.
   const badge = demoOn || (current && !current.failed) ? (isDemo ? "DEMO DATA" : "DEVNET") : null;
   const myOrphans = pull.orphans.filter((o) => o.wallet === authedWallet);
+
+  /** A saved memo with no payment seen yet may still have been paid: leaving it behind asks first (it stays in the list below). */
+  function pullNow(code: string) {
+    if (state.unconfirmed && !window.confirm(t(pullUi.confirmNewPull))) return;
+    void pull.start(code);
+  }
 
   function startNewPull() {
     if (pull.needsConfirm && !window.confirm(t(pullUi.confirmNewPull))) return;
@@ -137,7 +158,7 @@ export default function PullPage() {
 
               <div className="pullActions">
                 {canPull && (isDemo || authedWallet) && (
-                  <button className="primary" onClick={() => void pull.start(machine.code)}>
+                  <button className="primary" onClick={() => pullNow(machine.code)}>
                     {isDemo ? t(pullUi.pullDemo) : t(pullUi.pull)}
                   </button>
                 )}
@@ -147,11 +168,17 @@ export default function PullPage() {
                   </button>
                 )}
                 {inProgress && <button className="primary" disabled>{t(pullUi.busy)}</button>}
-                {state.resumable && (state.stage === "failed" || state.paused) && (
-                  <>
-                    <button className="primary" onClick={pull.checkAgain}>{t(pullUi.checkAgain)}</button>
-                    <button className="secondary" onClick={startNewPull}>{t(pullUi.newPull)}</button>
-                  </>
+                {expiredUnpaid && (
+                  <button className="primary" onClick={() => pull.discardAndRestart(state.packType ?? machine.code)}>
+                    {t(pullUi.recreate)}
+                  </button>
+                )}
+                {(state.unconfirmed || (state.resumable && (state.stage === "failed" || state.paused))) && (
+                  <button className={state.unconfirmed ? "secondary" : "primary"} onClick={pull.checkAgain}>{t(pullUi.checkAgain)}</button>
+                )}
+                {/* Always offered while a saved memo is unfinished (also while it is still polling), so a stuck memo never blocks a new Pull. */}
+                {state.resumable && state.stage !== "opened" && state.stage !== "idle" && (
+                  <button className="secondary" onClick={startNewPull}>{t(pullUi.newPull)}</button>
                 )}
               </div>
             </>
@@ -173,9 +200,17 @@ export default function PullPage() {
           {message && <p className="pullNote">{t(message)}</p>}
           {state.error && (
             <p className="pullError" role="alert">
-              {t(pullUi.errors[state.error])}
+              {expiredUnpaid ? t(pullUi.expiredUnpaid) : t(pullUi.errors[state.error])}
               {state.errorDetail ? ` (${state.errorDetail})` : ""}
             </p>
+          )}
+          {state.stage === "failed" && state.lastError && (
+            <div className="pullNote" data-testid="pull-details">
+              <strong>{t(pullUi.detailsLabel)}</strong>: <code>{state.lastError.code}</code>
+              {state.lastError.httpStatus > 0 && ` (${t(pullUi.detailsHttp)} ${state.lastError.httpStatus})`}
+              {codeHint(state.lastError.code, t) && <div>{codeHint(state.lastError.code, t)}</div>}
+              {state.lastError.message && <div>{state.lastError.message}</div>}
+            </div>
           )}
           {state.memo && state.stage !== "opened" && <p className="pullMemo">memo: {state.memo}</p>}
           {state.stage === "opened" && state.asset && (

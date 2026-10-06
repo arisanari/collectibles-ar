@@ -32,6 +32,8 @@ import TwinfoldCore
 @MainActor
 public enum AssetRepresentationEntity {
     public static func make(asset: TwinfoldAsset) -> Entity {
+        // Graded cards (`category == "card"`) are shown as a real-size slab, not as a paper card.
+        if isSlab(asset) { return GradedSlabEntity.make(asset: asset) }
         guard case let .model(resource) = asset.spatialRepresentation else {
             let card = AssetCardEntity.make(asset: asset)
             applyGroundingShadow(to: card)
@@ -67,12 +69,28 @@ public enum AssetRepresentationEntity {
     /// (`ImmersiveGalleryView`) and any other caller should keep calling
     /// `make(asset:)` directly, unchanged.
     public static func makeForWallPlacement(asset: TwinfoldAsset) -> Entity {
+        if isSlab(asset) { return GradedSlabEntity.make(asset: asset) }
         guard case .model = asset.spatialRepresentation else {
             let paper = AssetCardEntity.makePaper(asset: asset)
             applyGroundingShadow(to: paper)
             return paper
         }
         return make(asset: asset)
+    }
+
+    /// `true` for a graded card (`category == "card"`), which renders as `GradedSlabEntity`. Unlike a framed print
+    /// (wall only) or a USDZ twin (floor only), a slab can be placed on a wall or on a horizontal surface.
+    public static func isSlab(_ asset: TwinfoldAsset) -> Bool {
+        asset.category == "card"
+    }
+
+    /// Real-world footprint (width, height) in meters of what `make(asset:)` builds for `asset`.
+    public static func footprint(for asset: TwinfoldAsset) -> (width: Float, height: Float) {
+        if isSlab(asset) {
+            return (GradedSlabDimensions.psaStandard.width, GradedSlabDimensions.psaStandard.height)
+        }
+        let size = AssetCardEntity.size(for: asset)
+        return (size.width, size.height)
     }
 
     /// `true` when `asset` renders as a real-world-scale USDZ twin (rather

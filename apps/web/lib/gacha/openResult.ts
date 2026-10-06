@@ -2,7 +2,7 @@
 import { getAsset, getSignatureStatuses, type HeliusSignatureStatus } from "../solana/heliusClient";
 import type { TwinfoldAsset } from "../contract";
 import { openPackToAsset, pickImageUrl } from "./normalize";
-import { markFailed, markOpened, type GachaPackRecord } from "./packStore";
+import { markFailed, markOpened, recordAsset, type GachaPackRecord } from "./packStore";
 import { GachaApiError, type GachaProvider } from "./types";
 
 export type OpenResultPayload =
@@ -23,7 +23,7 @@ export function isStatusConfirmed(status: HeliusSignatureStatus | undefined): bo
 }
 
 /** Asks the devnet RPC (existing Helius client, server side). Any RPC failure counts as "not confirmed yet". */
-async function signatureIsOnChain(signature: string): Promise<boolean> {
+export async function signatureIsOnChain(signature: string): Promise<boolean> {
   try {
     return isStatusConfirmed((await getSignatureStatuses([signature]))[0]);
   } catch (error) {
@@ -51,23 +51,28 @@ export async function openPackForUi(provider: GachaProvider, record: GachaPackRe
 
   const { won } = outcome;
   markOpened(record, { nftAddress: won.nft_address, txSignature: won.transactionSignature });
-  let fallbackImageUrl: string | undefined;
-  let assetInterface: string | undefined;
+  // What an earlier call already found through DAS is kept on the record, so DAS is asked once per memo.
+  let fallbackImageUrl: string | undefined = record.imageUrl;
+  let assetInterface: string | undefined = record.assetInterface;
   // openPack's nftWon often has no image. Read it through Helius DAS (the existing server-side client), runtime only.
   // Owner is NOT taken from DAS here: right after the transfer DAS can still report the gacha wallet.
-  if (!provider.isDemoData && !pickImageUrl(won.nftWon)) {
+  if (!provider.isDemoData && !pickImageUrl(won.nftWon) && !(fallbackImageUrl && assetInterface)) {
     try {
       const das = await getAsset(won.nft_address);
-      fallbackImageUrl = pickImageUrl(das);
-      assetInterface = das.interface;
+      fallbackImageUrl = pickImageUrl(das) ?? fallbackImageUrl;
+      assetInterface = das.interface ?? assetInterface;
     } catch (error) {
       console.warn("gacha open: DAS getAsset failed, showing the card without an image", error instanceof Error ? error.message : "unknown error");
     }
   }
 
   // DEMO DATA has no chain to ask (its signature is made up and the screen says DEMO DATA).
-  const chainConfirmed = Boolean(won.transactionSignature) && (provider.isDemoData || (await signatureIsOnChain(won.transactionSignature as string)));
+  // Once the Pull has been seen on chain it stays confirmed (no new RPC call, and a later RPC hiccup cannot turn it back to pending).
+  const alreadyConfirmed = record.asset?.provenance.some((e) => e.status === "confirmed" && e.metadata?.memo === memo) === true;
+  const chainConfirmed =
+    Boolean(won.transactionSignature) && (provider.isDemoData || alreadyConfirmed || (await signatureIsOnChain(won.transactionSignature as string)));
   const asset = openPackToAsset({ won, memo, owner: playerAddress, fallbackImageUrl, assetInterface, chainConfirmed, now: new Date(record.openedAt ?? Date.now()) });
+  recordAsset(record, { asset, imageUrl: fallbackImageUrl, assetInterface });
   return {
     state: "opened",
     memo,

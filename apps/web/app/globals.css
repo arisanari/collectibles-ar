@@ -256,7 +256,7 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .featureLabel { display:flex; align-items:center; gap:10px; }
 .featureNoImage { position:absolute; inset:0; display:grid; place-items:center; font:400 11px DM Mono; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
 
-/* SlabAR: /pull and graded card display */
+/* Collectibles AR: /pull and graded card display */
 .slabCard { gap:10px; }
 .slabTop { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
 .slabImage { position:relative; width:150px; aspect-ratio:300/480; background:#e5e2da; border:1px solid var(--line); overflow:hidden; display:flex; align-items:center; justify-content:center; }
@@ -270,6 +270,11 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .slabFacts dd { margin:0; text-align:right; word-break:break-all; }
 .slabFacts dd a { color:inherit; }
 .slabMemo { max-width:70%; }
+.passportSection { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+.passportSection h4 { margin:0; font:500 11px DM Mono; letter-spacing:.04em; text-transform:none; }
+.networkSwitch { display:flex; align-items:center; gap:8px; margin:12px 0 0; font:400 11px DM Mono; flex-wrap:wrap; }
+.networkSwitch button { border:1px solid var(--line); background:none; border-radius:999px; padding:5px 12px; font:400 11px DM Mono; cursor:pointer; color:var(--ink); }
+.networkSwitch button[aria-pressed="true"] { background:var(--ink); color:var(--paper); border-color:var(--ink); }
 .slabClaimNote { margin:0; font-size:11px; line-height:1.7; color:var(--muted); }
 .pullPage { padding:48px 0 90px; }
 .pullPage h1 { font-size:clamp(40px,6vw,72px); line-height:.95; letter-spacing:-.05em; margin:0 0 18px; font-weight:500; }

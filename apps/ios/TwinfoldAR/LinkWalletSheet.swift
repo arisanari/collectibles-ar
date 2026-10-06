@@ -86,7 +86,7 @@ struct LinkWalletSheet: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("連携中: \(short)")
                 .font(.headline)
-            Text("DEVNET。「あなたのwallet」の部屋でのみ、送る・OshiPinに売るが使えます。Owner A / Owner Bの部屋は閲覧のみです。")
+            Text("DEVNET。「あなたのwallet」の部屋でのみ、送る・Twinfold（旧デモ）に売るが使えます。Owner A / Owner Bの部屋は閲覧のみです。")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Button("連携を解除", role: .destructive) {
