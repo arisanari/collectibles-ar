@@ -1,6 +1,8 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- card images are served by the NFT metadata host (arbitrary https hosts), so next/image's domain allowlist does not fit */
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import type { TwinfoldAsset } from "../lib/contract";
 import { cardUi } from "../lib/copy/pull";
@@ -19,6 +21,8 @@ import { explorerAddressUrl, explorerTxUrl, psaCertUrl, shortAddress } from "../
 export function CardAssetCard({ asset, demo = false, fetchedAt }: { asset: TwinfoldAsset; demo?: boolean; fetchedAt?: string }) {
   const { t } = useI18n();
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  // The Passport page renders this card itself, so it does not link to itself.
+  const onPassport = usePathname().startsWith("/passport");
   const url = asset.imageUrl ?? asset.display.imageUrl;
   const showImage = Boolean(url) && failedUrl !== url;
   const mainnet = !demo && asset.network === "mainnet";
@@ -49,6 +53,9 @@ export function CardAssetCard({ asset, demo = false, fetchedAt }: { asset: Twinf
         </span>
       </div>
       <h3>{asset.title}</h3>
+      {!onPassport && (
+        <Link className="secondary linkButton passportLink" href={`/passport/${encodeURIComponent(asset.id)}`}>{t(cardUi.openPassport)}</Link>
+      )}
 
       <section className="passportSection" aria-label={t(cardUi.factTitle)}>
         <h4>{t(cardUi.factTitle)}</h4>

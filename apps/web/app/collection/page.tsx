@@ -19,7 +19,7 @@ import { useRedemptions } from "../../lib/redemptions/useRedemptions";
 import { useTransferRequests } from "../../lib/transferRequests/useTransferRequests";
 import walletsFixture from "../../lib/fixtures/demo/wallets.json";
 
-// Collectibles AR: the DEMO DATA wallet owns the self-made dummy cards (walletA keeps the dormant ukiyo-e / kokeshi fixtures).
+// Collectibles AR: the DEMO DATA wallet owns the self-made dummy cards (walletA / walletB keep the earlier legacy fixture Assets).
 const demoWallet = (walletsFixture as Record<string, { label: string; address: string }>).walletC;
 const mockProvider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
@@ -70,7 +70,7 @@ const text = {
     en: "This wallet owns no devnet Assets.",
     ja: "このウォレットが所有するdevnet Assetはありません",
   },
-  backToDiscover: { en: "Back to Discover", ja: "Discoverへ戻る" },
+  pullAPack: { en: "Pull a pack", ja: "パックを引く" },
   sellTitle: {
     en: "Creates a request and asks Phantom to sign it (devnet, no payment)",
     ja: "依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）",
@@ -135,6 +135,9 @@ export default function CollectionPage() {
   const status = !key ? "idle" : !current ? "loading" : current.failed ? "error" : "ready";
   const assets = current?.assets ?? [];
   const busy = auth.status === "connecting" || auth.status === "awaiting_signature";
+  const hasCard = assets.some((asset) => asset.category === "card");
+  const hasLegacyAsset = assets.some((asset) => asset.category !== "card");
+  const showLegacyPanels = status === "ready" && hasLegacyAsset && !hasCard;
   const retry = ["rejected", "expired", "switched", "error"].includes(auth.status);
 
   if (!key) {
@@ -191,8 +194,9 @@ export default function CollectionPage() {
       </section>
 
       {/* The panels below act on devnet (approvals, redeem dry run, iPhone link). The mainnet view is display only. */}
-      {authedWallet && !mainnet && <PendingRequestsPanel tr={tr} />}
-      {authedWallet && !mainnet && <RedemptionPanel rd={rd} />}
+      {/* The Twinfold buyback / redeem panels belong to the legacy fixture Assets only. A wallet that holds a card (or no legacy Asset) never sees them: buyback and shipping are Collector Crypt's. */}
+      {authedWallet && !mainnet && showLegacyPanels && <PendingRequestsPanel tr={tr} />}
+      {authedWallet && !mainnet && showLegacyPanels && <RedemptionPanel rd={rd} />}
       {authedWallet && !mainnet && <DeviceLinkPanel />}
 
       {status === "loading" && <p className="emptyState">{t(text.loading)}</p>}
@@ -200,7 +204,7 @@ export default function CollectionPage() {
       {status === "ready" && assets.length === 0 && (
         <div className="emptyState">
           <p>{t(mainnet ? text.mainnetEmpty : text.empty)}</p>
-          <Link href="/" className="secondary linkButton">{t(text.backToDiscover)}</Link>
+          <Link href="/pull" className="secondary linkButton">{t(text.pullAPack)}</Link>
         </div>
       )}
       {status === "ready" && assets.length > 0 && (
@@ -211,9 +215,9 @@ export default function CollectionPage() {
             </div>
           ) : (
             <div key={asset.id} className="collectionCell">
-              <AssetCard asset={asset} demo={demo} showCommerce />
-              {authedWallet && !mainnet && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}
-              {authedWallet && !mainnet && asset.commerce && !asset.redemption?.open && (
+              <AssetCard asset={asset} demo={demo} showCommerce={showLegacyPanels} />
+              {authedWallet && !mainnet && showLegacyPanels && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}
+              {authedWallet && !mainnet && showLegacyPanels && asset.commerce && !asset.redemption?.open && (
                 <button
                   className="secondary sellButton"
                   onClick={() => void tr.createBuyback(asset.id)}

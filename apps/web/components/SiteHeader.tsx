@@ -11,7 +11,6 @@ import { useAuth } from "./AuthProvider";
 const copy = {
   home: { en: "Collectibles AR home", ja: "Collectibles AR ホーム" },
   mainNav: { en: "Main navigation", ja: "メインナビゲーション" },
-  discover: { en: "Discover", ja: "見つける" },
   pull: { en: "Pull", ja: "Pull" },
   collection: { en: "Collection", ja: "コレクション" },
   myCollection: { en: "My collection", ja: "マイコレクション" },
@@ -21,7 +20,7 @@ const copy = {
   signing: { en: "Sign in Phantom…", ja: "Phantomで署名…" },
   retry: { en: "Retry", ja: "再試行" },
   connect: { en: "Connect Phantom", ja: "Phantomに接続" },
-  tagline: { en: "Real-world provenance, spatially alive.", ja: "実物の来歴を、空間で生かす。" },
+  tagline: { en: "Pull a pack. It appears in your room.", ja: "パックを引く。部屋に出る。" },
 } satisfies Record<string, Localized>;
 
 export function SiteHeader() {
@@ -55,7 +54,6 @@ export function SiteHeader() {
         COLLECTIBLES AR
       </Link>
       <nav aria-label={t(copy.mainNav)}>
-        <Link href="/" className={!onCollection && !onPull ? "active" : ""} aria-current={!onCollection && !onPull ? "page" : undefined}>{t(copy.discover)}</Link>
         <Link href="/pull" className={onPull ? "active" : ""} aria-current={onPull ? "page" : undefined}>{t(copy.pull)}</Link>
         <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
       </nav>

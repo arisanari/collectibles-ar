@@ -19,6 +19,7 @@ export const cardUi = {
   verify: { en: "Verify the draw (VRF, Collector Crypt)", ja: "抽選の検証（VRF・Collector Crypt）" },
   noImage: { en: "Image not available", ja: "画像を取得できません" },
   owner: { en: "Owner", ja: "所有者" },
+  openPassport: { en: "Open Passport", ja: "Open Passport" },
   // Passport: three sections that are never mixed (docs/mvp.md section 6).
   factTitle: { en: "Onchain fact", ja: "Onchain fact（オンチェーンの事実）" },
   factNote: {
@@ -223,4 +224,30 @@ export const pullUi = {
   rarity: { en: "Rarity", ja: "レアリティ" },
   tx: { en: "Pull transaction", ja: "Pull取引" },
   demoResultNote: { en: "DEMO DATA: a self-made placeholder card, not a real transaction.", ja: "DEMO DATA: 自作のプレースホルダーカードで、実際の取引ではありません。" },
+} as const;
+
+// /pull/lab: a prototype of the opening effect. Effect strength only; no rarity names, no outcome wording.
+export const cameraRevealUi = {
+  placeLabel: { en: "Place your plush toy here", ja: "ぬいぐるみをここに置いてね" },
+  placed: { en: "Placed", ja: "置いた" },
+  skipPlace: { en: "Continue without placing", ja: "置かずに進む" },
+  tapToOpen: { en: "Tap the pack to open it", ja: "パックをタップして開ける" },
+  noCamera: { en: "The camera is unavailable, so this is shown without a background.", ja: "カメラを使えないので背景なしで表示しています" },
+  again: { en: "Again", ja: "もう一度" },
+  close: { en: "Close", ja: "閉じる" },
+  closeLabel: { en: "Close the camera view", ja: "カメラ表示を閉じる" },
+  placeholderCard: { en: "Placeholder card", ja: "プレースホルダーカード" },
+} as const;
+
+export const labUi = {
+  title: { en: "Opening effect lab", ja: "開封演出ラボ" },
+  note: { en: "A prototype of the effect. No real Pull is made.", ja: "演出の試作で、実際のPullは行いません。" },
+  lead: {
+    en: "Pick an effect strength, then try it with your camera. Put a plush toy inside the frame and watch it take the hit.",
+    ja: "演出の強さを選んで、カメラで試せます。枠にぬいぐるみを置くと、攻撃を受けたように見えます。",
+  },
+  tierLabel: { en: "Effect strength", ja: "演出の強さ" },
+  tierName: { en: "Effect", ja: "演出" },
+  start: { en: "Try the opening with the camera", ja: "カメラで開封を試す" },
+  dummyTitle: { en: "Sample Card", ja: "サンプルカード" },
 } as const;
