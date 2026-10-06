@@ -218,7 +218,7 @@ public struct LocalizedTitle: Codable, Sendable, Equatable {
 
 public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let id: String
-    public let network: String // "devnet"
+    public let network: String // "devnet" | "mainnet" (mainnet = read-only display, no Pull/buyback/transfer in the app)
     public let address: String
     public let standard: String
     public let owner: String?
@@ -230,6 +230,29 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
     public let provenance: [ProvenanceEvent]
     public let physical: PhysicalDescriptor?
     public let commerce: Commerce?
+    // ---- Graded card assets (SlabAR). Mirrors the card fields of `TwinfoldAsset` in apps/web/lib/contract.ts.
+    // All optional so the dormant ukiyo-e / kokeshi fixtures still decode. `grade` ... `vaultId` are THIRD-PARTY
+    // claims (PSA grade, Collector Crypt insured value / Vault record) copied from NFT metadata, not onchain facts.
+    /// "card" for graded card assets.
+    public let category: String?
+    /// attribute "The Grade", e.g. "GEM-MT 10".
+    public let grade: String?
+    /// attribute "Grading Company", e.g. "PSA".
+    public let gradingCompany: String?
+    /// attribute "Grading ID" (certificate number).
+    public let gradingId: String?
+    /// attribute "Insured Value" in USD; only present when it parsed as a number.
+    public let insuredValueUsd: Double?
+    /// attribute "Vault", e.g. "PSA Vault", "OmniVault".
+    public let vault: String?
+    /// attribute "Vault ID".
+    public let vaultId: String?
+    /// "collectorCrypt" when the asset was recognized as Collector Crypt issued.
+    public let source: String?
+    /// Collector Crypt Pull memo; only for assets opened through the Pull flow.
+    public let gachaMemo: String?
+    /// Image URL from the NFT metadata, read at runtime (never bundled). `display.imageUrl` carries the same URL.
+    public let imageUrl: String?
     /// Rehearsal token for the redeem dry run (id `<baseId>-rehearsal-<n>`): same physical item as the base
     /// Asset, NOT an additional claim and NOT a Reference Asset. Clients show a REHEARSAL badge.
     public let rehearsal: Bool?
@@ -249,6 +272,16 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         provenance: [ProvenanceEvent],
         physical: PhysicalDescriptor? = nil,
         commerce: Commerce? = nil,
+        category: String? = nil,
+        grade: String? = nil,
+        gradingCompany: String? = nil,
+        gradingId: String? = nil,
+        insuredValueUsd: Double? = nil,
+        vault: String? = nil,
+        vaultId: String? = nil,
+        source: String? = nil,
+        gachaMemo: String? = nil,
+        imageUrl: String? = nil,
         rehearsal: Bool? = nil,
         redemption: RedemptionSummary? = nil
     ) {
@@ -264,6 +297,16 @@ public struct TwinfoldAsset: Codable, Sendable, Identifiable, Equatable {
         self.provenance = provenance
         self.physical = physical
         self.commerce = commerce
+        self.category = category
+        self.grade = grade
+        self.gradingCompany = gradingCompany
+        self.gradingId = gradingId
+        self.insuredValueUsd = insuredValueUsd
+        self.vault = vault
+        self.vaultId = vaultId
+        self.source = source
+        self.gachaMemo = gachaMemo
+        self.imageUrl = imageUrl
         self.rehearsal = rehearsal
         self.redemption = redemption
     }

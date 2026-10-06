@@ -18,7 +18,7 @@ export const custodyStatusLabel: Record<PhysicalDescriptor["custody"]["status"],
 export const sourceLabel: Record<ProvenanceEvent["source"], string> = {
   onchain: "On-chain",
   offchain_evidence: "Off-chain evidence",
-  twinfold_interpretation: "OshiPin interpretation",
+  twinfold_interpretation: "SlabAR interpretation",
 };
 
 export function explorerAddressUrl(address: string) {

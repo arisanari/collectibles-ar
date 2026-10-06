@@ -6,7 +6,7 @@ import { provenanceTitleText, provenanceUi, sourceText } from "../lib/copy/landi
 import { useI18n } from "../lib/i18n";
 import { explorerTxUrl, shortAddress, sortedProvenance } from "../lib/labels";
 
-/** Provenance timeline. onchain / off-chain evidence / OshiPin interpretation are tagged
+/** Provenance timeline. onchain / off-chain evidence / SlabAR interpretation are tagged
  * separately (source label + border). Transaction links go to Solana Explorer (devnet) only
  * for real (non-demo) data; fixture signatures are shown as plain text.
  * With `limit`, events are listed newest first and only `limit` are shown until expanded.

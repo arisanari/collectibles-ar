@@ -24,11 +24,11 @@ const phaseLabel: Record<"preparing" | "signing" | "submitting", Localized> = {
 const text = {
   title: { en: "Requests awaiting approval", ja: "承認待ちの依頼" },
   note: {
-    en: "Requests arrive here when you tap \"Send\", \"Sell to OshiPin\" or \"Redeem the physical item\" on iPhone, or request a redemption on the web. Nothing happens until you sign in Phantom (devnet). OshiPin's vault wallet pays the network fee.",
-    ja: "iPhoneで「送る」「OshiPinに売る」「現物を引き取る」を押すか、Webで引き取りを申請すると、ここに依頼が届きます。あなたがPhantomで署名するまで、何も動きません（devnet）。送信手数料はOshiPinのvault walletが負担します。",
+    en: "Requests arrive here when you tap \"Send\", \"Sell to SlabAR\" or \"Redeem the physical item\" on iPhone, or request a redemption on the web. Nothing happens until you sign in Phantom (devnet). SlabAR's vault wallet pays the network fee.",
+    ja: "iPhoneで「送る」「SlabARに売る」「現物を引き取る」を押すか、Webで引き取りを申請すると、ここに依頼が届きます。あなたがPhantomで署名するまで、何も動きません（devnet）。送信手数料はSlabARのvault walletが負担します。",
   },
   none: { en: "No requests awaiting approval.", ja: "承認待ちの依頼はありません" },
-  kindBuyback: { en: "Sell to OshiPin", ja: "OshiPinに売る" },
+  kindBuyback: { en: "Sell to SlabAR", ja: "SlabARに売る" },
   kindRedeem: { en: "Redeem the physical item: stop the Asset (lock)", ja: "現物の引き取り：流通Assetを止める（lock）" },
   kindSend: { en: "Send", ja: "送る" },
   fromDevice: { en: "Request from iPhone", ja: "iPhoneからの依頼" },
@@ -41,8 +41,8 @@ const text = {
     ja: "この依頼はiPhoneの連携端末から作成されました。心当たりがなければ「拒否」し、連携を解除してください。",
   },
   redeemNote: {
-    en: "When you sign, the Asset moves to OshiPin's redemption escrow and stops circulating (it disappears from your wall). You can cancel before shipping, and the Asset is returned from escrow. This is a dry run: nothing is shipped and no delivery address is recorded.",
-    ja: "署名するとAssetはOshiPinのredemption escrowへ移り、流通が止まります（あなたの壁から消えます）。取消はescrowからの返却で、発送前なら可能です。dry runのため実配送はなく、配送先も記録しません。",
+    en: "When you sign, the Asset moves to SlabAR's redemption escrow and stops circulating (it disappears from your wall). You can cancel before shipping, and the Asset is returned from escrow. This is a dry run: nothing is shipped and no delivery address is recorded.",
+    ja: "署名するとAssetはSlabARのredemption escrowへ移り、流通が止まります（あなたの壁から消えます）。取消はescrowからの返却で、発送前なら可能です。dry runのため実配送はなく、配送先も記録しません。",
   },
   buybackOffer: { en: "Buyback offer", ja: "買取オファー" },
   buybackNote: {
@@ -51,8 +51,8 @@ const text = {
   },
   explorer: { en: "View on Explorer (devnet)", ja: "Explorerで確認（devnet）" },
   confirmSend: {
-    en: "Send to this destination (it is not the OshiPin Vault address)",
-    ja: "この宛先へ送る（OshiPin Vault以外のアドレスです）",
+    en: "Send to this destination (it is not the SlabAR Vault address)",
+    ja: "この宛先へ送る（SlabAR Vault以外のアドレスです）",
   },
   approve: { en: "Approve (sign in Phantom)", ja: "承認（Phantomで署名）" },
   reject: { en: "Reject", ja: "拒否" },

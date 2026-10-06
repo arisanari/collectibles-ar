@@ -9,9 +9,10 @@ import { shortAddress } from "../lib/labels";
 import { useAuth } from "./AuthProvider";
 
 const copy = {
-  home: { en: "OshiPin home", ja: "OshiPin ホーム" },
+  home: { en: "SlabAR home", ja: "SlabAR ホーム" },
   mainNav: { en: "Main navigation", ja: "メインナビゲーション" },
   discover: { en: "Discover", ja: "見つける" },
+  pull: { en: "Pull", ja: "Pull" },
   collection: { en: "Collection", ja: "コレクション" },
   myCollection: { en: "My collection", ja: "マイコレクション" },
   signOut: { en: "Sign out", ja: "サインアウト" },
@@ -32,6 +33,7 @@ export function SiteHeader() {
   const navigateAfterSignIn = useRef(false);
   const authedWallet = auth.status === "authenticated" ? auth.wallet : null;
   const onCollection = pathname.startsWith("/collection");
+  const onPull = pathname.startsWith("/pull");
 
   // After a user-initiated sign-in from the header, land on the wallet's page.
   useEffect(() => {
@@ -49,11 +51,12 @@ export function SiteHeader() {
   return (
     <header className="nav shell">
       <Link className="brand" href="/" aria-label={t(copy.home)}>
-        <Image className="brandMark" src="/brand/oshipin-mark.svg" alt="" width={24} height={30} priority />
-        OSHIPIN
+        <Image className="brandMark" src="/brand/slabar-mark.svg" alt="" width={24} height={30} priority />
+        SLABAR
       </Link>
       <nav aria-label={t(copy.mainNav)}>
-        <Link href="/" className={!onCollection ? "active" : ""} aria-current={!onCollection ? "page" : undefined}>{t(copy.discover)}</Link>
+        <Link href="/" className={!onCollection && !onPull ? "active" : ""} aria-current={!onCollection && !onPull ? "page" : undefined}>{t(copy.discover)}</Link>
+        <Link href="/pull" className={onPull ? "active" : ""} aria-current={onPull ? "page" : undefined}>{t(copy.pull)}</Link>
         <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
       </nav>
       <div className="navRight">
@@ -92,5 +95,5 @@ export function SiteHeader() {
 
 export function SiteFooter() {
   const { t } = useI18n();
-  return <footer className="shell"><span>OSHIPIN / TOKYO</span><p>{t(copy.tagline)}</p><span>© 2026</span></footer>;
+  return <footer className="shell"><span>SLABAR / TOKYO</span><p>{t(copy.tagline)}</p><span>© 2026</span></footer>;
 }

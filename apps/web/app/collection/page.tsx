@@ -9,6 +9,7 @@ import type { AuthStatus } from "../../lib/auth/useWalletAuth";
 import { shortAddress } from "../../lib/labels";
 import { useI18n, type Localized } from "../../lib/i18n";
 import { AssetCard } from "../../components/AssetCard";
+import { CardAssetCard } from "../../components/CardAssetCard";
 import { useAuth } from "../../components/AuthProvider";
 import { DeviceLinkPanel } from "../../components/DeviceLinkPanel";
 import { PendingRequestsPanel } from "../../components/PendingRequestsPanel";
@@ -18,7 +19,8 @@ import { useRedemptions } from "../../lib/redemptions/useRedemptions";
 import { useTransferRequests } from "../../lib/transferRequests/useTransferRequests";
 import walletsFixture from "../../lib/fixtures/demo/wallets.json";
 
-const demoWallet = (walletsFixture as Record<string, { label: string; address: string }>).walletA;
+// SlabAR: the DEMO DATA wallet owns the self-made dummy cards (walletA keeps the dormant ukiyo-e / kokeshi fixtures).
+const demoWallet = (walletsFixture as Record<string, { label: string; address: string }>).walletC;
 const mockProvider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
 
@@ -73,7 +75,7 @@ const text = {
     en: "Creates a request and asks Phantom to sign it (devnet, no payment)",
     ja: "依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）",
   },
-  sell: { en: "Sell to OshiPin (approve in Phantom)", ja: "OshiPinに売る（Phantomで承認）" },
+  sell: { en: "Sell to SlabAR (approve in Phantom)", ja: "SlabARに売る（Phantomで承認）" },
 } satisfies Record<string, Localized>;
 
 type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean };
@@ -174,7 +176,11 @@ export default function CollectionPage() {
       )}
       {status === "ready" && assets.length > 0 && (
         <div className="grid devnetGrid collectionGrid">
-          {assets.map((asset) => (
+          {assets.map((asset) => asset.category === "card" ? (
+            <div key={asset.id} className="collectionCell">
+              <CardAssetCard asset={asset} demo={demo} />
+            </div>
+          ) : (
             <div key={asset.id} className="collectionCell">
               <AssetCard asset={asset} demo={demo} showCommerce />
               {authedWallet && asset.physical?.custody.status === "vaulted" && <OwnershipSection asset={asset} rd={rd} />}

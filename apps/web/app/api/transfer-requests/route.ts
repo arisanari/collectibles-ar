@@ -136,10 +136,10 @@ async function createFlow(p: {
     });
     if (!eligibility.eligible || !offchainRecord?.commerce) return err(409, "not_eligible", { reasons: eligibility.reasons });
     const vault = devnetWalletAddressOrNull("vault");
-    if (!vault) return err(503, "OshiPin vault wallet is not configured on this server");
+    if (!vault) return err(503, "SlabAR vault wallet is not configured on this server");
     const commerce = offchainRecord.commerce;
     toWallet = vault;
-    toLabel = "OshiPin Vault";
+    toLabel = "SlabAR Vault";
     quote = {
       basis: { amount: commerce.twinfoldPrice.amount, currency: commerce.twinfoldPrice.currency },
       rate: commerce.buybackRate,
@@ -153,7 +153,7 @@ async function createFlow(p: {
     // Twinfold's own wallets are reached only through buyback / redeem, never a plain send (an Asset could be stranded in escrow).
     if (isTwinfoldOperatedWallet(to, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
       recordAudit("transfer_refused", { wallet, detail: "send to a Twinfold-operated wallet refused" });
-      return err(400, "invalid_input: To send to an OshiPin wallet, use Sell to OshiPin or Redeem instead");
+      return err(400, "invalid_input: To send to an SlabAR wallet, use Sell to SlabAR or Redeem instead");
     }
     toWallet = to;
   }

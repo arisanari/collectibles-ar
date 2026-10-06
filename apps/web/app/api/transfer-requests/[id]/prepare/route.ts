@@ -62,7 +62,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "in_redemption" }, { status: 409 });
   }
   if (r.kind === "send" && isTwinfoldOperatedWallet(r.toWallet, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
-    markFailed(r, "Cannot send to an OshiPin wallet (use Sell to OshiPin or Redeem instead)", false);
+    markFailed(r, "Cannot send to an SlabAR wallet (use Sell to SlabAR or Redeem instead)", false);
     return NextResponse.json({ error: "destination_not_allowed" }, { status: 409 });
   }
   if (r.kind === "redeem_lock") {
@@ -81,7 +81,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (r.kind === "buyback") {
     const vault = devnetWalletAddressOrNull("vault");
     if (!vault || vault !== r.toWallet) {
-      markFailed(r, "The buyback destination (OshiPin Vault) has changed, so this request is no longer valid", false);
+      markFailed(r, "The buyback destination (SlabAR Vault) has changed, so this request is no longer valid", false);
       return NextResponse.json({ error: "destination_changed" }, { status: 409 });
     }
     try {

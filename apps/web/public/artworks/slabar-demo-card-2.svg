@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="480" viewBox="0 0 300 480" role="img" aria-label="SlabAR Demo Card #2 (placeholder, not a real card)">
+  <rect width="300" height="480" rx="14" fill="#1b1c18"/>
+  <rect x="14" y="14" width="272" height="64" rx="6" fill="#f8eee8"/>
+  <text x="26" y="40" font-family="monospace" font-size="13" fill="#1b1c18">DEMO LABEL / NOT A REAL SLAB</text>
+  <text x="26" y="62" font-family="monospace" font-size="13" fill="#1b1c18">SLABAR-DEMO-2</text>
+  <rect x="14" y="90" width="272" height="376" rx="6" fill="#8f4a2f"/>
+  <text x="150" y="250" text-anchor="middle" font-family="sans-serif" font-size="30" font-weight="700" fill="#f8eee8">SlabAR Demo</text>
+  <text x="150" y="290" text-anchor="middle" font-family="sans-serif" font-size="30" font-weight="700" fill="#f8eee8">Card #2</text>
+  <text x="150" y="440" text-anchor="middle" font-family="monospace" font-size="12" fill="#f8eee8">DEMO DATA / placeholder art</text>
+</svg>

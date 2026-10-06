@@ -201,7 +201,7 @@ export async function POST(request: Request) {
       redemptionOpen: isAssetInRedemption(assetId),
     });
     if (!eligible) {
-      const message = `devnet: not eligible for OshiPin buyback: ${reasons.join("; ")}`;
+      const message = `devnet: not eligible for SlabAR buyback: ${reasons.join("; ")}`;
       const record = { assetId, status: "failed" as const, error: message };
       save(record);
       return NextResponse.json(toResult(requestId, record), { status: 409 });

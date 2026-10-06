@@ -49,7 +49,8 @@ export default function Home() {
     Promise.all(Object.values(wallets).map((entry) => provider.getAssets(entry.address))).then((lists) => {
       if (cancelled) return;
       const merged = new Map<string, TwinfoldAsset>();
-      lists.flat().forEach((asset) => merged.set(asset.id, asset));
+      // SlabAR demo cards live under /pull and /collection; this (dormant ukiyo-e) landing keeps its own works only.
+      lists.flat().filter((asset) => asset.category !== "card").forEach((asset) => merged.set(asset.id, asset));
       setAllAssets(Array.from(merged.values()));
     });
     return () => {

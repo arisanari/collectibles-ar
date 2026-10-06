@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     return refuse(403, error instanceof Error ? error.message : "devnet server signing disabled");
   }
   const vaultWallet = devnetWalletAddressOrNull("vault");
-  if (!vaultWallet) return refuse(503, "OshiPin vault wallet is not configured on this server");
+  if (!vaultWallet) return refuse(503, "SlabAR vault wallet is not configured on this server");
   if (wallet === vaultWallet) return refuse(400, "invalid_input: the vault wallet cannot acquire from itself");
 
   const offchainRecord = findOffchainRecord(assetId);

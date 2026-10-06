@@ -139,10 +139,12 @@ export function useWalletAuth() {
   // already trusted-connected to a different account, drop the session.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/session")
+    fetch("/api/auth/session?soft=1")
       .then(async (response) => {
         if (cancelled || !response.ok) return;
-        const data = (await response.json()) as { wallet: string; expiresAt: string };
+        // ?soft=1: "not signed in" is a 200 { authenticated: false } (no 401 in the console).
+        const data = (await response.json()) as { authenticated?: boolean; wallet?: string; expiresAt?: string };
+        if (!data.wallet || !data.expiresAt) return;
         const phantom = getPhantom();
         if (phantom) {
           const trusted = await phantom.connect({ onlyIfTrusted: true }).catch(() => null);

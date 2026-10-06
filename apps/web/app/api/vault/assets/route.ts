@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const vault = devnetWalletAddressOrNull("vault");
-  if (!vault) return NextResponse.json({ error: "OshiPin vault wallet is not configured on this server" }, { status: 503 });
+  if (!vault) return NextResponse.json({ error: "SlabAR vault wallet is not configured on this server" }, { status: 503 });
   try {
     const owned = await getAssetsByOwner(vault);
     const assets = await Promise.all(

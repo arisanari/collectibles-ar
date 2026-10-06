@@ -56,7 +56,7 @@ export async function GET(request: Request, context: { params: Promise<{ assetId
       offerAmount: 0,
       currency: "USDC",
       eligible: false,
-      reason: "No OshiPin list price is set for this work",
+      reason: "No SlabAR list price is set for this work",
       quoteId,
       expiresAt,
     };
@@ -84,7 +84,7 @@ export async function GET(request: Request, context: { params: Promise<{ assetId
       currency: commerce.twinfoldPrice.currency,
       eligible,
       reason: eligible
-        ? `Eligible for an OshiPin buyback offer (checked ${now.toISOString()})`
+        ? `Eligible for an SlabAR buyback offer (checked ${now.toISOString()})`
         : reasons.join("; "),
       quoteId,
       expiresAt,

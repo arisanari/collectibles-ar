@@ -36,16 +36,16 @@ const text = {
   retiredSuffix: { en: " (retired)", ja: "（失効済み）" },
   onchainBurn: { en: "On-chain (burn)", ja: "On-chain（burn）" },
   interpretationNote: {
-    en: "OshiPin interpretation (not an appraisal)",
-    ja: "OshiPin interpretation（鑑定ではない）",
+    en: "SlabAR interpretation (not an appraisal)",
+    ja: "SlabAR interpretation（鑑定ではない）",
   },
   signaturesTitle: { en: "Onchain signatures (devnet)", ja: "Onchain signatures（devnet）" },
   lockLabel: { en: "Lock (out of circulation)", ja: "Lock（流通停止）" },
   retireLabel: { en: "Retire (burn)", ja: "Retire（burn）" },
   provenanceTitle: { en: "Provenance (up to Vault exit)", ja: "Provenance（Vault退出まで）" },
   provenanceNote: {
-    en: "On-chain, Off-chain evidence and OshiPin interpretation are shown separately. The dry-run steps involve no real shipping.",
-    ja: "On-chain / Off-chain evidence / OshiPin interpretation を区別して表示します。dry runの手順は実配送を伴いません。",
+    en: "On-chain, Off-chain evidence and SlabAR interpretation are shown separately. The dry-run steps involve no real shipping.",
+    ja: "On-chain / Off-chain evidence / SlabAR interpretation を区別して表示します。dry runの手順は実配送を伴いません。",
   },
 } satisfies Record<string, Localized>;
 

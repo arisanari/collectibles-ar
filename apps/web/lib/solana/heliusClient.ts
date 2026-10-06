@@ -49,12 +49,16 @@ export type HeliusAsset = {
   interface: string;
   content: {
     json_uri: string;
+    // Image locations, used for the card assets (lib/gacha/normalize.ts). Present on NFTs, absent on some others.
+    links?: { image?: string };
+    files?: { uri?: string; cdn_uri?: string; cc_cdn?: string }[];
     metadata: {
       name: string;
       description?: string;
       attributes?: { trait_type: string; value: string }[];
     };
   };
+  grouping?: { group_key: string; group_value: string }[];
   ownership: { owner: string };
   mutable: boolean;
   burnt: boolean;
@@ -129,4 +133,21 @@ export function getTransaction(signature: string): Promise<HeliusTransaction | n
     signature,
     { encoding: "json", maxSupportedTransactionVersion: 0 },
   ]);
+}
+
+export type HeliusSignatureStatus = {
+  slot: number;
+  confirmations: number | null;
+  err: unknown;
+  confirmationStatus?: "processed" | "confirmed" | "finalized";
+} | null;
+
+/**
+ * Standard Solana RPC getSignatureStatuses (devnet). `searchTransactionHistory` lets it find a signature that
+ * has aged out of the recent status cache. One entry per requested signature, `null` when the cluster does not know it.
+ * Used by lib/gacha/openResult.ts to decide whether a Pull transaction is really on chain.
+ */
+export async function getSignatureStatuses(signatures: string[]): Promise<HeliusSignatureStatus[]> {
+  const result = await rpc<{ value: HeliusSignatureStatus[] }>("getSignatureStatuses", [signatures, { searchTransactionHistory: true }]);
+  return result?.value ?? [];
 }

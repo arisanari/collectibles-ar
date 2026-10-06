@@ -217,7 +217,17 @@ public actor MockAssetProvider: AssetProvider {
             spatialRepresentation: asset.spatialRepresentation,
             provenance: asset.provenance + extra,
             physical: asset.physical,
-            commerce: asset.commerce
+            commerce: asset.commerce,
+            category: asset.category,
+            grade: asset.grade,
+            gradingCompany: asset.gradingCompany,
+            gradingId: asset.gradingId,
+            insuredValueUsd: asset.insuredValueUsd,
+            vault: asset.vault,
+            vaultId: asset.vaultId,
+            source: asset.source,
+            gachaMemo: asset.gachaMemo,
+            imageUrl: asset.imageUrl
         )
     }
 }

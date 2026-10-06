@@ -54,10 +54,10 @@ function VaultCard({ asset, authed, onAcquire }: { asset: TwinfoldAsset; authed:
 }
 
 /**
- * "Available from OshiPin": Assets the OshiPin vault wallet holds on devnet.
+ * "Available from SlabAR": Assets the SlabAR vault wallet holds on devnet.
  * Acquisition = the vault wallet signs a devnet transfer to the signed-in wallet. No payment;
- * the price is OshiPin's off-chain display value (demo placeholder). The Asset's physical
- * original stays in OshiPin's Vault.
+ * the price is SlabAR's off-chain display value (demo placeholder). The Asset's physical
+ * original stays in SlabAR's Vault.
  */
 export function VaultAcquisitionSection() {
   const auth = useAuth();
