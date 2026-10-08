@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg role="img" aria-label="OshiPin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 211 260">
+<svg role="img" aria-label="Collectibles AR" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 989.47 260">
   <defs>
     <style>
       .cls-1 {
@@ -48,4 +48,6 @@
           </g>
           <path class="cls-1" d="M119.71,259.58h-27.91c-5.52,0-10-4.48-10-10s4.48-10,10-10h27.91c5.52,0,10,4.48,10,10s-4.48,10-10,10Z"/>
         </g>
+      <!-- TEMPORARY wordmark: placeholder text until the designer redraws the Collectibles AR logo. -->
+      <text x="250" y="185" font-family="system-ui, sans-serif" font-size="120" font-weight="700" fill="#2a1333" textLength="730" lengthAdjust="spacingAndGlyphs">Collectibles AR</text>
 </svg>

@@ -89,7 +89,9 @@ export type Commerce = {
 
 export type TwinfoldAsset = {
   id: string; // "tf-stamp-001"
-  network: "devnet";
+  // "devnet" is what the app transacts on. "mainnet" is read-only display of a wallet's real cards
+  // (AGENTS.md section 3: no Pull / buyback / transfer on mainnet inside the app).
+  network: "devnet" | "mainnet";
   address: string; // fixtureは "DEMO-..." で始める
   standard: string; // "metaplex-core"
   owner: string | null;
@@ -100,6 +102,28 @@ export type TwinfoldAsset = {
   provenance: ProvenanceEvent[];
   physical?: PhysicalDescriptor;
   commerce?: Commerce;
+  // ---- Graded card assets (Collectibles AR, 2026-10-06). All optional so the dormant ukiyo-e / kokeshi fixtures stay valid.
+  // Everything from `grade` to `vaultId` is a THIRD-PARTY claim (PSA grade, Collector Crypt insured value and
+  // Vault record) copied from the NFT metadata; it is not an onchain fact and Collectibles AR has not verified it.
+  // Keep these names identical in packages/TwinfoldCore (TwinfoldModels.swift).
+  category?: "card";
+  grade?: string; // attribute "The Grade", e.g. "GEM-MT 10"
+  gradingCompany?: string; // attribute "Grading Company", e.g. "PSA"
+  gradingId?: string; // attribute "Grading ID" (certificate number)
+  insuredValueUsd?: number; // attribute "Insured Value" in USD (Collector Crypt defines buyback as n% of it, paid in USDC); only set when it parses as a number
+  vault?: string; // attribute "Vault", e.g. "PSA Vault", "OmniVault"
+  vaultId?: string; // attribute "Vault ID"
+  // Set ONLY when the asset is known to be Collector Crypt issued: it came out of our openPack call, or its DAS
+  // collection is one of COLLECTOR_CRYPT_COLLECTION_ADDRESSES_{DEVNET,MAINNET}. Matching the attributes alone
+  // ("Grading Company" + "Vault ID") is not enough: `source` stays undefined and `sourceVerified` is false.
+  source?: "collectorCrypt";
+  // true = `source` is "collectorCrypt". false = shown as a card by metadata shape only (UNVERIFIED SOURCE);
+  // clients must not put it in the AR list. Only the card list API sets it.
+  sourceVerified?: boolean;
+  gachaMemo?: string; // Collector Crypt Pull memo; only for assets opened through our Pull flow
+  // The image URL from the NFT metadata, read at runtime from the host that serves it (never stored in the repo).
+  // `display.imageUrl` carries the same URL so existing image consumers keep working.
+  imageUrl?: string;
   // Rehearsal token for the redeem dry run (registry id `<baseId>-rehearsal-<n>`): it represents the
   // same physical item as `<baseId>` and is NOT an additional claim on it. Never counted or labeled
   // as a Reference Asset; UI shows a REHEARSAL badge.

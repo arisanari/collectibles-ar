@@ -49,6 +49,7 @@ struct ARContainerView: UIViewRepresentable {
         // center while the user walks around before tapping to confirm.
         context.coordinator.updateSubscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak controller] _ in
             controller?.updateHoldingPreview()
+            controller?.processPendingAppears()
         }
 
         return arView

@@ -27,7 +27,7 @@ export class VaultLowBalanceError extends Error {}
 
 /** The vault pays every transaction fee; refuse new work below this (lamports, 0.01 SOL). */
 export const MIN_VAULT_LAMPORTS = 10_000_000;
-export const VAULT_LOW_BALANCE_MESSAGE = "The OshiPin vault wallet does not have enough devnet SOL, so this cannot be processed now. Please try again later.";
+export const VAULT_LOW_BALANCE_MESSAGE = "The Twinfold (legacy demo) vault wallet does not have enough devnet SOL, so this cannot be processed now. Please try again later.";
 
 /** Throws VaultLowBalanceError when the vault (fee payer) holds less than MIN_VAULT_LAMPORTS. */
 export async function assertVaultFunded(): Promise<void> {

@@ -1,21 +1,26 @@
-# OshiPin Technical Architecture
+# Collectibles AR Technical Architecture
 
 > ステータス: Colosseum MVP技術ベースライン
-> 最終更新: 2026-10-05（表示名を OshiPin に変更、見せ方を更新）。前回 2026-10-02
+> 最終更新: 2026-10-07（Collectibles ARに改名。2026-10-06にSlabARとして転換した内容のまま、名称のみ更新。Collector Cryptの実物カードをARで出す構成に全面書き換え）。前回 2026-10-05（OshiPin）
 >
-> beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21、同日中に見直し）→ 壁に掛ける浮世絵・版画（2026-09-21確定、最初の供給とデモは江戸・明治の浮世絵・古版画）。**提出までのbeachhead変更はこれが最後で、以後は変更しない。**切手は履歴にだけ残り、棚（フィギュア・こけし・郷土玩具）は拡張カテゴリとして残る。
+> beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21）→ 壁に掛ける浮世絵・版画（2026-09-21〜2026-10-06、10/05にOshiPin改名）→ **Collector Cryptの実物ポケカをARで出すCollectibles AR（2026-10-06にSlabARとして決定、2026-10-07に改名）**。浮世絵、自前Vault、Twinfold buyback offer、redeem escrow、こけしは履歴で、コードとfixtureは休眠として残る。
 
-この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準は [MVP Acceptance Criteria](./mvp.md)、実装順と日程は [Build Order](./build-order.md) を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。
+この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準は [MVP Acceptance Criteria](./mvp.md)、実装順と日程は [Build Order](./build-order.md) を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。Collector Crypt APIの詳細は `.claude/skills/collector-crypt-gacha` を参照する。
 
 ## 1. 技術目標
 
-Solana上の所有・移転・来歴を共通モデルへ変換し、次の状態変化として体験できるようにする。
+Solana上の実物カード資産（Collector Crypt）を共通モデルへ変換し、引いた瞬間に現実空間へ実寸で出し、売り戻したら消えるまでを体験できるようにする。
 
 ```text
-Asset取得 → 空間へPlace → ProvenanceをPull
-→ transfer → Entitlement再評価
-→ 旧所有者からDisappear → 新所有者へAppear
+台を選ぶ → Pull（Webで署名）→ 開封
+→ Collector Crypt由来のカード資産を共通モデルへ正規化
+→ link済みiPhoneの空間へAppear → Place／Passport
+→ 買取（Collector Crypt）→ Disappear
 ```
+
+- 署名はWeb（Phantom）だけ。結果はlink済みiPhoneのARに出る。
+- 在庫・Vault保管・発送・買取はCollector Cryptが担う。Collectibles ARは現物を持たない。
+- 収益はホストした台の手数料（Collector Cryptの `can_adopt` による自分の台コード。承認待ちで、提出時は仕組みの提示まで）。
 
 Spatial ClientはSwiftUI + RealityKitを共通実装（Swift Package `TwinfoldCore`／`TwinfoldSpatial`）とし、MVPのPrimary ClientはiPhone ARとする。ARKitなどplatform固有処理は `apps/ios` のAdapterへ隔離し、Apple Vision Pro（`apps/visionos`）は同じPackageを使うHero／secondary clientとして扱う。2026-09-18にUnity + AR FoundationからSwiftUI + RealityKitへ切り替えた。
 
@@ -33,147 +38,144 @@ Post-MVP対応のための共通化で、iPhoneのPrimary E2Eを遅らせない�
 flowchart LR
     Wallet["Phantom Wallet"]
 
-    subgraph Solana["Solana devnet"]
-        Asset["Metaplex Core Asset"]
+    subgraph CC["Collector Crypt (RWA provider)"]
+        Gacha["Gacha API<br/>devnet / mainnet"]
+        Vault["在庫・Vault・発送・買取"]
+    end
+
+    subgraph Solana["Solana devnet / mainnet(read-only)"]
+        Asset["Card asset<br/>pNFT / Core / cNFT"]
         Helius["Helius RPC / DAS"]
     end
 
     subgraph Backend["Twinfold Backend (TypeScript)"]
         Auth["Wallet Auth + Device Session"]
-        Provider["Asset Provider<br/>Mock / Solana"]
+        GProvider["Gacha Provider<br/>Mock / CollectorCrypt"]
+        AProvider["Asset Provider<br/>Mock / Solana"]
         Core["Asset + Provenance Model"]
         Entitlement["Entitlement"]
-        RWA["RWA Adapter / Trust Gate"]
+        Pack["Pack state<br/>(memo) + Notify"]
     end
 
     subgraph Clients["Clients"]
-        Web["Next.js Web<br/>connect / buy / transfer / redeem"]
+        Web["Next.js Web<br/>machines / Pull / collection / buyback"]
         Spatial["Spatial Experience<br/>Swift Package (RealityKit)"]
         IOS["iPhone AR — P0"]
         Vision["Apple Vision Pro — P1"]
-        Admin["RWA Admin"]
     end
 
     subgraph Data["Data Services"]
         DB["PostgreSQL"]
-        Private["Private Evidence Storage"]
     end
 
     Wallet --> Web
-    Web -. buy / transfer, Phantom signs .-> Asset
-    Admin -. mint .-> Asset
+    Web --> GProvider
+    GProvider --> Gacha
+    Gacha --> Vault
+    Web -. Pull / buyback, Phantom signs .-> Asset
+    Gacha -. card to wallet .-> Asset
     Asset --> Helius
-    Helius --> Provider
-    Provider --> Core
+    Helius --> AProvider
+    AProvider --> Core
+    GProvider --> Pack
+    Pack --> Core
     Web --> Auth
     Web --> Core
     Auth --> Entitlement
     Core --> Entitlement
     Entitlement --> Web
     Entitlement --> Spatial
+    Pack -. notify linked device .-> Spatial
     Spatial --> IOS
     Spatial -. same package .-> Vision
-    Admin --> RWA
-    RWA --> Core
     Core --> DB
-    RWA --> DB
-    RWA --> Private
+    Pack --> DB
 ```
 
 ### 2.1 フロー別の動き
 
-全体図を実際の操作へ落とすと、次の流れになる。各フローでは「入口」「Backendで行うこと」「外部サービス」「完了状態」を分けて考える。
-
-> MVPの `buy` は本番決済を意味しない。P0では取得操作を起点にSolana devnet上でAssetを移転し、所有者変更後の体験までを検証する。USDC purchaseは、支払いとAsset移転をatomicに実装できた場合だけ追加する。
+各フローでは「入口」「Backendで行うこと」「外部サービス」「完了状態」を分けて考える。
 
 #### End-to-Endフロー図
 
 ```mermaid
 flowchart TB
-    Start([実物のコレクティブル（例: 浮世絵）])
+    Start([カード収集家])
 
-    subgraph Register[1. 実物を登録する]
-        Admin[RWA Adminで<br/>実物・来歴・状態・権利を入力]
-        Evidence[非公開証拠を保存]
-        Gate{Trust Gate<br/>必須情報は揃ったか}
-        Review[Draft / Reviewへ戻す]
-        Mint[Metaplex Core Assetを<br/>Solana devnetへmint]
-        Model[Physical ID・Asset address・<br/>ProvenanceをDBで対応付け]
+    subgraph Pull[1. 台を選んでPullする（Web）]
+        Machines[台を表示<br/>価格・確率・EV・在庫・買取率はCollector Cryptの値]
+        Gen[generatePack<br/>memoと部分署名済み取引]
+        Sign[PhantomでUSDC取引に署名]
+        Submit[submitTransaction]
+        Open{openPack}
+        Wait[WAITING_FOR_WEBHOOK<br/>約1秒後に同じmemoで再試行]
+        Fail[failed表示<br/>同じmemoで再試行できる]
     end
 
-    subgraph Acquire[2. Collectorが取得する]
-        Select[WebでAssetを選ぶ]
-        Check[Backendがowner・状態・<br/>取引可否を再確認]
-        Sign[現owner / OperatorがPhantomで<br/>devnet transferへ署名]
-        Confirm{Solanaで確定したか}
-        Failed[failed表示<br/>ownerと配置を維持]
-        Entitlement[owner更新<br/>Entitlement再評価]
+    subgraph Collect[2. 手元に出る]
+        Norm[カード資産を共通モデルへ正規化]
+        Coll[My Collection<br/>DEVNET]
+        Link[link済みiPhoneへ通知]
     end
 
-    subgraph Experience[3. 空間で体験する]
-        Link[WebからiPhoneを<br/>一回限りcodeで連携]
-        Appear[新ownerの空間へAppear]
-        Place[Place]
-        Unfold[Unfold]
-        Pull[Pull the provenance]
+    subgraph Space[3. 空間で体験する（iPhone）]
+        Appear[実寸でAppear]
+        Place[Place<br/>並べる]
+        Passport[Passport<br/>三区分]
     end
 
-    subgraph Next[4. 保有後に選ぶ]
-        Choice{どう保有するか}
-        Vault[Vaulted Ownership<br/>現物は保管を継続]
-        Transfer[別のwalletへtransfer]
-        Redeem[Physical Ownership<br/>redeem申請]
-        Lock[現物を出庫lock<br/>Assetをlock / burn / retire]
-        Passport[Redeemed Provenance<br/>Passportを残す]
+    subgraph Exit[4. 売り戻す]
+        BB[buyback available<br/>Collector Cryptの率・72時間]
+        BSign[Phantomで署名]
+        Gone[confirmed後<br/>Disappear]
     end
 
-    Start --> Admin
-    Admin --> Evidence --> Gate
-    Gate -- 不足 --> Review --> Admin
-    Gate -- 合格 --> Mint --> Model
-    Model --> Select --> Check --> Sign --> Confirm
-    Confirm -- 失敗 --> Failed --> Select
-    Confirm -- 確定 --> Entitlement
-    Entitlement --> Link --> Appear --> Place --> Unfold --> Pull --> Choice
-    Choice -- Vaultに置く --> Vault --> Transfer
-    Choice -- 他者へ移す --> Transfer
-    Transfer --> Check
-    Choice -- 現物を受け取る --> Redeem --> Lock --> Passport
+    Start --> Machines --> Gen --> Sign --> Submit --> Open
+    Open -- WAITING_FOR_WEBHOOK --> Wait --> Open
+    Open -- 失敗 --> Fail --> Open
+    Open -- 成功 --> Norm --> Coll --> Link --> Appear --> Place --> Passport
+    Passport --> BB --> BSign --> Gone
 ```
 
 図の読み方:
 
-- **登録前半**はOperatorの仕事で、Trust Gateに通るまでmintしない。
-- **取得中央**はWeb、Backend、Phantom、Solanaを通り、chain確定後にだけownerを更新する。
-- **空間体験**はBackendが返すEntitlementを入口にし、Spatial ClientからSolanaを直接呼ばない。
-- **保有後**は、Vault保管の継続、別ownerへのtransfer、現物を受け取るredeemの3方向に分かれる。
+- **Pull**はWeb、Collector Crypt、Phantomを通り、openPackが返るまで「当たった」と表示しない。
+- **手元に出る**は共通モデルへの正規化と通知。Spatial ClientからCollector CryptやSolanaを直接呼ばない。
+- **空間体験**はBackendが返すEntitlementと共通モデルだけを使う。
+- **売り戻す**はCollector Cryptの買取で、chainでconfirmedになった後にだけDisappearする。
 
-#### システム間の購入／取得シーケンス
+#### Pull／開封のシーケンス
 
 ```mermaid
 sequenceDiagram
     actor Collector
-    actor Operator as 現owner / Operator
     participant Web
     participant Phantom
-    participant Backend
+    participant Backend as Twinfold Backend
+    participant CC as Collector Crypt Gacha API
     participant Solana as Solana / Helius
     participant Spatial as iPhone AR / RealityKit
 
-    Collector->>Web: Assetを選択
-    Web->>Backend: owner・状態・取引可否を照会
-    Backend->>Solana: RPC / DASで確定状態を確認
-    Solana-->>Backend: owner・metadata・Asset状態
-    Backend-->>Web: transfer可能
-    Web-->>Operator: 移転先walletと対象Assetを提示
-    Operator->>Phantom: devnet transferへ署名
-    Phantom-->>Solana: 署名済みtransactionを送信
+    Collector->>Web: 台を選びPull
+    Web->>Backend: generatePack(playerAddress, packType)
+    Backend->>CC: POST /api/generatePack
+    CC-->>Backend: memo, transaction（base64、部分署名済み）
+    Backend->>Backend: memoを記録（generated）
+    Backend-->>Web: memo, transaction
+    Web->>Phantom: transactionへの署名を依頼
+    Phantom-->>Web: signedTransaction
+    Web->>Backend: submitSigned(signedTransaction)
+    Backend->>CC: POST /api/submitTransaction
     Web-->>Collector: pendingを表示
-    Solana-->>Backend: transaction確定
-    Backend->>Backend: Provenance更新・Entitlement再評価
-    Backend-->>Web: 新ownerを返す
-    Backend-->>Spatial: 更新後のAssetとEntitlement
-    Spatial-->>Collector: Assetが空間へAppear
+    Web->>Backend: openPack(memo)
+    Backend->>CC: POST /api/openPack
+    CC-->>Backend: WAITING_FOR_WEBHOOK（約1秒後に同じmemoで再試行）
+    CC-->>Backend: nft_address, metadata, rarity, roll
+    Backend->>Backend: 資産を共通モデルへ正規化、memoをopenedへ
+    Backend-->>Web: カード資産（confirmed）
+    Backend->>Solana: owner・metadataを再照会
+    Backend-->>Spatial: link済み端末へ通知、Appear対象
+    Spatial-->>Collector: カードが実寸でAppear
 ```
 
 #### A. 初回利用と端末連携
@@ -193,160 +195,142 @@ WebでPhantomを接続
 - wallet addressを入力しただけでは所有者向け機能を有効にしない。
 - link codeは短時間・一回限りとし、端末sessionは個別に失効できるようにする。
 
-#### B. 実物の登録、確認、mint
+#### B. 台の表示とPull／開封（Collector Crypt）
 
 ```text
-OperatorがRWA Adminで実物情報を入力
-→ Physical IDを発行
-→ 来歴・状態・画像利用権・物理所有権・著作権・保管情報を登録
-→ 非公開証拠の原本をPrivate Evidence Storageへ保存
-→ 公開可能なmetadataとevidence hashをPostgreSQLへ保存
-→ Trust Gateが必須項目を検査
-→ 合格した場合だけMetaplex Core Assetをdevnetへmint
-→ transaction確定後、Asset addressとmint eventを共通モデルへ同期
-→ `rwa_verified` と `minted` をProvenanceへ追加
+Webが台の一覧を要求（GachaProvider.listMachines）
+→ Backendが GET /api/machines を呼ぶ
+→ 価格・確率・EV・在庫・買取率を「Collector Cryptの値」としてそのまま表示（自前で計算しない）
+→ ユーザーが台（既定 pokemon_25）を選びPull
+→ POST /api/generatePack {playerAddress, packType, turbo?, altPlayerAddress?}
+   → {memo, transaction}（base64、部分署名済み。USDCをgacha walletへ送る）
+→ Backendがmemoを `generated` として記録（冪等キー）
+→ ユーザーがPhantomで署名
+→ POST /api/submitTransaction {signedTransaction}
+→ POST /api/openPack {memo}
+   → {nft_address, transactionSignature, nftWon.content.metadata{name, attributes}, rarity, roll}
+→ カード資産を共通モデルへ正規化し、memoを `opened` として記録
+→ My Collectionに表示（DEVNET）
 ```
 
-登録に必要な最小項目:
+- `x-api-key` を付けるとmemoに自分のslugが付き、`/api/getWinners?slug=` やAblyのlive winnersで自分経由の引きを識別できる。keyが無くてもPlay系endpointは動く。
+- 開封期限は発行から2時間。同じmemoの再送は同じ結果を返す（冪等）。
+- Webは署名前に、対象の台、価格、network、transactionの目的を表示する。「必ず当たる」「保証」「投資」「儲かる」と書かない。確率・EV・買取率にはCollector Cryptの公表値であり、Collectibles ARが保証するものではないと併記する。
+- devnetのPullを売上と呼ばない。
+- Invoiced API（`/api/v1`、自前決済のパートナー向け）はP0では使わない。
 
-| 分類 | 内容 | 保存先 |
-|---|---|---|
-| 識別 | Physical ID、作品名、カテゴリ、寸法、管理番号 | PostgreSQL |
-| 来歴 | 取得元、過去の移動、確認者、確認日時 | PostgreSQL + 証拠原本 |
-| 状態 | 傷・劣化、撮影記録、最終確認日時 | PostgreSQL + 証拠原本 |
-| 権利 | 物理所有権、画像利用許諾、著作権の所在と範囲 | PostgreSQL + 非公開契約資料 |
-| 保管 | Vault、保管位置、custody status | PostgreSQL |
-| 表示素材 | XR用画像／3D素材、公開可否 | Private Storage + 短期署名URL |
-| オンチェーン対応 | network、Asset address、mint transaction | Solana + PostgreSQL |
-
-必須情報が欠ける場合はdraftまたはreview状態に留め、`rwa_verified` とmintを実行しない。オンチェーンmetadataへ個人情報、契約書、高精細原本、詳細な保管位置を載せない。
-
-#### C. 取得／購入相当操作
+#### C. link済みiPhoneへのAppear
 
 ```text
-CollectorがWebでAssetを選ぶ
-→ WebがBackendへ現在owner・Asset状態・取引可否を照会
-→ BackendがSolana RPC／DASで確定状態を再確認
-→ 現ownerまたはOperatorがPhantomでdevnet transferへ署名
-→ Metaplex Core AssetのownerがCollector walletへ移る
-→ Backendがtransactionを検知して`transferred` eventへ正規化
-→ PostgreSQLのowner／Provenanceを更新
-→ Entitlementを再評価
-→ WebとiPhone ARが更新を取得
-→ 新ownerの空間へAssetがAppearし、旧ownerからDisappear
+openPackが成功しカード資産が共通モデルへ正規化される
+→ Backendが、そのwalletのlink済み端末sessionへ通知（既存のiPhone link／SessionLink機構）
+→ iPhone ARがBackendから新しいAssetとEntitlementを取得（Collector Crypt／Solanaは直接呼ばない）
+→ 画像はmetadataのURLから実行時に取得（repoに保存しない）
+→ 検出済みの平面（机・床・壁）へ鑑定ホルダーの実寸でAppear
 ```
 
-- Webは署名前に、対象Asset、現在owner、移転先、network、transactionの目的を署名者へ表示する。
-- P0の取得では現ownerまたは管理用devnet walletが移転へ署名する。Collector自身が未所有Assetをtransferすることはできない。
-- 署名直後は `pending`、chain確定後だけ `confirmed` と表示する。
-- MVPで金銭を送るだけの操作を「購入完了」と呼ばない。本番購入では、決済成功とAsset移転が一体で失敗・再試行できる取引設計が別途必要になる。
+- 開封から5分以内にAppearする（mvp.md §5）。通知が届かない場合は、iPhone側のpull更新（polling）でも収束する。
+- 署名や鍵操作はiPhoneで行わない。端末tokenでできるのは読み取りと依頼の作成まで。
+- 同じmemo・同じAssetで二重にAppearしない（冪等）。
 
-#### D. Spatialでの表示と来歴体験
+#### D. Spatialでの表示とPassport
 
 ```text
 iPhone ARが端末sessionでBackendへAsset一覧を要求
-→ Backendがsession、chain owner、Asset状態、display rightsを検査
+→ Backendがsession、chain owner、Asset状態を検査
 → Entitlementと共通Asset Modelを返す
-→ 表示素材は短期署名URLで取得
-→ RealityKitがAssetを表示
-→ CollectorがPlace
-→ UnfoldでOwnership／Provenance／Evidence／Physicalを開く
-→ Pullでmint・verification・transfer等のEventを時系列表示
+→ RealityKitがカードを鑑定ホルダーの実寸で表示（scaleを触らない）
+→ CollectorがPlace（複数枚を並べる）
+→ カードをtapするとPassportを表示
 ```
 
-Spatial ClientはBackendだけを参照し、Solana RPCや非公開証拠storageを直接呼ばない。Evidence画面ではオンチェーン事実、オフチェーン証拠、Twinfoldによる解釈を視覚的に区別する。
+Passportは三区分を別の表示にし、まとめて「確認済み」と表示しない。
 
-#### E. owner間transfer
+| 区分 | 内容 | 例 |
+|---|---|---|
+| onchain fact | chainで確認できる事実 | mint address、owner、transfer／Pullの署名、Pullのmemo |
+| 第三者の主張 | PSAやCollector Cryptが述べていること | PSAのグレード・鑑定番号（PSA cert verifyへのリンク）、`Authenticated`、Insured Value、Vault・Vault ID。Collectibles ARが検証したとは書かない |
+| Collectibles AR interpretation | Collectibles ARによる表示用の整形・解釈 | 表示名の整形、「Collector Cryptの記録では〜」という注記 |
+
+- Pullのmemoと `/verify-selection/<memo>`（VRF検証）へのリンクを置く。
+- blockchain／NFT／Passportが真正性・配送後の現物状態を保証するとは書かない。
+- Spatial ClientはBackendだけを参照し、Solana RPC、DAS、Collector Crypt APIを直接呼ばない。
+
+#### E. 買取 → Disappear
 
 ```text
-現ownerがWebで移転先walletを入力
-→ BackendがAsset状態と移転可否を再確認
-→ Phantomがtransfer transactionへ署名
+Webが GET /api/buyback/available?nft= を呼び、可否・額（USDC、6桁）・残り時間を表示
+→ 「Collector Cryptによる買取、72時間以内、台ごとの率（pokemon_25は85%）」を併記
+→ ユーザーが売り戻す
+→ POST /api/buyback {playerAddress, nftAddress} → serializedTransaction
+→ Phantomで署名
+→ POST /api/submitTransaction
 → Web／Spatialは`pending`を表示
-→ Solana確定後、BackendがownerとProvenanceを更新
-→ 旧ownerのEntitlementをfalseへ変更し保存済み配置を無効化
-→ 新ownerのEntitlementをtrueへ変更
-→ 旧ownerからDisappear、新ownerへAppear
+→ Solana確定後、Backendが`transferred`相当のeventを記録しowner／Entitlementを再評価
+→ 旧ownerのEntitlementをfalseへ、link済みiPhoneの配置を無効化
+→ 空間からDisappear（confirmed後5分以内）
 ```
 
-transaction失敗時はownerと配置を維持し、`failed` と再試行導線を表示する。Webhook未達時も定期再照会で収束させ、transfer確定から表示失効までは5分以内をMVP基準とする。
+- 買取を行うのはCollector Crypt。Collectibles ARが買い取るとは書かない。
+- 署名失敗・取引失敗時はownerと配置を維持し、`failed` と再試行導線を表示する。
+- XR表現をオンチェーン確定より先に消さない（pendingは半透明などで区別する）。
 
-#### F. Vaulted Ownershipの継続
+#### F. mainnet read-only
 
 ```text
-ownerがWebでVaulted Ownershipを選ぶ
-→ Backendがchain ownerとVault保管状態を確認
-→ RWA Adapterがholding modeを記録
-→ `vaulted` eventをProvenanceへ追加
-→ Assetはactiveのまま
-→ ownerはXR表示と将来のtransferを継続できる
+Webで本物のCollector Cryptカードを持つwalletを接続
+→ AssetProviderが（サーバー側で）mainnetのDAS／RPCから、そのwalletのCollector Crypt由来のカード資産を取得
+→ My Collectionに`MAINNET (read-only)`で表示
+→ link済みiPhoneで実寸のARに出す（Appear／Place／Passport）
 ```
 
-現物はVaultから動かさず、オンチェーンownerだけを移転できる。保管状態に例外が出た場合はAssetを `exception` として表示停止し、解消までtransfer／redeemを許可しない。
+- 読み取り専用。アプリ内でmainnetのPull・買取・送金はしない。本物のPullはgacha.collectorcrypt.comで行う。
+- mainnetとdevnetをMy Collection、credential、設定で混ぜない。画面に常時 `MAINNET (read-only)` と表示する。
+- mainnetのPull系endpointを呼ぶコードパスを作らない（`network === "mainnet"` では `GachaProvider` のPull・買取を拒否するguardを置く）。
 
-`PhysicalDescriptor.custody.status` は4値: `vaulted`（OshiPin運用のVaultに預けている）、`released`（redeem完了により現物を出庫し、Passportだけが残る）、`exception`（不一致・要解消の異常状態、表示停止）、`pending_intake`（実物は記録済みだが、まだOshiPin運用のVaultへ登録・移送されていない。個人の自己保管など、RWA登録前の中間状態。異常ではないので`exception`とは区別する）。
-
-#### G. Physical Ownership、redeem、配送ドライラン
+#### G. 同期遅延・不一致・失敗時
 
 ```text
-ownerがWebでPhysical Ownershipを選びredeemを申請
-→ Backendが署名済みsession、chain owner、未redeem、未申請を再確認
-→ 配送先をwallet・分析データと分離して保存
-→ RWA Adapterが対象実物を出庫lock
-→ MVPでは梱包・保険・配送をdry runとして記録
-→ 出庫条件成立後、流通Assetをlock／burn／retire
-→ `redeemed` eventとPassportを生成
-→ 通常のEntitlementを失効
-→ Redeemed Provenance Passportへの条件付き閲覧だけを残す
+openPackが{"code":"WAITING_FOR_WEBHOOK"}を返す
+→ 約1秒後に同じmemoで再試行（二重送付は起きない）。上限回数を超えたらpendingのまま「確認中」と表示し、/api/pack/status?memo=で状態を確認
+→ 開封期限（発行から2時間）を過ぎたmemoはexpiredとして扱い、新しいPullを促す
+→ 429／503は指数バックオフで再試行し、失敗ではなく「混雑中」と区別して表示
+→ 署名後に失敗した場合は、同じmemoでopenPackを再試行する（新しいgeneratePackを勝手に呼ばない）
+→ Webhookまたはpollingで更新を検知し、transaction signatureとmemoで重複を排除
+→ RPC／DASの確定状態とDBを比較し、一致すればowner、Provenance、Entitlementを更新
+→ 一時的不一致なら再試行して`pending`を維持。不一致が継続したら`exception`へ移行し、表示を止める
 ```
 
-- Asset失効と出庫の順序は二重流通が起きないよう冪等に処理し、同じ申請を二重実行しない。
-- PassportはVault退出までの来歴と最終確認状態を示すが、配送後の現在owner、現在状態、真正性、著作権を継続保証しない。
-- MVPでは実配送・保険契約を行わず、画面と記録上でのdry runであることを明示する。
-
-#### H. 同期遅延・不一致・失敗時
-
-```text
-Webhookまたはpollingで更新を検知
-→ transaction signatureで重複を排除
-→ RPC／DASの確定状態とDBを比較
-→ 一致すればowner、Provenance、Entitlementを更新
-→ 一時的不一致なら再試行し`pending`を維持
-→ 不一致が継続したら`exception`へ移行
-→ Web／Spatialで表示を止め、Adminの確認対象にする
-```
-
-cacheやWebhookは高速化のために使い、所有権判定の正にはしない。再処理しても同じ最終状態になるよう、mint、transfer、redeemの各処理はtransaction signatureまたはrequest IDで冪等化する。
+cacheやWebhookは高速化のために使い、所有権判定の正にはしない。再処理しても同じ最終状態になるよう、Pull、開封、買取の各処理はmemoまたはtransaction signatureで冪等化する。
 
 ### 2.2 フローと責務の対応
 
-| フロー | 主な操作主体 | 入口 | Backend／RWA | Solana | 最終状態 |
+| フロー | 主な操作主体 | 入口 | Backend | 外部 | 最終状態 |
 |---|---|---|---|---|---|
-| 初回利用 | Collector | Web + Phantom | 認証、session、端末連携 | 署名検証用address | Web／iPhoneが同じwalletへ安全に接続 |
-| 実物登録 | Operator | RWA Admin | Physical、Evidence、Rights、Trust Gate | 合格後にmint | 実物とdevnet Assetが対応 |
-| 取得 | Collector | Web | 状態確認、同期、Entitlement更新 | owner transfer | 新ownerがWeb／Spatialで利用可能 |
-| Spatial体験 | Collector | iPhone AR | Entitlement、共通モデル、署名URL | Backend経由で反映 | Place／Unfold／Pullが可能 |
-| 再移転 | 現owner | Web + Phantom | pending管理、owner同期、権利再評価 | transfer | 旧ownerから消え新ownerへ現れる |
-| Vault継続 | owner | Web | holding mode、custody確認 | Assetはactive | 現物を動かさず流通継続 |
-| redeem | owner | Web | owner再確認、出庫lock、Passport | lock／burn／retire | 二重流通を止め、履歴を残す |
-| 例外対応 | System／Operator | Backend／Admin | retry、監査、表示停止 | RPC／DAS再照会 | 不整合時は安全側へ倒す |
+| A. 初回利用 | Collector | Web + Phantom | 認証、session、端末連携 | 署名検証用address | Web／iPhoneが同じwalletへ安全に接続 |
+| B. 台・Pull・開封 | Collector | Web + Phantom | memo記録（冪等）、正規化 | Collector Crypt Gacha API、Solana | カードがwalletへ入り、My Collection（DEVNET）に出る |
+| C. Appear | Collector | iPhone AR | 通知、Entitlement、共通モデル | Backend経由 | カードが実寸で空間に出る |
+| D. Passport | Collector | iPhone AR | 三区分の整形 | PSA cert verify、VRF検証へのリンク | onchain fact／第三者の主張／Collectibles AR interpretationを区別して表示 |
+| E. 買取 | Collector | Web + Phantom | pending管理、owner同期、Entitlement更新 | Collector Crypt buyback、Solana | 空間からDisappear |
+| F. mainnet read-only | Collector | Web／iPhone | 読み取りとEntitlement | Helius（mainnet、読み取り） | `MAINNET (read-only)` で表示 |
+| G. 例外 | System | Backend | retry、冪等、表示停止 | Collector Crypt、RPC／DAS再照会 | 不整合時は安全側へ倒す |
 
 ### サービス選定状況
 
 | 領域 | MVPで使うもの | 状態 | 補足 |
 |---|---|---|---|
-| Web application | Next.js 16／React 19／TypeScript | 実装済み | `apps/web`。wallet、比較Timeline、端末連携、RWA管理を担当 |
+| Web application | Next.js 16／React 19／TypeScript | 実装済み | `apps/web`。wallet、台、Pull、My Collection、買取、端末連携 |
 | Web hosting | Cloudflare Pages | 利用予定 | アカウントとPages利用は確認済み。deploy設定は未実装 |
-| Wallet | Phantom | 決定・準備済み | 開発専用walletをSolana devnetで使用 |
-| Solana data | Helius | 決定・準備済み | RPC、DAS、transaction取得、必要に応じてWebhook |
-| Asset standard | Metaplex Core | 決定 | devnetでmint／transferする |
-| Backend API | TypeScript／Node.js REST API | 技術方針のみ決定 | Hosting serviceは未選定 |
-| Database | PostgreSQL | 技術方針のみ決定 | Providerは未選定 |
-| Private evidence | 非公開object storage | 未選定 | Cloudflare R2は候補。権利資料と高精細原本は公開しない |
+| Wallet | Phantom | 決定・準備済み | 開発専用walletをSolana devnetで使用。署名はWebだけ |
+| RWA provider | Collector Crypt Gacha API | 決定（2026-10-06） | 在庫・Vault・発送・買取。devnetは `dev-gacha.collectorcrypt.com`。API keyと `can_adopt` はDiscordで申請中（承認待ち） |
+| Solana data | Helius | 決定・準備済み | RPC、DAS、transaction取得。mainnetは読み取りだけ |
+| Asset standard | pNFT／Core／cNFT（Collector Crypt由来） | 決定 | Collectibles ARはmintしない。standardごとの取得経路を `SolanaAssetProvider` に隔離 |
+| Backend API | TypeScript／Node.js REST API | 技術方針のみ決定 | Hosting serviceは未選定。server routeがCollector Crypt APIを呼ぶ |
+| Database | PostgreSQL | 技術方針のみ決定 | Providerは未選定。ローカルは `.data/` のファイル保存 |
 | Primary Spatial client | SwiftUI + RealityKit + ARKit | 決定（2026-09-18にUnityから変更） | `packages/TwinfoldCore` をiOSとvisionOSで共有。`apps/ios` がARKit Adapter |
 | MVP device | iPhone／iOS | 決定 | Primary E2E、第三者テスト、比較検証に使用 |
 | Hero client | Apple Vision Pro + SwiftUI + RealityKit | P1 | 既存 `apps/visionos` prototypeを活用。Primary E2Eを遅らせない |
-| iOS distribution | Development BuildまたはTestFlight | 未決定 | 9月13日までにApple Developer Programを含めて判断 |
+| iOS distribution | Development BuildまたはTestFlight | 未決定 | Apple Developer Programを含めて判断 |
 
 「未選定」は実装済みを意味しない。サービス決定後は [外部サービス・アカウント台帳（Notion）](https://example.invalid/internal) とこの表を同時に更新する。
 
@@ -354,59 +338,77 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 
 ### Web Client
 
-- ウォレット署名認証
-- Asset一覧と比較用Provenance Timeline
+- ウォレット署名認証と、Pull・買取transactionの署名（Phantom）
+- 台の表示、Pull、開封、My Collection、Passportの比較表示
 - iPhoneへの一回限りの端末連携
-- transfer、Vaulted／Physical Ownership、redeem
-- Trust、Physical情報、Passportの表示
 - UI言語: 既定は英語。ヘッダーのプルダウンで日本語に切り替える（`apps/web/lib/i18n.tsx`、選択はブラウザに保存、言語の追加は `LANGUAGES` に1件足す）。Backendが返す文言（error、reason、Passportのlimitationsなど）とステータスのラベルは英語固定なので、日本語UIとiPhoneアプリにも英語のまま出る。fixtureやオンチェーンのデータに入っている文章は翻訳しない
 
 ### Spatial Experience（Swift Package）
 
-- Platform非依存のPlace、Unfold、Pull
+- Platform非依存のAppear、Place、Passport、Disappear
 - ownership状態に応じたAppear／Disappear
 - `pending`、`confirmed`、`failed` の表現
-- 主役（浮世絵）は高解像スキャンによる実寸1:1の紙の表示（厚みや額を付けない）。拡張（棚カテゴリ、こけし等）はVault入庫時のObject Captureによる実寸1:1のUSDZ twinを表示（いずれもscaleを触らない）
-- Backendの共通モデルだけを解釈し、Solana RPCを直接呼ばない
-- 購入、秘密鍵管理、配送先入力を行わない
+- カードは鑑定ホルダーの実寸1:1で表示する（scaleを触らない。数値はPSA公開仕様で確認）
+- Backendの共通モデルだけを解釈し、Solana RPCとCollector Crypt APIを直接呼ばない
+- 購入、秘密鍵管理、署名を行わない
 
 ### Platform Adapter
 
-- iOS／ARKitのcamera、camera-relative anchor、touch（tap／drag／pinch）、Lifecycle
-- 浮世絵の紙の表示では壁（垂直面）への密着配置、USDZ twinではLiDARによる遮蔽（手前の実物が虚像を隠す）と接地影。共通して環境光の一致
+- iOS／ARKitのcamera、平面検出、anchor、touch（tap／drag）、Lifecycle
+- 机・床（水平面）と壁（垂直面）への配置、環境光の一致、接地影
 - Platform固有API（ARKit）をSpatial Experienceから隔離
 - MVPではiOS Adapterのみ実装
 - Vision Pro、Quest、Androidは同じCore Modelを使うsecondary／将来の差し替え先
 
 ### Twinfold Backend
 
-- 署名認証とDevice Session
-- Asset／Eventの正規化
+- 署名認証とDevice Session（既存）
+- session link、memoとpack状態の記録（冪等キー=memo）、通知
+- カード資産の共通モデルへの正規化
 - ownerと表示権の判定
 - Web／Spatialへの共通API
 - chain同期、再試行、監査
 
-### RWA Adapter
+Backendは在庫・Vault・発送・買取の記録を持たない。これらはCollector Cryptの責務。
 
-- Physical Asset、証拠、権利、Vaultの記録
-- Trust Gate、redeem、Asset失効、Passport
-- オンチェーン事実とオフチェーン証拠の分離
+### GachaProvider
 
-浮世絵・こけしなどvertical固有の保存・鑑定書・画像権利要件はRWA Adapter内に置き、Coreへ埋め込まない。
+`MockGachaProvider` と `CollectorCryptGachaProvider` が同じinterfaceを実装する（第5節）。Collector CryptのAPI呼び出し（generatePack、submitTransaction、openPack、machines、buyback）は、このProviderを使うserver routeだけが行う。UIからCollector Crypt APIを直接呼ばない。
+
+### RWA provider: Collector Crypt
+
+Collector Cryptは実物カードの在庫、Vault保管、発送、買取、法務を担う。Collectibles ARは現物を持たない。
+
+- 在庫とガチャの確率・EV・価格・買取率の正本はCollector Crypt（`/api/machines`）。Collectibles ARは値をそのまま表示する。
+- 鑑定（PSA等）、保険価値、Vault記録は第三者の主張で、Collectibles ARが検証・保証しない。
+- 配送・買取・返金の責任主体はCollector Crypt。
+- 前の版のRWA Adapter（Physical Asset、証拠、権利、Vault、Trust Gate、redeem、Passport）は、自前Vault・浮世絵向けの設計で、休眠。
 
 ## 4. 共通モデル
 
 ```ts
 type TwinfoldAsset = {
   id: string;
-  network: "devnet";
+  network: "devnet" | "mainnet";
   address: string;
-  standard: string;
+  standard: string;               // pNFT / Core / cNFT など
   owner: string | null;
   title: string;
   display: DisplayDescriptor;
   provenance: ProvenanceEvent[];
-  physical?: PhysicalDescriptor;
+  // カード拡張（2026-10-06）
+  category?: "card";
+  grade?: string;                 // 例 "GEM-MT 10"（第三者の主張）
+  gradingCompany?: string;        // 例 "PSA"
+  gradingId?: string;
+  insuredValueUsd?: number;       // Collector Cryptの保険価値（USD建て、数値化できたときだけ。第三者の主張。買取が「insured valueのn%をUSDCで」と定義されているため）
+  vault?: string;
+  vaultId?: string;
+  gachaMemo?: string;             // Pull経由のときのmemo
+  imageUrl?: string;              // metadataの画像URL。実行時に読む（repoに保存しない）。display.imageUrlと同じ値
+  source?: "collectorCrypt";      // openPack経由、または設定したcollection addressに一致したときだけ。attributesの一致だけでは付けない
+  sourceVerified?: boolean;       // sourceが付いているか。falseは属性の形だけで表示するUNVERIFIED SOURCE（AR対象から除外）
+  physical?: PhysicalDescriptor;  // 休眠（旧redeem用）
 };
 
 type ProvenanceEvent = {
@@ -433,34 +435,59 @@ type Entitlement = {
 
 `ProvenanceKind` はMVPで扱う範囲だけを実装する。
 
-- MVP必須: `minted` / `transferred` / `rwa_verified` / `vaulted` / `redeemed`
+- MVP必須: `minted` / `transferred`（Pull時の入手と買取の移転をこの2種で表す。Pull固有の種類を足す場合は、実装時に型の正本とこの文書を同時に更新する）
+- 休眠（旧redeem用）: `rwa_verified` / `vaulted` / `redeemed`
 - Post-MVP: `frozen` / `burned` / `condition_updated` / `passport_issued`
 
-`id` はTwinfold内部の安定ID、`address` は外部識別子とする。UIでは `onchain`、`offchain_evidence`、`twinfold_interpretation` を混同しない。
+`id` はTwinfold内部の安定ID、`address` は外部識別子とする。`ProvenanceEvent.source` は、onchain fact（`onchain`）、第三者の主張（PSA、Collector Cryptの記録。`offchain_evidence` に写し、出典を `metadata` に持つ）、Collectibles AR interpretation（`twinfold_interpretation`）の三区分に対応する。UIで混同しない。
 
-## 5. Asset Provider
+Collector Crypt由来のカードのattributes（`Grading Company`、`The Grade`、`Grading ID`、`Insured Value`、`Vault`、`Vault ID` など）から上の拡張fieldへ写す規則は `.claude/skills/collector-crypt-gacha` を参照する。欠けているattributeは推測で埋めない。カード画像はmetadataのURLから実行時に読み、repoに保存しない。
+
+## 5. Asset ProviderとGachaProvider
+
+### Asset Provider
 
 `MockAssetProvider` と `SolanaAssetProvider` は同じinterfaceを実装する。
 
 ```ts
 interface AssetProvider {
-  readonly isDemoData: boolean; // fixture由来ならtrue。UIはDEMO DATA／DEVNETをこれで切り替える
+  readonly isDemoData: boolean; // fixture由来ならtrue。UIはDEMO DATA／DEVNET／MAINNET (read-only)をこれらで切り替える
   getAssets(wallet: string): Promise<TwinfoldAsset[]>;
   getAsset(assetId: string): Promise<TwinfoldAsset>;
   refreshOwnership(assetId: string): Promise<Entitlement>;
 }
 ```
 
-- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う。fixtureは複数Asset（Reference Asset `tf-ukiyoe-001`の実物記録＋デモ用の浮世絵4点のパブリックドメイン複製画像＋こけし1点）を含む。デモ用の5点は第9節のReference Asset（権利確認済みの実物）とは別物
-- Solana Connectionでは入力元だけを `SolanaAssetProvider` へ差し替える
-- WebとSpatial Clientで別々のfixtureやEvent解釈を持たない
-- fixtureは `DEMO DATA`、実接続は `DEVNET` と表示する
+- Experience Sketchは固定fixtureを返す `MockAssetProvider` を使う。fixtureは自作のダミーカード数点（実在カード画像を含まない）。
+- 実接続では `SolanaAssetProvider` がDAS／RPCから資産を取得し、同じ型で返す。
+- Collector Crypt由来の資産の判定方法は実装時に確認する（DAS `getAssetsByOwner` のcollection／creator、またはCollector Cryptのcards API）。確認できるまで、`source: "collectorCrypt"` を推測で付けない。
+- WebとSpatial Clientで別々のfixtureやEvent解釈を持たない。
+- fixtureは `DEMO DATA`、devnetは `DEVNET`、mainnetの読み取り専用は `MAINNET (read-only)` と表示する。
+
+### GachaProvider
+
+```ts
+interface GachaProvider {
+  readonly isDemoData: boolean;
+  listMachines(): Promise<Machine[]>;
+  generatePack(input: { playerAddress: string; packType: string; turbo?: boolean }): Promise<{ memo: string; transaction: string }>;
+  submitSigned(signedTransaction: string): Promise<{ signature: string }>;
+  openPack(memo: string): Promise<OpenedPack>;
+  buybackAvailable(nft: string): Promise<{ available: boolean; amount: string; timeRemaining: number }>;
+  buildBuyback(input: { playerAddress: string; nftAddress: string }): Promise<{ serializedTransaction: string }>;
+}
+```
+
+- `MockGachaProvider` は固定fixtureを返し、`DEMO DATA` を表示する。Collector Crypt devnet APIが落ちている場合も、これで同じ画面を通せる。
+- `CollectorCryptGachaProvider` はserver側でCollector Crypt Gacha APIを呼ぶ（devnet: `https://dev-gacha.collectorcrypt.com`、mainnetは読み取りだけ）。
+- `openPack` はmemoで冪等。`WAITING_FOR_WEBHOOK` を区別して再試行する。
+- 台の `price`、`odds`、`ev`、`stock`、`instantBuyback` は `/api/machines` の値をそのまま持ち、自前で計算しない。
 
 ## 6. Solana同期
 
-入力はMetaplex Asset、RPC／DASのowner・metadata、transactionとする。
+入力はCollector Cryptの開封結果、RPC／DASのowner・metadata、transactionとする。
 
-1. transaction signatureで重複処理を防ぐ
+1. memoとtransaction signatureで重複処理を防ぐ
 2. RPC／DASへ確定済み状態を再照会する
 3. transactionを `ProvenanceEvent` へ正規化する
 4. ownerとProvenanceを更新する
@@ -468,7 +495,7 @@ interface AssetProvider {
 6. WebとSpatial Clientへ通知する
 7. 不一致が続くAssetは `exception` として表示停止する
 
-Webhookやcacheは表示高速化に使えるが、所有権判定の正にはしない。transfer後の表示失効は5分以内をMVP基準とする。
+Webhookやcacheは表示高速化に使えるが、所有権判定の正にはしない。Appearは開封から5分以内、Disappearは買取confirmed後5分以内をMVP基準とする。
 
 ## 7. 認証・端末連携・Entitlement
 
@@ -492,112 +519,100 @@ canDisplay =
   authenticated session
   AND chain owner matches wallet
   AND asset is active
-  AND display rights are valid
-  AND asset is not frozen / redeemed / exception
+  AND asset is not exception
 ```
 
-表示画像は短期署名URLで配信する。取得済みデータを端末から完全回収できないことは制約として明記する。
+取得済みデータ（カード画像）を端末から完全回収できないことは制約として明記する。
 
-### 署名とservice wallet（devnet、開発用）
+### 署名とservice wallet（開発用）
 
-- **端末連携**: iPhoneはWebのlink codeを交換して得た端末固有・失効可能なtoken（Bearer）だけを持つ。鍵は持たない。tokenでできるのは依頼の作成と状態の読み取りで、署名・承認はできない。
-- **ownerが承認する移転**（売却、送る、redeemのlock）: 依頼を作るのはWebまたは連携端末、承認はWebでownerのPhantom署名（`signTransaction`）。サーバーは準備した取引のmessageとowner署名を検証してから送信し、手数料支払者はOshiPinのvault wallet。サーバーはownerの鍵で署名しない。
-- **取得**: OshiPinのvault walletが送り手としてサーバー署名する（支払いなし、devnetのみ）。
-- **redemption escrow wallet**: redeemのlockはownerがAssetをescrowへ移す承認（`redeem_lock`、宛先はサーバー側で固定）。取消時の返却と失効（burn）はescrowが署名し、手数料はvaultが払う。失敗時は`exception`で安全側に止まり、再試行はoperatorだけが行う。
-- **operator**: dry runの発送記録と例外処理は、サーバー署名の開発用gate（`TWINFOLD_DEVNET_SERVER_SIGNING`）と別の共有secret（`TWINFOLD_OPERATOR_TOKEN`）の両方で守る。operatorのメモは公開Passportに出さない。
-- **永続化**: redemptionとPassportは`apps/web/.data/`（git管理外、開発用のファイル保存）に原子的に書く。本番ではDBに置き換える。個人情報（氏名・住所・電話）は保存しない。
-- これらのサーバー署名は本番では無効で、mainnetでは使わない。
+- **端末連携**: iPhoneはWebのlink codeを交換して得た端末固有・失効可能なtoken（Bearer）だけを持つ。鍵は持たない。tokenでできるのは依頼の作成と状態の読み取りで、署名はできない。
+- **Pull・買取の署名**: Webでownerのwallet（Phantom）が行う。Collector Cryptが部分署名した取引へ、ユーザーが署名する。サーバーはユーザーの鍵で署名しない。
+- **API key**: `COLLECTOR_CRYPT_API_KEY` はサーバー側envだけ。
+- 休眠（2026-10-06〜）: vault walletによる取得送り、redemption escrow wallet、operator tokenによるdry run記録は、旧製品の仕組みでカード資産には使わない。コードは残るが、カード資産のフローから呼ばない。
+- サーバー署名の開発用gateは本番では無効で、mainnetでは使わない。
 
 ## 8. Spatial Interaction
 
 | Interaction／Event | 空間表現 |
 |---|---|
-| Acquire／mint | Assetが空間に現れる |
-| Place | 所有Assetを自分の空間へ置く |
-| Unfold | Experience、Ownership、Provenance、Evidence、Physicalを段階表示する |
-| Pull | 時系列のEvent nodeをAssetから引き出す |
-| transfer pending | 移転処理中であることを表示する |
-| transfer confirmed | 旧所有者から消え、新所有者へ現れる |
-| transfer failed | 配置を維持し、失敗と再試行を表示する |
-| redeemed | 流通Assetを閉じ、Passportへ履歴を残す |
+| Pull／開封 | （Webで完了）結果がlink済みiPhoneへ届く |
+| Appear | カードが鑑定ホルダー実寸で空間に現れる |
+| Place | 複数枚を机・床・壁へ並べる |
+| Passport | カードをtapして三区分を表示する |
+| buyback pending | 買取処理中であることを表示する |
+| buyback confirmed | 空間からDisappearする |
+| buyback failed | 配置を維持し、失敗と再試行を表示する |
 
 XR表現をオンチェーン確定より先に確定表示しない。owner変更時は旧所有者の保存済み配置も無効化する。
 
-## 9. RWA Reference
-
-最低1点のReference Assetで以下を接続する。
-
-- Physical ID、状態、最終確認日時
-- 取得・来歴・状態の証拠
-- 画像利用権、物理所有権、著作権
-- Vault、保管状態
-- Vaulted／Physical Ownership
-- redeem、配送ドライラン、Asset失効
-- Redeemed Provenance Passport
-
-Trust Gateの必須項目が揃うまで `rwa_verified` を発行しない。redeem時はRPCでownerを再確認し、二重申請を防止してから流通Assetを失効またはburnする。
-
-PassportはVault退出時点までの履歴を示す。配送後の現在所有者、現在状態、真正性、著作権を保証しない。
-
-## 10. データとセキュリティ
+## 9. データとセキュリティ
 
 | 項目 | MVP方針 |
 |---|---|
 | API | TypeScript／Node.jsのREST API |
-| DB | PostgreSQL |
-| Chain | Solana devnetのみ |
-| Public metadata | 公開可能な情報とhash |
-| Private evidence | 暗号化した非公開storage |
-| Display asset | Entitlement確認後の短期署名URL |
+| DB | PostgreSQL（ローカルは `.data/` のファイル保存） |
+| Chain | Solana devnet（Pull・買取・表示）、mainnet（読み取りだけ） |
+| Public metadata | Collector Cryptが配信するmetadata。画像はURLから実行時に読む |
+| 秘密情報 | `COLLECTOR_CRYPT_API_KEY`、`HELIUS_API_KEY` はサーバー側env |
 
-- 個人情報、秘密鍵、非公開画像をlogへ出さない
-- 配送先をwallet・分析データから分離する
+- カード画像はrepoに入れない。metadataのURL（cloudfront等）から実行時に読む。fixtureは自作のダミーカードかプレースホルダー
+- `COLLECTOR_CRYPT_API_KEY` はサーバー側envだけで読み、`NEXT_PUBLIC_` にしない。値をlog・画面・動画に出さない。**keyが無くても動く**（Play系endpointはkey不要。keyが付くとmemoにslugが付くだけ）
+- 個人情報、秘密鍵、署名済みtransactionの全文をlogへ出さない
 - nonce再利用と署名replayを防止する
 - owner cacheだけで権利を付与しない
-- RWA管理操作にrole別認可と監査logを持つ
-- 権利失効後は新しい画像URLを発行しない
-- devnetと将来のmainnetを設定・credential・DB上で分離する
+- memoごとにpack状態を1件だけ持ち、再送で二重処理しない
+- devnetとmainnetを設定・credential・DB上で分離する。mainnetでは `GachaProvider` のPull・買取を拒否する
 
-## 11. 観測
+## 10. 観測
 
 Primary E2Eを説明できる最小限のProduct Event:
 
 - `wallet_authenticated`
 - `device_linked`
-- `asset_placed`
-- `provenance_pulled`
-- `ownership_transferred`
-- `entitlement_revoked`
-
-RWA Layer接続時（Week 3以降）に追加: `rwa_physical_layer_opened`、`holding_mode_selected`、`passport_opened`
+- `pack_generated`
+- `pack_opened`
+- `card_appeared`
+- `card_placed`
+- `passport_opened`
+- `buyback_confirmed`
+- `card_disappeared`
 
 必須技術指標:
 
-- Asset／履歴取得成功率
-- transfer確定からEntitlement失効までの時間
+- 開封からAppearまでの時間（5分以内）
+- 買取confirmedからDisappearまでの時間（5分以内）
+- `WAITING_FOR_WEBHOOK`の再試行回数、429／503の発生率
 - Eventの重複・取りこぼし
 - iOS session／AR session／同期成功率
 - 必須E2Eの連続成功回数
 
-Week 3以降に追加: RWA整合性例外数。Vision Pro Hero Demo成功率はP1として分けて記録する。
+Vision Pro Hero Demo成功率はP1として分けて記録する。
 
-## 12. MVP外と未決事項
+## 11. MVP外と未決事項
 
 MVP外:
 
+- mainnetでのPull・買取・送金（アプリ内）
+- 自前の在庫・Vault・配送・買取
+- カード同士のP2P売買、marketplace、オークション
 - Vision Proの本番品質Build
 - Meta Quest、Androidの製品Build
-- mainnet、本番決済、実配送、re-vault
-- Discovery Graph、Commerce、オファー
-- 公開SDK／APIと複数RWAカテゴリ
+- 本番決済、実配送
+- 手数料の実受領（`can_adopt` 承認後）
+- ポケモン以外のカテゴリの作り込み
+
+休眠（コードは残る）: 浮世絵・こけしのReference Asset、redeem escrowとdry run、Twinfold buyback offer、Twinfoldからの取得。
 
 実装前に確定する事項:
 
+- Collector Crypt由来の資産の判定方法（DAS `getAssetsByOwner` のcollection／creator、またはcards API）
+- 鑑定ホルダー（PSAスラブ）の実寸の数値（PSA公開仕様で確認。要確認）
+- Pullのmemoの保管（Backend側の保存先）と、通知方式（push、polling）
 - Solana transactionから復元するEvent範囲とRPC／DAS provider
-  - 暫定決定（2026-09-26）: Metaplex Coreは`getSignaturesForAsset`が使えない（compressed asset専用でCore assetには`Tree not found`が返る）ため、標準RPCの`getSignaturesForAddress`を使う。最古のtransactionを`minted`、以降をすべて`transferred`とみなす簡易判定で、instruction decodeによるmetadata更新との区別はしていない。実transfer実装時（Issue #29）にinstruction decodeで区別する。
+  - 暫定決定（2026-09-26）: Metaplex Coreは`getSignaturesForAsset`が使えないため、標準RPCの`getSignaturesForAddress`を使う。最古のtransactionを`minted`、以降を`transferred`とみなす簡易判定。カード資産（pNFT／Core／cNFT）への適用は実装時に確認する。
 - Spatial ClientとBackend間のAPI schemaおよび更新通知方式
 - ARKitの永続anchor、対応iPhone範囲
 - TestFlightを使うか、対面Development Buildに限定するか
 - Vision Pro Hero Demoへ同じAssetを接続する範囲
-- Passportの記録形式とtransfer不能性
-- 浮世絵・こけしの画像・Object Capture利用可否、鑑定書の扱い、保管、配送の運用責任
+- Collector CryptのAPI key、`can_adopt` の承認と、devnet VRF検証ページのホスト

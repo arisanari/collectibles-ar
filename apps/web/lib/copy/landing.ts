@@ -1,31 +1,115 @@
-import type { PhysicalDescriptor, ProvenanceEvent, TwinfoldAsset } from "../contract";
+import type { PhysicalDescriptor, ProvenanceEvent } from "../contract";
 import type { Localized } from "../i18n";
 
 /**
- * UI copy for the landing page (/) and the components it shares with /collection
- * (AssetCard, PhysicalDetails, ProvenanceList, VaultAcquisitionSection). Strings that come from
+ * UI copy for the landing page (/) (`home`) and for the shared components kept from the earlier landing
+ * (AssetCard, PhysicalDetails, ProvenanceList, OnchainFeature, VaultAcquisitionSection; none is shown on / any more). Strings that come from
  * asset data (titles are localized via titleLocalized; condition, rights and notes are not) are not here.
  */
 
-export const hero = {
+export const home = {
+  eyebrow: { en: "GRADED CARDS × SOLANA × AR", ja: "鑑定済みカード × SOLANA × AR" } satisfies Localized,
+  title: { en: "Pull a pack. It appears in your room.", ja: "パックを引く。部屋に出る。" } satisfies Localized,
   lead: {
-    en: "Real-world collectibles, owned onchain. Place them in your room in AR at true size, line them up, and share the shot. The original stays in the vault.",
-    ja: "オンチェーンで所有する実物コレクティブルを、ARで自分の部屋に実寸で飾り、並べて、撮ってシェアできます。現物は保管庫に置いたまま。",
+    en: "Real graded cards on Solana. Gacha runs on Collector Crypt's machines; the card you pull shows up life-size in AR on your iPhone. The card stays in the vault.",
+    ja: "Solana上の本物の鑑定済みカード。ガチャはCollector Cryptの台で、引いたカードはiPhoneのARに実寸で出る。現物はVaultのまま。",
   } satisfies Localized,
-  cta: { en: "See what's available", ja: "取得できる作品を見る" } satisfies Localized,
-  proof: [
-    { en: "Ukiyo-e prints", ja: "浮世絵・古版画" },
-    { en: "Vault storage", ja: "Vault保管" },
-    { en: "Owned on Solana", ja: "Solanaで所有" },
-    { en: "Place it in AR", ja: "ARで飾る" },
-  ] satisfies Localized[],
-};
+  ctaPull: { en: "Pull a pack (devnet)", ja: "Pull a pack (devnet)" } satisfies Localized,
+  ctaCollection: { en: "See my collection", ja: "See my collection" } satisfies Localized,
+  artCaption: {
+    en: "Self-made dummy cards for illustration. Not real cards.",
+    ja: "説明用の自作ダミーカードです。実在のカードではありません。",
+  } satisfies Localized,
 
-export const devnetSection = {
-  eyebrow: { en: "ONCHAIN · SOLANA", ja: "ONCHAIN · SOLANA" } satisfies Localized,
-  heading: { en: "Live on Solana", ja: "Solana上の作品" } satisfies Localized,
-  loading: { en: "Loading…", ja: "読み込み中…" } satisfies Localized,
-  error: { en: "Couldn't load onchain assets right now.", ja: "いまオンチェーンの作品を読み込めません。" } satisfies Localized,
+  stepsEyebrow: { en: "HOW IT WORKS", ja: "HOW IT WORKS" } satisfies Localized,
+  stepsTitle: { en: "Three steps", ja: "3ステップ" } satisfies Localized,
+  steps: [
+    {
+      name: { en: "Pull", ja: "Pull" },
+      body: {
+        en: "Pay once in USDC and sign in Phantom.",
+        ja: "USDCで1回支払い、Phantomで署名します。",
+      },
+    },
+    {
+      name: { en: "Appear", ja: "Appear" },
+      body: {
+        en: "The card shows up in AR on your linked iPhone, life-size in its graded holder, within seconds.",
+        ja: "link済みのiPhoneのARに、鑑定ホルダーの実寸で、数秒で出ます。",
+      },
+    },
+    {
+      name: { en: "Keep, sell back or ship", ja: "Keep, sell back or ship" },
+      body: {
+        en: "Collector Crypt buys it back within 72 hours at a rate set per machine. Shipping is also done by Collector Crypt.",
+        ja: "Collector Cryptが72時間以内に台ごとの率で買取します。発送もCollector Cryptが行います。",
+      },
+    },
+  ],
+
+  whyEyebrow: { en: "WHY SOLANA", ja: "WHY SOLANA" } satisfies Localized,
+  whyTitle: { en: "Why Solana", ja: "なぜSolana" } satisfies Localized,
+  whyMove: {
+    title: { en: "Ownership moves without shipping", ja: "発送せずに所有が動く" },
+    body: {
+      en: "The card lands in your wallet the moment you pull it. Sell it back and it disappears from your room.",
+      ja: "引いた瞬間にカードがwalletへ入ります。売り戻せば、部屋からも消えます。",
+    },
+  },
+  whyVerify: {
+    title: { en: "Odds and pool can be verified (VRF)", ja: "確率とpoolをVRFで検証できる" },
+    // The bare /verify-selection path returns 404; the page needs a draw memo. The link goes to the gacha site.
+    pre: { en: "Each draw has a memo, and Collector Crypt's ", ja: "引くたびにmemoが付き、" },
+    linkText: { en: "/verify-selection page", ja: "Collector Cryptの/verify-selectionページ" },
+    post: { en: " shows how it was drawn.", ja: "で抽選を確かめられます。" },
+  },
+  whyFees: {
+    title: { en: "Fees are small", ja: "手数料が小さい" },
+    body: {
+      en: "Network fees are small enough that a $25 card still makes sense.",
+      ja: "手数料が小さいので、$25のカードでも成り立ちます。",
+    },
+  },
+
+  diffEyebrow: { en: "COMPARED", ja: "COMPARED" } satisfies Localized,
+  diffTitle: { en: "How this differs from other onchain gacha", ja: "他のonchainガチャとの違い" } satisfies Localized,
+  diffBody: {
+    en: "Jupiter Gacha, Solflare Packs and Rarible Gacha Station are front ends that sit on top of Collector Crypt's inventory. After the pull, the flow ends at a list. Collectibles AR puts what you pulled into your room.",
+    ja: "Jupiter Gacha、Solflare Packs、Rarible Gacha StationはいずれもCollector Cryptの在庫の上に乗る配布フロントで、引いた後は一覧で終わります。Collectibles ARは、引いたものを部屋に出します。",
+  } satisfies Localized,
+  diffColOthers: { en: "Other front ends", ja: "他の配布フロント" } satisfies Localized,
+  diffColUs: { en: "Collectibles AR", ja: "Collectibles AR" } satisfies Localized,
+  diffRows: [
+    { label: { en: "Pull a pack", ja: "引く" }, others: true },
+    { label: { en: "View it in AR", ja: "ARで見る" }, others: false },
+    { label: { en: "Place it in your room", ja: "部屋に並べる" }, others: false },
+    { label: { en: "Capture and share", ja: "撮って共有する" }, others: false },
+  ] satisfies { label: Localized; others: boolean }[],
+  diffYes: { en: "Yes", ja: "あり" } satisfies Localized,
+  diffNo: { en: "Not offered", ja: "なし" } satisfies Localized,
+  diffNote: {
+    en: "AR steps only, based on public information as of October 2026. Their features may change.",
+    ja: "ARの工程だけの比較です。2026年10月時点の公開情報にもとづきます。各社の機能は変わる場合があります。",
+  } satisfies Localized,
+
+  noticeEyebrow: { en: "NOTICE", ja: "NOTICE" } satisfies Localized,
+  noticeTitle: { en: "Before you try it", ja: "ご利用前に" } satisfies Localized,
+  notices: [
+    {
+      en: "This is DEVNET. Test funds, test cards, no real shipment.",
+      ja: "DEVNETです。テスト用の資金・カードで、実際の発送はありません。",
+    },
+    {
+      en: "Odds, expected value, buyback rates and insured values are published by Collector Crypt and PSA. Collectibles AR does not vouch for them.",
+      ja: "確率・期待値・買取率・保険価値はCollector CryptとPSAの公表値です。Collectibles ARはそれらの裏づけを行いません。",
+    },
+    {
+      en: "Buyback, shipping and refunds are the responsibility of Collector Crypt, not Collectibles AR.",
+      ja: "買取・発送・返金の責任主体はCollector Cryptです。Collectibles ARではありません。",
+    },
+  ] satisfies Localized[],
+  realPacksPre: { en: "Real packs can be pulled at ", ja: "本物のパックは " } satisfies Localized,
+  realPacksPost: { en: ".", ja: " で引けます。" } satisfies Localized,
 };
 
 /** Onchain piece block and cards inside "Live on Solana" (landing only). */
@@ -43,39 +127,6 @@ export const devnetFeature = {
     ja: "redeem dry run用のリハーサルToken。Reference Assetではありません",
   } satisfies Localized,
 };
-
-export const browse = {
-  eyebrow: { en: "COLLECTION", ja: "COLLECTION" } satisfies Localized,
-  heading: { en: "Browse by category", ja: "カテゴリから見る" } satisfies Localized,
-  comingSoon: { en: "coming soon", ja: "近日公開" } satisfies Localized,
-  demoTag: { en: "Demo", ja: "デモ" } satisfies Localized,
-  ukiyoe: {
-    eyebrow: { en: "WALL", ja: "壁" } satisfies Localized,
-    title: { en: "Ukiyo-e", ja: "浮世絵" } satisfies Localized,
-  },
-  shelf: {
-    eyebrow: { en: "SHELF · COMING SOON", ja: "棚 · 近日公開" } satisfies Localized,
-    title: { en: "Figures & folk crafts", ja: "フィギュア・郷土玩具" } satisfies Localized,
-  },
-  cards: {
-    eyebrow: { en: "CARDS · COMING SOON", ja: "カード · 近日公開" } satisfies Localized,
-    title: { en: "Trading cards", ja: "トレーディングカード" } satisfies Localized,
-  },
-};
-
-/** Display-only classification used by the landing page: 3D twins sit on a shelf, everything else hangs on a wall. */
-export type SpatialCategory = "wall" | "shelf";
-
-export function spatialCategory(asset: TwinfoldAsset): SpatialCategory {
-  return asset.spatialRepresentation.kind === "model" ? "shelf" : "wall";
-}
-
-export const spatialShort: Record<SpatialCategory, Localized> = {
-  wall: { en: "Wall · true size", ja: "壁・実寸" },
-  shelf: { en: "Shelf · 3D", ja: "棚・3D" },
-};
-
-export const eventCount = (n: number): Localized => ({ en: `${n} provenance events`, ja: `来歴 ${n}件` });
 
 export const detail = {
   close: { en: "Close", ja: "閉じる" } satisfies Localized,
@@ -102,7 +153,7 @@ export const custodyText: Record<PhysicalDescriptor["custody"]["status"], Locali
 export const sourceText: Record<ProvenanceEvent["source"], Localized> = {
   onchain: { en: "On-chain", ja: "オンチェーン" },
   offchain_evidence: { en: "Off-chain evidence", ja: "オフチェーンの証跡" },
-  twinfold_interpretation: { en: "OshiPin interpretation", ja: "OshiPinの解釈" },
+  twinfold_interpretation: { en: "Collectibles AR interpretation", ja: "Collectibles ARの解釈" },
 };
 
 const kindText: Record<ProvenanceEvent["kind"], Localized> = {
@@ -156,23 +207,23 @@ export const assetCardUi = {
     en: "Rehearsal token for the redeem dry run. Not a Reference Asset.",
     ja: "redeem dry run用のリハーサルToken。Reference Assetではありません",
   } satisfies Localized,
-  offerHeading: { en: "OSHIPIN PRICE / BUYBACK OFFER", ja: "OSHIPIN価格 / 買取オファー" } satisfies Localized,
-  price: { en: "OshiPin price", ja: "OshiPin価格" } satisfies Localized,
+  offerHeading: { en: "TWINFOLD (LEGACY DEMO) PRICE / BUYBACK OFFER", ja: "TWINFOLD（旧デモ）価格 / 買取オファー" } satisfies Localized,
+  price: { en: "Twinfold price", ja: "Twinfold価格" } satisfies Localized,
   buyback: (pct: number): Localized => ({ en: `Buyback offer (${pct}%)`, ja: `買取オファー（${pct}%）` }),
   notEligible: { en: "Not eligible", ja: "対象外" } satisfies Localized,
   offerNote: {
-    en: "The buyback amount is an offer from OshiPin and does not guarantee a buyback or any price. No real payment is made on devnet.",
-    ja: "買取額はOshiPinが提示するオファーであり、買取や価格を保証するものではありません。devnetでは実際の支払いは発生しません。",
+    en: "The buyback amount is an offer from Twinfold and does not promise a buyback or any price. No real payment is made on devnet.",
+    ja: "買取額はTwinfoldのオファーであり、買取や価格を約束するものではありません。devnetでは実際の支払いは発生しません。",
   } satisfies Localized,
   offerNotePlaceholder: { en: " Prices are demo placeholders.", ja: " 価格はデモ用の仮の値です" } satisfies Localized,
 };
 
 export const vault = {
-  eyebrow: { en: "FROM THE OSHIPIN VAULT", ja: "FROM THE OSHIPIN VAULT" } satisfies Localized,
-  heading: { en: "Available from OshiPin", ja: "OshiPinから取得できる作品" } satisfies Localized,
+  eyebrow: { en: "FROM THE TWINFOLD VAULT (LEGACY DEMO)", ja: "FROM THE TWINFOLD VAULT（旧デモ）" } satisfies Localized,
+  heading: { en: "Available from Twinfold", ja: "Twinfoldから取得できる作品" } satisfies Localized,
   note: {
-    en: "Demo on Solana devnet: no payment is taken and prices are placeholders. The original stays in the OshiPin vault.",
-    ja: "Solana devnetでのデモです。支払いは発生せず、価格は仮の値です。現物はOshiPinのVaultに保管されたままです。",
+    en: "Demo on Solana devnet: no payment is taken and prices are placeholders. The original stays in the Twinfold vault.",
+    ja: "Solana devnetでのデモです。支払いは発生せず、価格は仮の値です。現物はTwinfoldのVaultに保管されたままです。",
   } satisfies Localized,
   loading: { en: "Loading…", ja: "読み込み中…" } satisfies Localized,
   failed: { en: "Couldn't load available works right now.", ja: "いま取得できる作品を読み込めません。" } satisfies Localized,
@@ -186,13 +237,13 @@ export const vault = {
   hideProvenance: { en: "Hide provenance", ja: "来歴を閉じる" } satisfies Localized,
   dialogEyebrow: { en: "DEVNET · ACQUIRE", ja: "DEVNET · 取得" } satisfies Localized,
   dialogPrice: (price: string): Localized => ({
-    en: `Displayed price ${price} (OshiPin display value, placeholder)`,
-    ja: `表示価格 ${price}（OshiPinの表示値・仮の値）`,
+    en: `Displayed price ${price} (Twinfold display value, placeholder)`,
+    ja: `表示価格 ${price}（Twinfoldの表示値・仮の値）`,
   }),
   confirmItems: [
     { en: "This is an acquisition on devnet. No payment is taken.", ja: "devnet上の取得であり、支払いは発生しません。" },
     { en: "The price is display-only (a placeholder).", ja: "価格は表示のみです（仮の値）。" },
-    { en: "The original stays in the OshiPin vault.", ja: "現物はOshiPinのVaultに保管されたままです。" },
+    { en: "The original stays in the Twinfold vault.", ja: "現物はTwinfoldのVaultに保管されたままです。" },
   ] satisfies Localized[],
   processing: { en: "Processing…", ja: "処理中…" } satisfies Localized,
   cancel: { en: "Cancel", ja: "キャンセル" } satisfies Localized,

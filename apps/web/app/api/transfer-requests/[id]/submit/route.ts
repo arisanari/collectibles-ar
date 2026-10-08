@@ -7,6 +7,7 @@ import { markConfirmed, markFailed, markSubmitted, toView } from "../../../../..
 import { verifyOwnerSignedTransaction } from "../../../../../lib/transferRequests/verify";
 import { reconcileRedemption } from "../../../../../lib/redemptions/flow";
 import { getRedemption } from "../../../../../lib/redemptions/store";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ const MAX_SIGNED_TX_BASE64 = 4096;
  * already submitted/confirmed returns its current state without re-sending.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { webOnly: true, mutating: true });
   if (!access.ok) return access.response;
   const { id } = await context.params;

@@ -3,6 +3,7 @@ import { authorize } from "../../../../../lib/transferRequests/access";
 import { ownedRedemption } from "../../../../../lib/redemptions/access";
 import { runRetire } from "../../../../../lib/redemptions/flow";
 import { markReceived, recordRefusal, runtimeOf } from "../../../../../lib/redemptions/store";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
  * (`retry_retire`) can resume. Idempotent: already received / retired returns the current state.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { webOnly: true, mutating: true });
   if (!access.ok) return access.response;
   const { id } = await context.params;

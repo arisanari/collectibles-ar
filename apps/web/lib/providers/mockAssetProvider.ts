@@ -44,7 +44,7 @@ export function makeBuybackQuote(asset: TwinfoldAsset, wallet: string): BuybackQ
       offerAmount: 0,
       currency: "USDC",
       eligible: false,
-      reason: "demo: no OshiPin price set for this asset",
+      reason: "demo: no Twinfold (legacy demo) price set for this asset",
       quoteId,
       expiresAt,
     };
@@ -56,7 +56,7 @@ export function makeBuybackQuote(asset: TwinfoldAsset, wallet: string): BuybackQ
   }
   const custodyStatus = asset.physical?.custody.status;
   if (custodyStatus !== "vaulted") {
-    reasons.push(`Not Vaulted, so not eligible to sell to OshiPin (custody: ${custodyStatus ?? "unknown"})`);
+    reasons.push(`Not Vaulted, so not eligible to sell to Twinfold (custody: ${custodyStatus ?? "unknown"})`);
   }
   const alreadyRedeemed = asset.provenance.some(
     (event) => event.kind === "redeemed" && event.status === "confirmed"
@@ -76,7 +76,7 @@ export function makeBuybackQuote(asset: TwinfoldAsset, wallet: string): BuybackQ
     currency: asset.commerce.twinfoldPrice.currency,
     eligible,
     reason: eligible
-      ? `demo: eligible for OshiPin buyback offer (checked ${checkedAt})`
+      ? `demo: eligible for Twinfold (legacy demo) buyback offer (checked ${checkedAt})`
       : reasons.join("; "),
     quoteId,
     expiresAt,

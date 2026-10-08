@@ -1,68 +1,67 @@
-# OshiPin
+# Collectibles AR
 
-**Summon what you own into your room. Real-world collectibles meet AR. Beachhead: ukiyo-e prints on your wall.**
+**Collectibles AR is the AR layer for real cards on Solana. Pull a pack, and the graded card appears life-size in the room you're in.**
 
-OshiPinは、保管庫に置いたままの現物コレクティブルを、実寸で自分の部屋にARで召喚し、並べて、撮って、シェアできるようにします。オンチェーン所有権、来歴、現物受取にも接続します。売れば部屋から消えます。Vault保管中のAssetは、OshiPinが付けている現在の販売価格の80%で買取提示を受けられます（価格はOshiPinが変更しうる。redeem済みは対象外。devnetでは支払いを行いません）。
+Collectibles AR は、Solana上の実物カード資産（Collector Cryptなど）を、引いた瞬間にその場の現実空間へ実寸で呼び出すARコレクション層です。ガチャはCollector Cryptの台をアプリ内でホストし、Collectibles ARは「出す・並べる・撮る」を担います。収益はホストした台の手数料です。
 
-> **OshiPin turns vaulted collectibles into transferable onchain ownership you can summon into your room in AR and redeem physically.**
+> Solanaは所有の移転を解いた（発送せずに売買できる）。Collectibles ARは「発送せずに見せびらかす」を解く。
 
-Solanaが「Assetに何が起きたか」を記録し、OshiPinが「それが所有者にとって何を意味するか」を空間の変化へ翻訳します。
+引いた瞬間に、その場に出る。現物はCollector CryptのVaultのまま。売り戻せば空間から消える。
+
+> 2026-10-06に、浮世絵のARコレクション（OshiPin）からカードのAR層へプロダクトを転換しました（転換時の名称はSlabAR、2026-10-07にCollectibles ARへ改名）。詳細は「事前開発と転換の開示」を参照してください。
 
 ## 提出先
 
 Crypto World's Fair 2026（Colosseum）。開催期間 2026-09-14〜2026-10-12。
 
-## プロダクト構造
+## 何が動くか
 
-| 層 | 役割 |
+- **devnet**: Collector Cryptの台（既定は `pokemon_25`）をWebで表示 → Pull（Phantomで署名）→ 開封 → My Collection（`DEVNET`）→ link済みiPhoneのARに鑑定ホルダー実寸でAppear → Placeで並べる → Passport → 買取でDisappear
+- **mainnet（read-only）**: 自分のwalletにある本物のカードを `MAINNET (read-only)` で表示し、同じARに出す。アプリ内でmainnetのPull・買取・送金はしません
+- **署名はWeb（Phantom）だけ**。結果はlink済みのiPhoneに出ます。iPhoneは鍵を持ちません
+
+> 現在の実装状況は進行中です。上は2026-10-06に定めたP0の目標で、どこまで通っているかは完了報告とE2E証拠で区別します（`実データで完了`／`fixtureで完了`／`未実装`／`blocked`）。
+
+## 表示の区別
+
+| 表示 | 意味 |
 |---|---|
-| Ownership Layer | 現物、証拠、保管、オンチェーンAsset、owner、redeemを接続する |
-| Spatial Ownership Experience | 所有・来歴・移転をPlace、Pull、Appear／Disappearとして体験させる |
-| Wall Display Collectibles Vertical（最初のカテゴリ） | 実物、顧客、供給者、運用、収益仮説を最初に検証する |
+| `DEMO DATA` | fixture（自作のダミーカード）。実在のカード画像は使いません |
+| `DEVNET` | Solana devnetの実接続。devnetのPullは売上ではありません |
+| `MAINNET (read-only)` | mainnetの読み取り専用表示 |
 
-カテゴリの拡張順は、最初が壁の浮世絵、次が棚（フィギュア・こけし・郷土玩具）、その先がカードと部屋全体です。最初のReference Assetは江戸・明治の浮世絵・古版画です（著作権消滅、国際的なディーラー・オークション・状態評価〈摺り、退色、裏打ち、トリミング〉が確立、原摺りは新規供給がなく、退色リスクがあるのでVault保管と壁での鑑賞がトレードオフになり、贋作・後摺りが多いので来歴と状態の記録を分けて残す価値があります）。拡張として棚に飾るカテゴリを想定し、メーカー公認3Dを前提としたフィギュア（Metaplex Coreのroyaltyで二次流通からメーカーへ還元できるという仮説は未検証です）と、3D twinの例としての郷土玩具・伝統こけしを含みます。切手は履歴（かつてのbeachhead）としてのみ残ります。アニメ原画・セルは権利上除外しています。OshiPinは「コレクティブルNFTサービス」ではなく、これらはreal-world collectibles全体へ展開するための最初の市場です。OshiPinは鑑定機関を名乗らず、現物所有権と既存の鑑定機関が発行する鑑定書を分けて記録します。
+## 使用技術
 
-## Core Experience
-
-```text
-実物と証拠を登録
-→ Solana devnetにAssetをmint
-→ walletがownershipを取得
-→ My Collectionに現れる
-→ iPhone ARで空間へPlace
-→ AssetからprovenanceをPull
-→ 別walletへtransferすると旧所有者からDisappear
-→ Redeem Physicalを申請
-→ 流通Assetをlock／retireしPassportを残す
-```
-
-Primary Aha momentは、**ownershipの変化が空間の変化になること**です。買った瞬間に、自分の壁に掛かる。現物はVaultのまま。売れば壁から消える。保管中に買った物が、手元の実物コレクション（本物の額装作品）の隣に違和感なく並ぶのが中核体験です。
-
-- **Acquire → Appear**: 取得すると自分の空間に現れる
-- **Transfer → Disappear**: 移転すると旧所有者の空間から消え、新所有者の空間に現れる
-- **Redeem → Fold**: 現物を受け取ると流通Assetが失効し、来歴はRedeemed Provenance Passportへ残る
-
-空間表現は、主役の浮世絵では高解像スキャンによる実寸1:1の紙の表示です。厚みや額は付けず、壁（垂直面）への密着配置と環境光の一致を条件とし、Object Captureは不要です。拡張の棚カテゴリ（フィギュア・こけし）では、入庫時にVault側がObject Captureで作る実寸1:1のUSDZ twinを使い、LiDAR遮蔽（手前の実物が虚像を隠す）と接地影を条件とします。どちらのスキャンも状態記録（off-chain evidence）と表示データを兼ね、買い手はスキャンしません。
-
-購入者は、現物をVaultに置いたままXR鑑賞とオンチェーン流通を続ける `Vaulted Ownership` と、現物を配送する `Physical Ownership` を選べます。Passportは配送後の現在所有者・現在状態・真正性を継続保証しません。
+- Solana（devnet／mainnet read-only）、Metaplex（Core／pNFT／cNFT資産の取得）、Helius RPC／DAS
+- Collector Crypt Gacha API（台、Pull、開封、買取、VRF検証）
+- SwiftUI、RealityKit、ARKit（iPhone AR、Apple Vision Proは同じSwift Packageを使うsecondary）
+- Next.js 16、React 19、TypeScript、Phantom
 
 ## Clients
 
 | Client | 役割 | 優先度 |
 |---|---|---|
-| iPhone AR（SwiftUI + RealityKit + ARKit） | Place、Pull、Appear／Disappear。第三者テストと比較検証 | P0 |
-| Web（Next.js） | wallet署名認証、My Collection、比較Timeline、transfer、redeem | P0 |
+| iPhone AR（SwiftUI + RealityKit + ARKit） | Appear、Place、Passport、Disappear | P0 |
+| Web（Next.js） | wallet接続・署名、台の表示、Pull・開封、My Collection、買取 | P0 |
 | Apple Vision Pro（SwiftUI + RealityKit） | 同じAssetを表示するHero Demo | P1 |
 
-Meta Quest、AndroidはMVP後のAdapter展開先です。
+## Collector Cryptへの依存と責任分界
 
-## 現在の実装状況
+- 在庫、Vault保管、発送、買取、法務はCollector Cryptが担います。Collectibles ARは現物を持ちません
+- 台の価格、確率、EV、在庫、買取率はCollector Cryptの `/api/machines` の値をそのまま表示します。Collectibles ARは計算・加工せず、保証もしません
+- 買取はCollector Cryptが行います（72時間以内、台ごとの率）
+- PSAのグレード、`Authenticated`、Insured Value、Vault記録はCollector Cryptまたは鑑定機関の主張で、Collectibles ARが検証したものではありません
+- Passportは、onchain fact（owner、mint、transfer）、第三者の主張、Collectibles AR interpretationを分けて表示します。blockchain、NFT、PassportはカードのAuthenticityや配送後の現物状態を保証しません
+- 収益線は、Collector Cryptの `can_adopt` による自分の台コード（既存台に1パックあたり最大10%の手数料）の仕様に基づく計画です。API keyと `can_adopt` の有効化は申請中で、承認前は未承認です。payoutはCollector Cryptが行います
+- Collector CryptのAPI keyが無くても、台の表示・Pull・開封は動きます（keyはサーバー側envの `COLLECTOR_CRYPT_API_KEY` で、公開しません）
 
-現在はWeb、iPhone AR（iOS）、visionOSの**UIプロトタイプ**です。Webは Solana devnet のAssetをサーバー経由で読み取り `DEVNET` と表示します（Reference Asset 1点をmint済み）。ウォレット署名、バックエンド、RWA Protocol、Vault、配送にはまだ接続していません。fixtureの画面は `DEMO DATA` で、fixtureは Reference Asset `tf-ukiyoe-001`（実物。北斎漫画 十三編と推定される半丁2枚）、デモ用の浮世絵4点（パブリックドメインの複製画像）、こけし1点（棚の拡張例、USDZ twin表現）です。iPhone AR（`apps/ios`）では、My Roomで複数の作品を壁や机に置き、transferに応じたDisappear／Appearまでfixtureで動きます。
+## 免責
+
+ガチャの確率、EV、在庫、買取率はCollector Cryptの公表値で、Collectibles ARが保証するものではありません。投資・利益・当選を約束するものではありません。devnetのPullは売上ではありません。mainnet、本番決済、実配送はアプリ内で行いません。
+
+## 再現手順
 
 ### Web
-
-Asset一覧・詳細、Phantom接続の疑似体験、所有コレクション、redeem申請の画面。
 
 ```bash
 cd apps/web
@@ -70,29 +69,39 @@ npm install
 npm run dev
 ```
 
-`http://localhost:3000` を開きます。Helius接続時は `apps/web/.env.example` を `.env.local` にコピーして実値を入れます。
+`http://localhost:3000` を開きます。Helius接続時は `apps/web/.env.example` を `.env.local` にコピーして実値を入れます。devnetのPullには、devnet SOLと、devnet USDC（[faucet](https://spl-token-faucet.com/?token-name=USDC-Dev)、mint `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr`）を入れたPhantom walletが要ります。API keyが無くても動きます。
+
+検証: `npm run build`、`npm run lint`。
+
+### iPhone AR
+
+```bash
+cd apps/ios
+xcodegen generate
+```
+
+Xcodeで `TwinfoldAR.xcodeproj` を開き、実機で起動します（署名は個人Team）。手順は `.claude/skills/ios-realitykit-ar/SKILL.md` を参照してください。
+
+### 共通Swift Package
+
+```bash
+cd packages/TwinfoldCore
+swift build
+```
 
 ### Vision Pro
 
-所有コレクション一覧、Immersive Space、Assetの空間配置、情報表示。起動方法は [apps/visionos/README.md](apps/visionos/README.md) を参照してください。
+起動方法は [apps/visionos/README.md](apps/visionos/README.md) を参照してください。
 
 ## 実装順序
 
-1. 共通Asset／ProvenanceEvent／Entitlementモデルとfixtureを固定
-2. iOS AR（RealityKit）の固定fixtureでPlace、Pull、Disappear
-3. Web wallet署名認証、Metaplex Core devnet mint、Heliusからの履歴取得
-4. 同じ実AssetをiOS ARへ表示し、実transfer後に旧ownerから失効
-5. Reference AssetのTrust Gate、Physical情報、Vaulted／Physical Ownership
-6. redeem dry run、Asset失効、Passport
-7. Web／iOS AR比較ユーザーテスト、Pitch、提出
-
-詳細は [MVP Acceptance Criteria](docs/mvp.md)、[Build Order](docs/build-order.md)、[Technical Architecture](docs/architecture.md) を参照してください。戦略、スケジュール、[PRD](https://example.invalid/internal)、[GTM実行計画](https://example.invalid/internal)は[Notion](https://example.invalid/internal)で管理しています。
+[Build Order](docs/build-order.md) を参照してください（Phase 0 正本の書き換え 10/06、Phase 1 GachaProvider devnetとWeb 10/07、Phase 2 iPhone ARとmainnet read-only 10/08、Phase 3 発表資料と検証 10/09、Phase 4 動画 10/10、Phase 5 提出 10/11〜12）。詳細は [MVP Acceptance Criteria](docs/mvp.md)、[Technical Architecture](docs/architecture.md) を参照してください。戦略、スケジュール、[PRD](https://example.invalid/internal)、[GTM実行計画](https://example.invalid/internal)は[Notion](https://example.invalid/internal)で管理しています（2026-10-06の転換を反映するまでは古い部分があります）。
 
 ## ディレクトリ
 
 ```text
 apps/
-  web/       Next.js Webプロトタイプ
+  web/       Next.js Web（台、Pull、My Collection、買取、端末連携）
   visionos/  SwiftUI + RealityKitプロトタイプ（P1）
   ios/       SwiftUI + RealityKit + ARKit iPhone AR（P0）
 packages/
@@ -101,13 +110,13 @@ docs/        MVP判定基準、実装順、技術構成（実装側の正本）
 AGENTS.md    AIエージェント共通ガイド（CLAUDE.mdはsymlink）
 ```
 
-秘密鍵、APIキー、個人情報、権利未確認の高精細画像をリポジトリへ保存しません。
+秘密鍵、APIキー、個人情報、権利未確認の画像（実在のカード画像を含む）をリポジトリへ保存しません。カード画像はmetadataのURLから実行時に読みます。
 
 リポジトリ名・コード内部名（TwinfoldCore、TwinfoldAsset、APIパス、fixtureのidなど）は Twinfold のままです。
 
-## 事前開発の開示
+## 事前開発と転換の開示
 
-Crypto World's Fair開幕（2026-09-14）以前に、事業文書、Web UIプロトタイプ、visionOSプロトタイプを作成しています。開幕前のcommitと開幕後の作業はgit履歴で区別でき、提出時に開示します。
+Crypto World's Fair開幕（2026-09-14）以前に、事業文書、Web UIプロトタイプ、visionOSプロトタイプを作成しています。開幕後の2026-09-21から2026-10-06までは、壁に掛ける浮世絵・版画のARコレクション（2026-10-05にOshiPinへ改名）を作っていました。2026-10-06に、プロダクトをCollector Cryptの実物カードをARで出すSlabARへ転換し、2026-10-07にCollectibles ARへ改名しました。浮世絵・こけしのfixtureと、iPhone link、wallet署名、AR Placeの実装は、コードに残し（浮世絵とこけしは休眠）、転換後の製品で再利用します。開幕前のcommit、転換前の作業、転換後の作業はgit履歴で区別でき、提出時に開示します。
 
 ## 検証済み
 

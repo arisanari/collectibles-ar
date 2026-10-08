@@ -15,9 +15,13 @@ struct DemoWallet: Identifiable, Hashable {
     let id: String // wallet address
     let label: String
 
+    /// Owner of the three self-made demo cards (`fixtures/demo/wallets.json` walletC). The default Demo room.
+    static let cardCollectorDemo = DemoWallet(id: MockAssetProvider.cardCollectorWallet, label: "Card collector (demo)")
+    /// Placeholder room for Mainnet (read-only) while no Web wallet is linked: there is nothing to read yet.
+    static let noWallet = DemoWallet(id: "", label: "未連携")
     static let ownerA = DemoWallet(id: "DEMOwalletA1111111111111111111111111111111", label: "Owner A (demo)")
     static let ownerB = DemoWallet(id: "DEMOwalletB2222222222222222222222222222222", label: "Owner B (demo)")
-    static let all: [DemoWallet] = [ownerA, ownerB]
+    static let all: [DemoWallet] = [cardCollectorDemo, ownerA, ownerB]
 
     /// devnet owner-a / owner-b public keys (Issue #14). Devnet mode's
     /// wallet switch uses these instead of the DEMOwallet* pairs above.
@@ -26,12 +30,16 @@ struct DemoWallet: Identifiable, Hashable {
     static let allDevnet: [DemoWallet] = [ownerADevnet, ownerBDevnet]
 
     static func wallets(for mode: DataMode) -> [DemoWallet] {
-        mode == .demo ? all : allDevnet
+        switch mode {
+        case .demo: return all
+        case .devnet: return allDevnet
+        case .mainnet: return [] // only the linked Web wallet (see `RoomController.walletOptions`)
+        }
     }
 
     static func label(forWallet wallet: String) -> String {
         if wallet == MockAssetProvider.vaultWallet || wallet == "vault" {
-            return "OshiPin Vault"
+            return "Twinfold Vault（旧デモ）"
         }
         return (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
     }
@@ -62,9 +70,26 @@ struct DemoWallet: Identifiable, Hashable {
 enum DataMode: String, CaseIterable, Identifiable, Sendable {
     case demo
     case devnet
+    /// READ-ONLY: the linked wallet's real Collector Crypt cards, shown and placed, never operated on.
+    case mainnet
 
     var id: String { rawValue }
-    var label: String { self == .demo ? "Demo data" : "Devnet" }
+    var label: String {
+        switch self {
+        case .demo: return "Demo data"
+        case .devnet: return "Devnet"
+        case .mainnet: return "Mainnet (read-only)"
+        }
+    }
+    /// The always-visible data-source badge text.
+    var badge: String {
+        switch self {
+        case .demo: return "DEMO DATA"
+        case .devnet: return "DEVNET"
+        case .mainnet: return "MAINNET (read-only)"
+        }
+    }
+    var isReadOnly: Bool { self == .mainnet }
 }
 
 enum TransferState: Sendable, Equatable {
@@ -121,6 +146,9 @@ private struct PlacementCoord {
     /// Wall: the card's real-world height (for top-edge snapping). Floor
     /// twin: the settled footprint height. Unused for an air placement.
     var footprintHeight: Float
+    /// How a graded slab (`category == "card"`) is posed: flat on a wall (also used for an upright air placement) or
+    /// standing on a desk or floor. Ignored for other representations.
+    var slabSurface: SlabSurface = .wall
 }
 
 /// Owns placement, selection, holding-preview and simulated-transfer state
@@ -147,7 +175,7 @@ final class RoomController {
 
     weak var arView: ARView?
 
-    private(set) var activeWallet: DemoWallet = .ownerA
+    private(set) var activeWallet: DemoWallet = .cardCollectorDemo
     /// Assets `provider.getAssets(activeWallet)` currently returns. The
     /// tray lists these; only these (intersected with placement) ever get
     /// a live entity in the scene.
@@ -179,10 +207,47 @@ final class RoomController {
     private var placementCoords: [String: PlacementCoord] = [:]
     private var liveEntities: [String: LiveEntity] = [:]
 
+    // MARK: Appear (Pull feed), Disappear (ownership refresh), Passport state
+
+    /// Cards that came in through Appear, kept while DAS may still lag (see `mergeAppeared`).
+    private var appearedAssets: [String: (asset: TwinfoldAsset, at: Date)] = [:]
+    private static let appearGrace: TimeInterval = 120
+    /// When `ownedAssets` was last read successfully (shown in the Passport as the fetch time).
+    private(set) var lastFetchedAt: Date?
+    /// The asset whose Passport sheet is open.
+    var passportAssetId: String?
+
+    private struct PendingAppear {
+        let memo: String
+        let asset: TwinfoldAsset
+        let deadline: Date
+    }
+    /// Opened Pulls waiting for a plane under the screen center (or the fallback after `appearWaitForPlane`).
+    private var pendingAppears: [PendingAppear] = []
+    private static let appearWaitForPlane: TimeInterval = 6
+    private let shownMemos = ShownPackMemos()
+    /// `since` for the pack feed: fixed for the session (start - 10 minutes); the server keeps records changed at or
+    /// after it, the memo set dedupes, so a late-opened older Pull still comes through.
+    private var packFeedSince: Date?
+    private static let packFeedLookback: TimeInterval = 10 * 60
+    private static let packPollInterval: TimeInterval = 3
+    private static let ownershipRefreshInterval: TimeInterval = 30
+    private var isRoomActive = false
+    private var packPollTask: Task<Void, Never>?
+    private var ownershipRefreshTask: Task<Void, Never>?
+
     private var previewAnchor: AnchorEntity?
+    /// The held asset's entity under `previewAnchor` (a slab is re-posed on it every frame: wall vs. standing).
+    private var previewEntity: Entity?
     private var pendingPreviewTransform: simd_float4x4?
     private var pendingPreviewIsWall = false
     private var pendingPreviewCardHeight: Float = 0
+    private var pendingPreviewSlabSurface: SlabSurface = .wall
+
+    /// Data-source badge text for the current mode: `DEMO DATA`, `DEVNET` or `MAINNET (read-only)`.
+    var networkBadge: String { dataMode.badge }
+    /// Mainnet is display and Place only: no Pull, buyback, transfer or redeem UI is offered.
+    var isReadOnlyMode: Bool { dataMode.isReadOnly }
 
     private static let placementDistance: Float = 0.4
     /// Top-edge height difference (meters) below which a newly-placed wall
@@ -249,7 +314,7 @@ final class RoomController {
     /// 送る / Twinfoldに売る for the linked wallet: create a request, show 「Webで承認待ち」,
     /// poll every 3s; on confirmed, wait for the owner change as for any transfer, then Disappear.
     private func runApprovalFlow(assetId: String, asset: TwinfoldAsset, requestId: String, kind: TransferRequestKind, toWallet: String?) async {
-        let opLabel = kind == .buyback ? "OshiPinへの売却" : "送信"
+        let opLabel = kind == .buyback ? "Twinfold（旧デモ）への売却" : "送信"
         let destination = kind == .buyback ? MockAssetProvider.vaultWallet : (toWallet ?? "")
         approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
         defer { approvalMessages[assetId] = nil }
@@ -362,6 +427,16 @@ final class RoomController {
         let formerWallet = linkedSession?.wallet
         linkedSession = nil
         linkNotice = notice
+        if dataMode == .mainnet, activeWallet.id == formerWallet {
+            // Nothing left to read on mainnet without a linked wallet.
+            activeWallet = .noWallet
+            ownedAssets = []
+            appearedAssets.removeAll()
+            selectedAssetId = nil
+            cancelHolding()
+            syncEntities()
+            return
+        }
         guard dataMode == .devnet, activeWallet.id == formerWallet else { return }
         if let testRoom = DemoWallet.allDevnet.first(where: { $0.id == formerWallet }) {
             activeWallet = testRoom // same wallet, original label; assets stay
@@ -374,7 +449,7 @@ final class RoomController {
 
     private func activateLinkedRoom() {
         guard let linked = linkedWallet else { return }
-        if dataMode != .devnet {
+        if dataMode == .demo {
             switchDataMode(to: .devnet) // selects the first room; fixed up below
         }
         if activeWallet.id == linked.id {
@@ -393,7 +468,7 @@ final class RoomController {
         case .rateLimited(let seconds):
             return "試行回数が多すぎます。" + (seconds.map { "約\(max(1, $0 / 60))分後に" } ?? "しばらくしてから") + "もう一度お試しください"
         case .unauthorized: return "連携が切れました"
-        case .network: return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        case .network: return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
         case .server(let status): return "サーバーエラー（\(status)）"
         case .decoding: return "応答を読み取れませんでした"
         }
@@ -509,11 +584,11 @@ final class RoomController {
             case 403: return "申請できません（所有者ではない、またはサーバー側で無効です）"
             case 409: return "この作品はすでに引き取り手続き中か、対象外です"
             case 429: return "申請の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（OshiPin側の設定）。時間をおいて再試行してください"
+            case 503: return "いまは処理できません（Collectibles AR側の設定）。時間をおいて再試行してください"
             default: return "申請に失敗しました（\(status)）"
             }
         }
-        return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
     }
 
     // MARK: - Twinfoldから取得 (acquire, Issue #60)
@@ -656,17 +731,25 @@ final class RoomController {
             case 404: return "取得の記録が見つかりません。もう一度お試しください"
             case 409: return "この作品は現在取得できません"
             case 429: return "取得の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（OshiPin側のdevnet SOL残高など）。時間をおいて再試行してください"
+            case 503: return "いまは処理できません（Collectibles AR側のdevnet SOL残高など）。時間をおいて再試行してください"
             default: return "取得に失敗しました（\(status)）"
             }
         }
-        return "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
     }
 
     // MARK: - Wallet / ownership
 
     var placedCount: Int { placementCoords.count }
-    var unplacedCount: Int { ownedAssets.filter { placementCoords[$0.id] == nil }.count }
+    var unplacedCount: Int { trayAssets.filter { placementCoords[$0.id] == nil }.count }
+
+    /// What the tray offers for placing. A card whose issuer the server could not match (`sourceVerified == false`,
+    /// listed by metadata shape only) stays in the Collection list with an UNVERIFIED SOURCE badge but is kept out of
+    /// the AR list, as the Web contract requires (`apps/web/lib/contract.ts`, `sourceVerified`).
+    var trayAssets: [TwinfoldAsset] { ownedAssets.filter { $0.sourceVerified != false } }
+
+    /// Shown instead of an empty tray on Mainnet (read-only) before a Web wallet is linked.
+    var mainnetNeedsLink: Bool { dataMode == .mainnet && linkedSession == nil }
 
     func isPlaced(_ assetId: String) -> Bool { placementCoords[assetId] != nil }
     func transferState(for assetId: String) -> TransferState { transferStates[assetId] ?? .idle }
@@ -675,6 +758,8 @@ final class RoomController {
     /// linked as that wallet) plus the linked Web wallet as "あなたのwallet"
     /// (replacing the test wallet's own entry when it is the same address).
     var walletOptions: [DemoWallet] {
+        // Mainnet (read-only) shows only the linked wallet's own cards: no public test rooms exist there.
+        if dataMode == .mainnet { return linkedWallet.map { [$0] } ?? [] }
         guard dataMode == .devnet, let linked = linkedWallet else { return DemoWallet.wallets(for: dataMode) }
         var options = DemoWallet.allDevnet.map { $0.id == linked.id ? linked : $0 }
         if !options.contains(where: { $0.id == linked.id }) { options.append(linked) }
@@ -693,6 +778,8 @@ final class RoomController {
         if !fromAcquisition { cancelAcquisitionTask() }
         cancelRedeemPolling()
         activeWallet = wallet
+        appearedAssets.removeAll()
+        pendingAppears.removeAll()
         selectedAssetId = nil
         holdingAssetId = nil
         // A `.confirmed` state belongs to the previous owner's transfer; the
@@ -719,6 +806,9 @@ final class RoomController {
         transferStates.removeAll()
         transferOperationKinds.removeAll()
         selectedAssetId = nil
+        passportAssetId = nil
+        appearedAssets.removeAll()
+        pendingAppears.removeAll()
         cancelHolding()
         toast = nil
         dismissBuybackOffer()
@@ -731,11 +821,15 @@ final class RoomController {
         acquisitionPhase = .idle
 
         dataMode = mode
-        activeWallet = walletOptions.first ?? .ownerA
+        activeWallet = walletOptions.first ?? (mode == .mainnet ? .noWallet : .ownerA)
+        ownedAssets = []
+        loadErrorMessage = nil
         Task {
             await loadOwnedAssets()
-            if mode == .devnet {
+            if mode != .demo {
                 await validateLink()
+            }
+            if mode == .devnet {
                 await refreshCapabilities()
                 await loadVaultAssets()
             }
@@ -743,21 +837,52 @@ final class RoomController {
     }
 
     private func loadOwnedAssets() async {
-        if let mock = provider as? MockAssetProvider {
-            await mock.connect(wallet: activeWallet.id)
-        }
+        let mode = dataMode
+        let wallet = activeWallet.id
         do {
-            ownedAssets = try await provider.getAssets(wallet: activeWallet.id)
+            let fetched = try await fetchAssets(mode: mode, wallet: wallet)
+            // A wallet / mode switch while the request was in flight: this answer is for a room no longer shown.
+            guard mode == dataMode, wallet == activeWallet.id else { return }
+            ownedAssets = mergeAppeared(into: fetched)
+            lastFetchedAt = Date()
             loadErrorMessage = nil
         } catch {
+            guard mode == dataMode, wallet == activeWallet.id else { return }
             // Full error goes to the console only; the on-screen text stays
             // short enough to read (and to appear in a demo recording).
             print("loadOwnedAssets failed: \(error)")
             loadErrorMessage = dataMode == .demo
                 ? "作品を読み込めませんでした"
-                : "OshiPin APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でOshiPinが許可されているかを確認してください"
+                : "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でCollectibles ARが許可されているかを確認してください"
         }
         syncEntities()
+    }
+
+    /// One read of the active room's assets through the mode's provider (never the chain directly). The lists never
+    /// mix networks: Mainnet keeps only `network == "mainnet"`, the other modes drop it.
+    private func fetchAssets(mode: DataMode, wallet: String) async throws -> [TwinfoldAsset] {
+        switch mode {
+        case .demo:
+            await mockProvider.connect(wallet: wallet)
+            return try await mockProvider.getAssets(wallet: wallet)
+        case .devnet:
+            return try await devnetProvider.getAssets(wallet: wallet).filter { $0.network != "mainnet" }
+        case .mainnet:
+            guard !wallet.isEmpty else { return [] }
+            return try await devnetProvider.getAssets(wallet: wallet, network: .mainnet).filter { $0.network == "mainnet" }
+        }
+    }
+
+    /// Cards that Appeared from a Pull may not be in the DAS list for a while. Keep them for `appearGrace` so the next
+    /// refresh does not make them Disappear while indexing catches up, and keep their Pull `gachaMemo` (the DAS copy
+    /// has none) while both exist.
+    private func mergeAppeared(into fetched: [TwinfoldAsset]) -> [TwinfoldAsset] {
+        let now = Date()
+        let fetchedIds = Set(fetched.map(\.id))
+        appearedAssets = appearedAssets.filter { fetchedIds.contains($0.key) || now.timeIntervalSince($0.value.at) < Self.appearGrace }
+        var merged = fetched.map { appearedAssets[$0.id]?.asset ?? $0 }
+        for (id, entry) in appearedAssets where !fetchedIds.contains(id) { merged.append(entry.asset) }
+        return merged
     }
 
     /// Adds/removes scene entities so only assets that are both placed
@@ -768,14 +893,30 @@ final class RoomController {
         let ownedIds = Set(ownedAssets.map(\.id))
 
         for (assetId, live) in liveEntities where !ownedIds.contains(assetId) {
-            arView?.scene.removeAnchor(live.anchor)
+            retire(live) // Disappear: fade out, then remove
             liveEntities[assetId] = nil
             if selectedAssetId == assetId { selectedAssetId = nil }
+            if passportAssetId == assetId { passportAssetId = nil }
         }
 
         for asset in ownedAssets {
             guard liveEntities[asset.id] == nil, let coord = placementCoords[asset.id] else { continue }
-            materialize(assetId: asset.id, asset: asset, transform: coord.transform, isWall: coord.isWallPlacement)
+            materialize(
+                assetId: asset.id, asset: asset, transform: coord.transform, isWall: coord.isWallPlacement,
+                slabSurface: coord.slabSurface
+            )
+        }
+    }
+
+    /// Disappear: fades the entity out (scale untouched), then removes its anchor. The provenance column goes at once.
+    private func retire(_ live: LiveEntity) {
+        live.provenanceColumn?.removeFromParent()
+        guard let arView else { return }
+        let anchor = live.anchor
+        let entity = live.cardEntity
+        Task { [weak arView] in
+            await PresenceAnimation.disappear(entity)
+            arView?.scene.removeAnchor(anchor)
         }
     }
 
@@ -795,7 +936,7 @@ final class RoomController {
     // MARK: - Holding (placement preview)
 
     func startHolding(assetId: String) {
-        guard let asset = ownedAssets.first(where: { $0.id == assetId }), let arView else { return }
+        guard let asset = trayAssets.first(where: { $0.id == assetId }), let arView else { return }
         removePreviewOnly()
         selectedAssetId = nil
         holdingAssetId = assetId
@@ -805,6 +946,8 @@ final class RoomController {
         let entity = AssetRepresentationEntity.makeForWallPlacement(asset: asset)
         let anchor = AnchorEntity(world: matrix_identity_float4x4)
         anchor.addChild(entity)
+        previewEntity = entity
+        pendingPreviewSlabSurface = .wall
         // A twin's own mesh origin isn't guaranteed to be its base (see
         // `AssetRepresentationEntity.settleOnAnchor`); settle it here too,
         // before the anchor even has a real position, so the preview
@@ -842,7 +985,24 @@ final class RoomController {
         let point = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
         let isTwin = AssetRepresentationEntity.isTwin(asset)
 
-        if isTwin {
+        if AssetRepresentationEntity.isSlab(asset) {
+            // A slab goes on whichever plane is under the screen center: hung flat on a wall, stood on a desk or floor.
+            guard let (hit, isVertical) = slabRaycast(in: arView, at: point),
+                  let cameraTransform = arView.session.currentFrame?.camera.transform else {
+                isPreviewDetected = false
+                return
+            }
+            let transform = isVertical ? wallTransform(hit: hit) : floorTransform(hit: hit, cameraTransform: cameraTransform)
+            previewAnchor.transform = Transform(matrix: transform)
+            if let previewEntity {
+                GradedSlabEntity.pose(previewEntity, on: isVertical ? .wall : .horizontal)
+            }
+            pendingPreviewTransform = transform
+            pendingPreviewIsWall = isVertical
+            pendingPreviewSlabSurface = isVertical ? .wall : .horizontal
+            pendingPreviewCardHeight = GradedSlabDimensions.psaStandard.height
+            isPreviewDetected = true
+        } else if isTwin {
             // `.existingPlaneGeometry` first: once ARKit has committed to a
             // plane (typically after the user has looked at the floor/desk
             // for a moment) it's far more stable than the estimate: falling
@@ -889,11 +1049,14 @@ final class RoomController {
         var transform: simd_float4x4
         var isWall = false
         var cardHeight: Float = 0
+        // A slab with no plane found is put upright in the air (flat pose), never tilted.
+        var slabSurface: SlabSurface = .wall
 
         if let pendingPreviewTransform {
             transform = pendingPreviewTransform
             isWall = pendingPreviewIsWall
             cardHeight = pendingPreviewCardHeight
+            slabSurface = pendingPreviewSlabSurface
         } else if isARSupported, let cameraTransform = arView.session.currentFrame?.camera.transform {
             transform = airTransform(cameraTransform: cameraTransform)
         } else {
@@ -901,7 +1064,7 @@ final class RoomController {
         }
 
         if isWall {
-            if cardHeight == 0 { cardHeight = AssetCardEntity.size(for: asset).height }
+            if cardHeight == 0 { cardHeight = AssetRepresentationEntity.footprint(for: asset).height }
             transform.columns.3.y = snappedWallY(candidateY: transform.columns.3.y, candidateHeight: cardHeight, excludingAssetId: holdingId)
         }
 
@@ -909,7 +1072,10 @@ final class RoomController {
         holdingAssetId = nil
         pendingPreviewTransform = nil
         isPreviewDetected = false
-        materialize(assetId: holdingId, asset: asset, transform: transform, isWall: isWall, cardHeightOverride: cardHeight)
+        materialize(
+            assetId: holdingId, asset: asset, transform: transform, isWall: isWall,
+            cardHeightOverride: cardHeight, slabSurface: slabSurface
+        )
         selectedAssetId = holdingId
     }
 
@@ -918,6 +1084,7 @@ final class RoomController {
             arView?.scene.removeAnchor(previewAnchor)
         }
         previewAnchor = nil
+        previewEntity = nil
     }
 
     // MARK: - Selection / tap dispatch
@@ -933,6 +1100,10 @@ final class RoomController {
         }
         if let hitEntity = arView.entity(at: point), let assetId = ownerAssetId(for: hitEntity) {
             select(assetId)
+            // Tapping a placed card opens its Passport (the three-way split); other representations keep 来歴 / 送る.
+            if ownedAssets.first(where: { $0.id == assetId }).map(AssetRepresentationEntity.isSlab) == true {
+                passportAssetId = assetId
+            }
         } else {
             deselect()
         }
@@ -1012,6 +1183,7 @@ final class RoomController {
         transferStates[assetId] = nil
         transferOperationKinds[assetId] = nil
         selectedAssetId = nil
+        if passportAssetId == assetId { passportAssetId = nil }
     }
 
     // MARK: - Transfer ("送る")
@@ -1166,7 +1338,7 @@ final class RoomController {
         do {
             _ = try await mock.simulateTransfer(assetId: assetId, to: MockAssetProvider.vaultWallet, requestId: requestId)
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "OshiPinへの売却に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Twinfold（旧デモ）への売却に失敗しました: \(error)") }
             return
         }
         do {
@@ -1192,7 +1364,7 @@ final class RoomController {
         toLabel: String, destinationWalletId: String, quoteId: String?
     ) async {
         guard let solana = provider as? SolanaAssetProvider else { return }
-        let opLabel = toLabel == "vault" ? "OshiPinへの売却" : "送信"
+        let opLabel = toLabel == "vault" ? "Twinfold（旧デモ）への売却" : "送信"
         do {
             // Test rooms only (server-signed, insecure dev flag): never attach the linked wallet's token.
             let result = try await solana.devnetTransfer(
@@ -1300,6 +1472,197 @@ final class RoomController {
         self.toast = nil
     }
 
+    // MARK: - Appear (a Pull the Web just finished) and Disappear (ownership refresh)
+
+    /// Called from the scene phase: while the room is on screen and the app is active, the Pull feed is polled every 3
+    /// seconds and the owned list is re-read every 30 seconds. Both stop in the background.
+    func setRoomActive(_ active: Bool) {
+        guard active != isRoomActive else { return }
+        isRoomActive = active
+        packPollTask?.cancel()
+        ownershipRefreshTask?.cancel()
+        packPollTask = nil
+        ownershipRefreshTask = nil
+        guard active else { return }
+        if packFeedSince == nil { packFeedSince = Date().addingTimeInterval(-Self.packFeedLookback) }
+        packPollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                let extraDelay = await self.pollPacksOnce()
+                try? await Task.sleep(nanoseconds: UInt64((Self.packPollInterval + extraDelay) * 1_000_000_000))
+            }
+        }
+        ownershipRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Self.ownershipRefreshInterval * 1_000_000_000))
+                guard let self, !Task.isCancelled else { return }
+                await self.refreshOwnedAssetsQuietly()
+            }
+        }
+    }
+
+    /// One poll of the Pull feed. Demo: the mock's simulated Pulls. Devnet: the linked wallet's feed (device token),
+    /// only while the linked wallet's room is shown. Mainnet: never (read-only). Returns extra seconds to wait before
+    /// the next poll (rate limit back-off).
+    @discardableResult
+    func pollPacksOnce() async -> TimeInterval {
+        let mode = dataMode
+        let feed: GachaPacksResponse
+        do {
+            switch mode {
+            case .mainnet:
+                return 0
+            case .demo:
+                feed = try await mockProvider.getRecentPacks(since: packFeedSince)
+            case .devnet:
+                refreshLinkState()
+                guard isLinkedRoom else { return 0 }
+                feed = try await devnetProvider.getRecentPacks(since: packFeedSince)
+            }
+        } catch AssetProviderError.linkRequired {
+            return 0
+        } catch AssetProviderError.httpError(let status, _) {
+            if status == 401 { refreshLinkState() }
+            // 429: the feed is capped per wallet per hour; back off instead of hammering.
+            return status == 429 ? 30 : 5
+        } catch {
+            print("pollPacksOnce failed: \(error)")
+            return 0
+        }
+        // The answer is for the room that was shown when asked, and only a feed of the shown wallet may Appear here.
+        guard mode == dataMode, feed.wallet == activeWallet.id else { return 0 }
+
+        let queued = Set(pendingAppears.map(\.memo))
+        let fresh = GachaPackDiff.newlyOpened(feed.packs, shown: shownMemos.set.union(queued), since: packFeedSince)
+        for pack in fresh {
+            guard let asset = pack.asset else { continue }
+            pendingAppears.append(PendingAppear(memo: pack.memo, asset: asset, deadline: Date().addingTimeInterval(Self.appearWaitForPlane)))
+        }
+        processPendingAppears()
+        return 0
+    }
+
+    /// Places queued Appears: on the plane under the screen center (wall: hung flat, desk / floor: stood), or after
+    /// `appearWaitForPlane` (or at once without ARKit, i.e. the simulator) at the fixed fallback position. Called every
+    /// frame from the AR view and right after a poll. One slab per call, so several Pulls come out one after another.
+    func processPendingAppears() {
+        guard !pendingAppears.isEmpty, let arView, holdingAssetId == nil else { return }
+        let pending = pendingAppears[0]
+
+        var transform: simd_float4x4?
+        var isWall = false
+        var surface: SlabSurface = .wall
+        let height = GradedSlabDimensions.psaStandard.height
+
+        if isARSupported {
+            let point = CGPoint(x: arView.bounds.midX, y: arView.bounds.midY)
+            if let (hit, isVertical) = slabRaycast(in: arView, at: point),
+               let cameraTransform = arView.session.currentFrame?.camera.transform {
+                transform = isVertical ? wallTransform(hit: hit) : floorTransform(hit: hit, cameraTransform: cameraTransform)
+                isWall = isVertical
+                surface = isVertical ? .wall : .horizontal
+            } else if Date() >= pending.deadline, let cameraTransform = arView.session.currentFrame?.camera.transform {
+                transform = airTransform(cameraTransform: cameraTransform) // no plane found: upright in the air
+            }
+        } else {
+            transform = fallbackTransform(index: placementCoords.count)
+        }
+        guard var placed = transform else { return } // keep waiting for a plane
+
+        pendingAppears.removeFirst()
+        shownMemos.insert(pending.memo) // this memo Appears once, also across launches
+        let asset = pending.asset
+
+        if liveEntities[asset.id] != nil || placementCoords[asset.id] != nil {
+            return // already in the room (e.g. the same demo card pulled again): nothing to place twice
+        }
+        if isWall {
+            placed.columns.3.y = snappedWallY(candidateY: placed.columns.3.y, candidateHeight: height, excludingAssetId: asset.id)
+        }
+        placed = nudgedClear(of: placed)
+
+        appearedAssets[asset.id] = (asset, Date())
+        if !ownedAssets.contains(where: { $0.id == asset.id }) { ownedAssets.append(asset) }
+        materialize(
+            assetId: asset.id, asset: asset, transform: placed, isWall: isWall,
+            cardHeightOverride: isWall ? height : 0, slabSurface: surface, animateAppear: true
+        )
+        selectedAssetId = nil
+    }
+
+    /// Moves `transform` sideways (along the slab's own x axis) until it no longer overlaps an already placed slab,
+    /// so Pulls that land on the same spot stand side by side.
+    private func nudgedClear(of transform: simd_float4x4) -> simd_float4x4 {
+        let step = GradedSlabDimensions.psaStandard.width + 0.012
+        let right = SIMD3<Float>(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)
+        var result = transform
+        for _ in 0..<8 {
+            let position = SIMD3<Float>(result.columns.3.x, result.columns.3.y, result.columns.3.z)
+            let overlaps = placementCoords.values.contains { coord in
+                let other = SIMD3<Float>(coord.transform.columns.3.x, coord.transform.columns.3.y, coord.transform.columns.3.z)
+                return simd_distance(other, position) < step - 0.004
+            }
+            guard overlaps else { break }
+            result.columns.3 = SIMD4<Float>(position + right * step, 1)
+        }
+        return result
+    }
+
+    /// Re-reads the owned list (Devnet / Mainnet) without touching the on-screen error text, and lets a placed card
+    /// whose mint is gone from the wallet (e.g. sold back to Collector Crypt) Disappear. A failed read changes nothing.
+    func refreshOwnedAssetsQuietly() async {
+        let mode = dataMode
+        let wallet = activeWallet.id
+        guard mode != .demo, !wallet.isEmpty else { return }
+        guard let fetched = try? await fetchAssets(mode: mode, wallet: wallet) else { return }
+        guard mode == dataMode, wallet == activeWallet.id else { return }
+        ownedAssets = mergeAppeared(into: fetched)
+        lastFetchedAt = Date()
+        syncEntities()
+    }
+
+    // MARK: - Demo: simulated Pull and buyback (recording helpers, DEMO DATA only)
+
+    /// "Simulate pull (DEMO DATA)": the mock opens the next demo card as a Pull; the same feed -> Appear path as a real
+    /// Pull then runs. Never a real transaction.
+    func simulatePull() {
+        guard dataMode == .demo else { return }
+        if activeWallet.id != MockAssetProvider.cardCollectorWallet { switchWallet(to: .cardCollectorDemo) }
+        Task {
+            await loadOwnedAssets()
+            do {
+                _ = try await mockProvider.simulatePull()
+            } catch {
+                print("simulatePull failed: \(error)")
+                return
+            }
+            await pollPacksOnce()
+        }
+    }
+
+    /// "Simulate buyback (DEMO DATA)" for the selected card: the demo owner changes to the vault, the next read no
+    /// longer lists it, and it Disappears (the same sync as a real sell-back seen by the ownership refresh).
+    func simulateBuybackForSelected() {
+        guard dataMode == .demo, let assetId = selectedAssetId,
+              ownedAssets.first(where: { $0.id == assetId }).map(AssetRepresentationEntity.isSlab) == true else { return }
+        let requestId = UUID().uuidString
+        Task {
+            _ = try? await mockProvider.simulateTransfer(assetId: assetId, to: MockAssetProvider.vaultWallet, requestId: requestId)
+            await loadOwnedAssets()
+        }
+    }
+
+    // MARK: - Passport
+
+    var passportAsset: TwinfoldAsset? { ownedAssets.first { $0.id == passportAssetId } }
+
+    func presentPassportForSelected() {
+        guard let selectedAssetId, ownedAssets.first(where: { $0.id == selectedAssetId }).map(AssetRepresentationEntity.isSlab) == true else { return }
+        passportAssetId = selectedAssetId
+    }
+
+    func dismissPassport() { passportAssetId = nil }
+
     // MARK: - Reset
 
     func reset() {
@@ -1312,10 +1675,13 @@ final class RoomController {
         transferStates.removeAll()
         transferOperationKinds.removeAll()
         selectedAssetId = nil
+        passportAssetId = nil
+        appearedAssets.removeAll()
+        pendingAppears.removeAll()
         cancelHolding()
         toast = nil
         dismissBuybackOffer()
-        activeWallet = walletOptions.first ?? .ownerA
+        activeWallet = walletOptions.first ?? (dataMode == .mainnet ? .noWallet : .ownerA)
 
         if let mock = provider as? MockAssetProvider {
             Task {
@@ -1340,20 +1706,27 @@ final class RoomController {
             guard isARSupported else {
                 return "AR非対応のため、タップすると固定位置に置きます"
             }
-            let isTwin = ownedAssets.first(where: { $0.id == holdingAssetId }).map(AssetRepresentationEntity.isTwin) ?? false
+            let heldAsset = ownedAssets.first(where: { $0.id == holdingAssetId })
+            if heldAsset.map(AssetRepresentationEntity.isSlab) == true {
+                return isPreviewDetected ? "タップして置く（壁は掛ける、机・床は立てる）" : "壁・机・床に向けてください"
+            }
+            let isTwin = heldAsset.map(AssetRepresentationEntity.isTwin) ?? false
             if isTwin {
                 return isPreviewDetected ? "タップして机や床に置く" : "机や床に向けてください"
             } else {
                 return isPreviewDetected ? "タップして壁に掛ける" : "壁に向けてください"
             }
         }
+        if mainnetNeedsLink {
+            return "Mainnet (read-only)：Webでwallet連携すると、あなたのwalletのカードを表示します"
+        }
         if selectedAssetId != nil {
-            return "作品をタップすると来歴や送るが出ます"
+            return isReadOnlyMode ? "カードをタップするとPassportが出ます" : "作品をタップすると来歴や送るが出ます"
         }
         if unplacedCount == 0 {
             return "作品をタップすると来歴が見られます"
         }
-        return "下から作品を選んで、壁に向ける"
+        return "下から作品を選んで、壁・机・床に向ける"
     }
 
     // MARK: - Placement math
@@ -1363,18 +1736,30 @@ final class RoomController {
         asset: TwinfoldAsset,
         transform: simd_float4x4,
         isWall: Bool,
-        cardHeightOverride: Float = 0
+        cardHeightOverride: Float = 0,
+        slabSurface: SlabSurface = .wall,
+        animateAppear: Bool = false
     ) {
         guard let arView else { return }
         let anchor = AnchorEntity(world: transform)
         let entity = AssetRepresentationEntity.makeForWallPlacement(asset: asset)
         anchor.addChild(entity)
+        let isSlab = AssetRepresentationEntity.isSlab(asset)
+        if isSlab { GradedSlabEntity.pose(entity, on: slabSurface) }
         arView.scene.addAnchor(anchor)
+        if animateAppear {
+            // Appear: fade in and rise a few centimetres. Scale is never touched.
+            Task { await PresenceAnimation.appear(entity) }
+        }
 
         var twinFootprint: (width: Float, height: Float)?
         let isTwin = AssetRepresentationEntity.isTwin(asset)
         if isTwin {
             twinFootprint = AssetRepresentationEntity.settleOnAnchor(entity: entity, anchor: anchor)
+        } else if isSlab, slabSurface == .horizontal {
+            // Standing slab: the provenance column is sized against its (tilted) height, like a floor twin.
+            let size = GradedSlabDimensions.psaStandard
+            twinFootprint = (size.width, size.height * cos(GradedSlabDimensions.standingTilt))
         }
 
         liveEntities[assetId] = LiveEntity(anchor: anchor, cardEntity: entity, provenanceColumn: nil, twinFootprint: twinFootprint)
@@ -1388,10 +1773,22 @@ final class RoomController {
         placementCoords[assetId] = PlacementCoord(
             transform: transform,
             isWallPlacement: isWall,
-            isFloorPlacement: isTwin,
-            footprintHeight: isWall ? cardHeightOverride : (twinFootprint?.height ?? 0)
+            isFloorPlacement: isTwin || (isSlab && slabSurface == .horizontal),
+            footprintHeight: isWall ? cardHeightOverride : (twinFootprint?.height ?? 0),
+            slabSurface: slabSurface
         )
         applyHighlights()
+    }
+
+    /// Raycast for a slab: the plane under the screen center, vertical (wall) or horizontal (desk, floor). Detected
+    /// planes first, then ARKit's estimate.
+    private func slabRaycast(in arView: ARView, at point: CGPoint) -> (hit: ARRaycastResult, isVertical: Bool)? {
+        let hit = arView.raycast(from: point, allowing: .existingPlaneGeometry, alignment: .any).first
+            ?? arView.raycast(from: point, allowing: .estimatedPlane, alignment: .any).first
+        guard let hit else { return nil }
+        // The hit's y axis is the plane normal: near-horizontal normal = wall, near-vertical = desk / floor.
+        let isVertical = abs(hit.worldTransform.columns.1.y) < 0.5
+        return (hit, isVertical)
     }
 
     private static func yawFacingCamera(cameraTransform: simd_float4x4) -> Float {
@@ -1485,8 +1882,8 @@ final class RoomController {
         if let twinFootprint = live.twinFootprint {
             return twinFootprint.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
         }
-        let cardSize = AssetCardEntity.size(for: asset)
-        return cardSize.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
+        let footprint = AssetRepresentationEntity.footprint(for: asset)
+        return footprint.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
     }
 
     private func provenanceColumnY(for live: LiveEntity) -> Float {

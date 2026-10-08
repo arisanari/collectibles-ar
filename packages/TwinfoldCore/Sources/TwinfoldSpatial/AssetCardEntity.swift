@@ -505,7 +505,7 @@ public enum AssetCardEntity {
     /// toward the top/sides instead of reading as a uniform dark rectangle.
     /// Falls back to the old flat low-alpha black plane (logging why) if
     /// texture generation fails.
-    private static func makeShadowMaterial() -> UnlitMaterial {
+    static func makeShadowMaterial() -> UnlitMaterial {
         do {
             let texture = try makeShadowTexture()
             var material = UnlitMaterial(color: .white)
@@ -592,6 +592,11 @@ public enum AssetCardEntity {
     /// pending rather than being replaced by a plain white surface, so the
     /// image stays visible throughout.
     public static func apply(state: PlacementState, to entity: Entity) {
+        // A graded slab (`GradedSlabEntity`) has its own body/opacity handling.
+        if GradedSlabEntity.isSlab(entity) {
+            GradedSlabEntity.apply(state: state, to: entity)
+            return
+        }
         let frame = entity.findEntity(named: frameName)
         guard let card = entity.findEntity(named: surfaceName) as? ModelEntity else { return }
         let artwork = entity.findEntity(named: artworkName) as? ModelEntity

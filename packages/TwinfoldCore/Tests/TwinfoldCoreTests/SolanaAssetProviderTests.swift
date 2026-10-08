@@ -19,6 +19,8 @@ final class StubURLProtocol: URLProtocol {
     /// "METHOD path" -> the `Authorization` header of the last request seen (nil value = none sent).
     nonisolated(unsafe) private static var authorizations: [String: String?] = [:]
     nonisolated(unsafe) private static var extraHeaders: [String: [String: String]] = [:]
+    /// "METHOD path" -> the query string of the last request seen (nil value = no query).
+    nonisolated(unsafe) private static var queries: [String: String?] = [:]
 
     static func reset() {
         lock.lock()
@@ -26,7 +28,14 @@ final class StubURLProtocol: URLProtocol {
         networkErrorPaths = []
         authorizations = [:]
         extraHeaders = [:]
+        queries = [:]
         lock.unlock()
+    }
+
+    /// `nil` if the endpoint was never called; `.some(nil)` if called without a query string.
+    static func query(method: String, path: String) -> String?? {
+        lock.lock(); defer { lock.unlock() }
+        return queries["\(method) \(path)"]
     }
 
     /// `nil` if the endpoint was never called; `.some(nil)` if called without an Authorization header.
@@ -67,6 +76,7 @@ final class StubURLProtocol: URLProtocol {
         let response = Self.responses[key]
         let isNetworkError = Self.networkErrorPaths.contains(key)
         Self.authorizations[key] = .some(request.value(forHTTPHeaderField: "Authorization"))
+        Self.queries[key] = .some(url.query)
         let headers = Self.extraHeaders[key] ?? [:]
         Self.lock.unlock()
 
@@ -226,5 +236,53 @@ final class SolanaAssetProviderTests: XCTestCase {
 
         let result = try await provider.devnetTransferStatus(requestId: "r1")
         XCTAssertEqual(result.status, .pending)
+    }
+}
+
+final class GachaFeedProviderTests: XCTestCase {
+    private let baseURL = URL(string: "https://twinfold.test")!
+
+    private func provider(linked: Bool) async throws -> SolanaAssetProvider {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        StubURLProtocol.reset()
+        let link = SessionLinkClient(baseURL: baseURL, session: session, store: InMemorySessionStore())
+        if linked {
+            StubURLProtocol.stub(method: "POST", path: "/api/link/exchange", status: 200, json: "{\"token\":\"tok-7\",\"wallet\":\"W\",\"expiresAt\":\"2099-01-01T00:00:00.000Z\"}")
+            _ = try await link.exchange(code: "ABCDEFGH", deviceName: "iPhone")
+        }
+        return SolanaAssetProvider(baseURL: baseURL, session: session, sessionLink: link)
+    }
+
+    func testGetRecentPacksSendsBearerAndSinceAndDecodes() async throws {
+        let p = try await provider(linked: true)
+        StubURLProtocol.stub(method: "GET", path: "/api/gacha/packs", status: 200, json: "{\"wallet\":\"W\",\"packs\":[{\"memo\":\"m\",\"packType\":\"pokemon_25\",\"state\":\"submitted\",\"createdAt\":\"2026-10-06T14:00:00.000Z\",\"openedAt\":null,\"nftAddress\":null,\"asset\":null}]}")
+        let since = GachaDates.parse("2026-10-06T14:00:00Z")!
+        let feed = try await p.getRecentPacks(since: since)
+        XCTAssertEqual(feed.packs.map(\.memo), ["m"])
+        XCTAssertEqual(StubURLProtocol.authorization(method: "GET", path: "/api/gacha/packs"), .some("Bearer tok-7"))
+        XCTAssertEqual(StubURLProtocol.query(method: "GET", path: "/api/gacha/packs"), .some("since=2026-10-06T14:00:00.000Z"))
+    }
+
+    func testGetRecentPacksRequiresADeviceTokenAndSendsNothingWithout() async throws {
+        let p = try await provider(linked: false)
+        StubURLProtocol.stub(method: "GET", path: "/api/gacha/packs", status: 200, json: "{\"wallet\":\"W\",\"packs\":[]}")
+        do {
+            _ = try await p.getRecentPacks(since: nil)
+            XCTFail("expected linkRequired")
+        } catch AssetProviderError.linkRequired {
+            XCTAssertNil(StubURLProtocol.authorization(method: "GET", path: "/api/gacha/packs"), "no request must be sent")
+        }
+    }
+
+    func testGetAssetsMainnetAddsNetworkQueryAndDevnetDoesNot() async throws {
+        let p = try await provider(linked: false)
+        StubURLProtocol.stub(method: "GET", path: "/api/solana/assets", status: 200, json: "[]")
+        _ = try await p.getAssets(wallet: "W", network: .mainnet)
+        XCTAssertEqual(StubURLProtocol.query(method: "GET", path: "/api/solana/assets"), .some("wallet=W&network=mainnet"))
+        _ = try await p.getAssets(wallet: "W")
+        XCTAssertEqual(StubURLProtocol.query(method: "GET", path: "/api/solana/assets"), .some("wallet=W"))
+        XCTAssertEqual(StubURLProtocol.authorization(method: "GET", path: "/api/solana/assets"), .some(nil), "public chain data never carries the token")
     }
 }

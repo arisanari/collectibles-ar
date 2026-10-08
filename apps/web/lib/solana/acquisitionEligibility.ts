@@ -24,10 +24,10 @@ export function evaluateAcquisitionEligibility(params: {
   const { offchainRecord, currentOwner, burnt, vaultWallet, redemptionOpen } = params;
   const reasons: string[] = [];
   if (redemptionOpen) reasons.push("A redeem (physical item redemption) is in progress");
-  if (!offchainRecord?.commerce) reasons.push("The OshiPin list price is not set");
-  if (!vaultWallet) reasons.push("The OshiPin vault wallet is not configured");
+  if (!offchainRecord?.commerce) reasons.push("The Twinfold (legacy demo) list price is not set");
+  if (!vaultWallet) reasons.push("The Twinfold vault wallet is not configured");
   if (burnt) reasons.push("The Asset has been retired (burned)");
-  if (vaultWallet && currentOwner !== vaultWallet) reasons.push("The OshiPin vault wallet does not hold it on devnet");
+  if (vaultWallet && currentOwner !== vaultWallet) reasons.push("The Twinfold vault wallet does not hold it on devnet");
   const redeemed = offchainRecord?.provenance.some((e) => e.kind === "redeemed" && e.status === "confirmed");
   if (redeemed) reasons.push("The physical item has been redeemed, so it is not eligible");
   return { eligible: reasons.length === 0, reasons };

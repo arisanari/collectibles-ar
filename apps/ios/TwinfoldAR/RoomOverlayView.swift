@@ -73,6 +73,26 @@ struct RoomOverlayView: View {
         .sheet(isPresented: linkSheetBinding) {
             LinkWalletSheet(controller: controller)
         }
+        .sheet(isPresented: passportSheetBinding) {
+            if let asset = controller.passportAsset {
+                PassportPanelView(
+                    asset: asset,
+                    networkBadge: asset.network == "mainnet" ? DataMode.mainnet.badge : controller.networkBadge,
+                    fetchedAt: controller.lastFetchedAt,
+                    onClose: { controller.dismissPassport() }
+                )
+                // Keep the AR view live behind the half-height sheet.
+                .presentationDetents([.medium, .large])
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+            }
+        }
+    }
+
+    private var passportSheetBinding: Binding<Bool> {
+        Binding(
+            get: { controller.passportAsset != nil },
+            set: { isPresented in if !isPresented { controller.dismissPassport() } }
+        )
     }
 
     private var linkSheetBinding: Binding<Bool> {
@@ -124,16 +144,16 @@ struct RoomOverlayView: View {
                         .foregroundStyle(.orange)
                     if quote.eligible {
                         VStack(spacing: 4) {
-                            Text("OshiPin販売価格の\(Int(quote.rate * 100))%")
+                            Text("Twinfold販売価格の\(Int(quote.rate * 100))%")
                                 .font(.subheadline)
                             Text("\(Int(quote.offerAmount).formatted(.number.grouping(.automatic))) \(quote.currency)")
                                 .font(.system(size: 34, weight: .bold))
-                            Text("OshiPin販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（OshiPinからの買取オファー。保証ではありません）")
+                            Text("Twinfold販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（Twinfoldの買取オファー。表示のみ）")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        Button("OshiPinに売る") { controller.confirmBuyback() }
+                        Button("Twinfoldに売る") { controller.confirmBuyback() }
                             .buttonStyle(.borderedProminent)
                     } else {
                         Text(quote.reason)
@@ -145,7 +165,7 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("OshiPinに売る")
+            .navigationTitle("Twinfold（旧デモ）に売る")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("閉じる") { controller.dismissBuybackOffer() }
@@ -176,7 +196,7 @@ struct RoomOverlayView: View {
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("・流通するAssetは止まります。Webで承認すると壁から消え、受取確認後にAssetは失効します。")
-                    Text("・再流通には再確認とOshiPin Vaultへのre-vaultが必要です。")
+                    Text("・再流通には再確認とTwinfold（旧デモ）Vaultへのre-vaultが必要です。")
                     Text("・このデモでは実配送はせず、配送先も記録しません。")
                     Text("・承認と受取確認はWebのMy collectionで行います（Passportの閲覧もWebです）。")
                 }
@@ -229,14 +249,14 @@ struct RoomOverlayView: View {
                 if let price = asset?.commerce?.twinfoldPrice {
                     Text("\(Int(price.amount).formatted(.number.grouping(.automatic))) \(price.currency)")
                         .font(.system(size: 30, weight: .bold))
-                    Text("表示価格（OshiPinの表示値・デモ用の仮の値）")
+                    Text("表示価格（Twinfoldの表示値・デモ用の仮の値）")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("・devnet上の取得であり、支払いは行われません。")
                     Text("・価格は表示のみです（デモ用の仮の値）。")
-                    Text("・現物はOshiPinのVaultに保管されたままです。")
+                    Text("・現物はTwinfoldのVaultに保管されたままです。")
                 }
                 .font(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -272,7 +292,7 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("OshiPinから取得")
+            .navigationTitle("Twinfold（旧デモ）から取得")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -297,11 +317,11 @@ struct RoomOverlayView: View {
     }
 
     private var demoDataBadge: some View {
-        Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET")
+        Text(controller.networkBadge)
             .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Color.orange.opacity(0.9))
+            .background((controller.dataMode == .mainnet ? Color.purple : Color.orange).opacity(0.9))
             .foregroundStyle(.white)
             .clipShape(Capsule())
     }
@@ -333,7 +353,7 @@ struct RoomOverlayView: View {
                 }
             }
 
-            if controller.dataMode == .devnet {
+            if controller.dataMode != .demo {
                 if let linked = controller.linkedSession {
                     Section("連携中: \(DemoWallet(id: linked.wallet, label: "").shortAddress)") {
                         Button("連携を解除", role: .destructive) { controller.unlink() }
@@ -343,7 +363,14 @@ struct RoomOverlayView: View {
                 }
             }
 
-            if controller.provider.isDemoData {
+            if controller.dataMode == .demo {
+                Button("Simulate pull (DEMO DATA)") {
+                    controller.simulatePull()
+                }
+                Button("Simulate buyback (DEMO DATA)") {
+                    controller.simulateBuybackForSelected()
+                }
+                .disabled(controller.selectedAssetId == nil)
                 Button("失敗をシミュレート (demo)") {
                     controller.simulateFailureForSelected()
                 }
@@ -375,12 +402,41 @@ struct RoomOverlayView: View {
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                 }
-                Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.orange)
+                HStack(spacing: 6) {
+                    Text(asset.network == "mainnet" ? DataMode.mainnet.badge : controller.networkBadge)
+                        .font(.caption2.bold())
+                        .foregroundStyle(asset.network == "mainnet" ? Color.purple : Color.orange)
+                    if asset.sourceVerified == false {
+                        Text("UNVERIFIED SOURCE")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.red)
+                    }
+                }
+                if asset.sourceVerified == false {
+                    Text("Collector Cryptの発行かどうかを確認できていません")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
             }
 
             switch state {
+            case .idle where asset.isGradedCard:
+                // Graded card: Passport, 来歴, 外す only. Pull, sell-back, send and redeem are not offered here
+                // (sell-back is Collector Crypt's, on the Web; Mainnet is read-only).
+                HStack(spacing: 8) {
+                    Button("Passport") { controller.presentPassportForSelected() }
+                        .buttonStyle(.borderedProminent)
+                    Button("来歴") { controller.pullProvenanceForSelected() }
+                        .buttonStyle(.bordered)
+                    Button("外す") { controller.removeSelected() }
+                        .buttonStyle(.bordered)
+                }
+                Text(controller.isReadOnlyMode
+                     ? "Mainnet (read-only)：表示と配置だけです。操作はこのアプリでは行いません"
+                     : "売り戻しはCollector Cryptの買取で行います（72時間以内・率は台ごと）。操作はWebで")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
             case .idle:
                 HStack(spacing: 8) {
                     Button("来歴") { controller.pullProvenanceForSelected() }
@@ -402,7 +458,7 @@ struct RoomOverlayView: View {
                             controller.sendSelected()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
-                        Button("OshiPinに売る") {
+                        Button("Twinfold（旧デモ）に売る") {
                             controller.presentBuybackOffer()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
@@ -464,7 +520,7 @@ struct RoomOverlayView: View {
         }
         let offer = toast.buybackOfferText.map { "提示額 \($0)。" } ?? ""
         let note = controller.provider.isDemoData ? "DEMO DATA：支払いなし" : "DEVNET：支払いなし"
-        return "売却完了（confirmed）／「\(toast.assetTitle)」をOshiPinに売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
+        return "売却完了（confirmed）／「\(toast.assetTitle)」をTwinfold（旧デモ）に売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
     }
 
     private func toastView(_ toast: TransferToast) -> some View {

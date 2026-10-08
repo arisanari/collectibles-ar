@@ -18,15 +18,26 @@ export const custodyStatusLabel: Record<PhysicalDescriptor["custody"]["status"],
 export const sourceLabel: Record<ProvenanceEvent["source"], string> = {
   onchain: "On-chain",
   offchain_evidence: "Off-chain evidence",
-  twinfold_interpretation: "OshiPin interpretation",
+  twinfold_interpretation: "Collectibles AR interpretation",
 };
 
-export function explorerAddressUrl(address: string) {
-  return `https://explorer.solana.com/address/${address}?cluster=devnet`;
+// Solana Explorer: devnet needs ?cluster=devnet, mainnet-beta is the default cluster (no query).
+export function explorerAddressUrl(address: string, network: "devnet" | "mainnet" = "devnet") {
+  return `https://explorer.solana.com/address/${address}${network === "devnet" ? "?cluster=devnet" : ""}`;
 }
 
-export function explorerTxUrl(signature: string) {
-  return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+export function explorerTxUrl(signature: string, network: "devnet" | "mainnet" = "devnet") {
+  return `https://explorer.solana.com/tx/${signature}${network === "devnet" ? "?cluster=devnet" : ""}`;
+}
+
+/**
+ * PSA certificate verification page for a "Grading ID". Only for Grading Company PSA and a numeric cert number;
+ * anything else gets no link (Collectibles AR does not guess a verification URL for other graders).
+ */
+export function psaCertUrl(gradingCompany: string | undefined, gradingId: string | undefined): string | undefined {
+  if (!gradingCompany || gradingCompany.trim().toUpperCase() !== "PSA") return undefined;
+  const id = gradingId?.trim();
+  return id && /^\d{4,12}$/.test(id) ? `https://www.psacard.com/cert/${id}` : undefined;
 }
 
 export function sortedProvenance(asset: Pick<TwinfoldAsset, "provenance">) {

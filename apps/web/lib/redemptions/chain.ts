@@ -14,8 +14,8 @@ import { assertDevnetServerSigningAllowed } from "../solana/devnetSigningGuard";
 import { devnetRpcUrl } from "../solana/devnetTransfer";
 import { assertVaultFunded } from "../transferRequests/chain";
 
-export const ESCROW_NOT_CONFIGURED_MESSAGE = "The OshiPin redemption escrow wallet is not configured (scripts/solana: npm run wallets:generate)";
-export const ESCROW_LABEL = "OshiPin Redemption Escrow";
+export const ESCROW_NOT_CONFIGURED_MESSAGE = "The Twinfold (legacy demo) redemption escrow wallet is not configured (scripts/solana: npm run wallets:generate)";
+export const ESCROW_LABEL = "Twinfold Redemption Escrow (legacy demo)";
 
 export function escrowAddress(): string | null {
   return devnetWalletAddressOrNull("escrow");

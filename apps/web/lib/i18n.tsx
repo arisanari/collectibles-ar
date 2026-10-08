@@ -14,7 +14,7 @@ export const DEFAULT_LANG: Lang = "en";
 /** One UI string in every supported language. */
 export type Localized = Record<Lang, string>;
 
-const STORAGE_KEY = "oshipin.lang";
+const STORAGE_KEY = "twinfold.lang";
 const listeners = new Set<() => void>();
 // The choice made in this page. Wins over storage so the switch still works when storage is blocked.
 let chosen: Lang | null = null;

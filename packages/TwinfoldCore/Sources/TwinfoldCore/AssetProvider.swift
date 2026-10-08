@@ -13,6 +13,13 @@ public protocol AssetProvider: Sendable {
     func refreshOwnership(assetId: String) async throws -> Entitlement
 }
 
+/// Which Solana cluster an asset list is read from. The app never writes to `.mainnet`: it is display only
+/// (`MAINNET (read-only)`); Pull, buyback, transfer and redeem stay devnet / Web.
+public enum ChainNetwork: String, Sendable, CaseIterable {
+    case devnet
+    case mainnet
+}
+
 public enum AssetProviderError: Error, Sendable {
     case assetNotFound(String)
     case fixtureNotFound(String)
@@ -29,4 +36,6 @@ public enum AssetProviderError: Error, Sendable {
     /// tell "this call can never succeed as written" from "the server sent
     /// something we couldn't parse".
     case unsupportedOperation(String)
+    /// The call needs the device token issued by the Web wallet link (`SessionLinkClient`), and none is held.
+    case linkRequired
 }

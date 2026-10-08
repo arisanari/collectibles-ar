@@ -16,8 +16,8 @@ const text = {
     ja: "引き取り手続き中のため、売却・送信はできません",
   },
   vaultedCurrent: {
-    en: "Current choice. The physical item stays in OshiPin's Vault and the Asset can circulate.",
-    ja: "現在の選択。現物はOshiPinのVaultで保管され、Assetは流通できます",
+    en: "Current choice. The physical item stays in the Twinfold (legacy demo) Vault and the Asset can circulate.",
+    ja: "現在の選択。現物はTwinfold（旧デモ）のVaultで保管され、Assetは流通できます",
   },
   physicalTitle: { en: "Physical ownership (redeem the physical item)", ja: "Physical Ownership（現物を引き取る）" },
   physicalActive: {
@@ -32,12 +32,12 @@ const text = {
   dialogEyebrow: { en: "DEVNET · REDEEM · DRY RUN", ja: "DEVNET · REDEEM · DRY RUN" },
   dialogLead: { en: "You are requesting to redeem the physical item.", ja: "現物の引き取りを申請します" },
   point1: {
-    en: "The Asset stops circulating. When you sign in Phantom it moves to OshiPin's escrow and disappears from your wall. It is retired (burned) after receipt is confirmed.",
-    ja: "流通するAssetは止まります（Phantomで署名するとOshiPinのescrowへ移り、あなたの壁から消えます）。受取確認後にAssetは失効（burn）します。",
+    en: "The Asset stops circulating. When you sign in Phantom it moves to Twinfold's (legacy demo) escrow and disappears from your wall. It is retired (burned) after receipt is confirmed.",
+    ja: "流通するAssetは止まります（Phantomで署名するとTwinfold（旧デモ）のescrowへ移り、あなたの壁から消えます）。受取確認後にAssetは失効（burn）します。",
   },
   point2: {
-    en: "To circulate it again after redemption, it needs re-verification (Trust Gate) and re-vaulting into the OshiPin Vault.",
-    ja: "引き取り後に再流通させるには、再確認（Trust Gate）とOshiPin Vaultへのre-vaultが必要です。",
+    en: "To circulate it again after redemption, it needs re-verification (Trust Gate) and re-vaulting into the Twinfold Vault.",
+    ja: "引き取り後に再流通させるには、再確認（Trust Gate）とTwinfold Vaultへのre-vaultが必要です。",
   },
   point3: {
     en: "This demo ships nothing. No delivery address (name, address, phone) is recorded.",

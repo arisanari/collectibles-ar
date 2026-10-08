@@ -14,7 +14,7 @@
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hokusai-manga13.png",
       "placeholder": true,
-      "rightsNote": "作品（図柄）は著作権消滅（推定される刊行から100年以上経過）。画像はOshiPinが撮影した実物の写真2枚（scan/IMG_6034.JPG、scan/IMG_6035.JPG）を傾き補正し、白いマットの上に左右に配置した合成画像。マットの寸法は推定。店の販売用ラベル（店札）は写っていない"
+      "rightsNote": "作品（図柄）は著作権消滅（推定される刊行から100年以上経過）。画像はTwinfold（旧デモ）が撮影した実物の写真2枚（scan/IMG_6034.JPG、scan/IMG_6035.JPG）を傾き補正し、白いマットの上に左右に配置した合成画像。マットの寸法は推定。店の販売用ラベル（店札）は写っていない"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -34,7 +34,7 @@
           "formatRecordCheck": "半紙本。東京国立博物館の記録寸法24.5×16.0cm、江戸東京博物館アーカイブズ（https://www.edohakuarchives.jp/detail-55.html）の記録寸法22.8×15.9cm（いずれも綴じた本の寸法で、ばらした紙の実寸とは別）",
           "publisherRecordCheck": "江戸東京博物館アーカイブズに永楽屋東四郎版（天保頃）の記録あり。この個体の版元・改印は画像に見当たらず未確認",
           "eraRecordCheck": "所蔵記録は嘉永2年（1849）説と天保頃（1830〜1844）説に分かれる。この個体の摺り時期（江戸期／明治後摺／1969年芸艸堂版のいずれか）は未確認",
-          "evidenceHashNote": "evidenceHashはOshiPinが作成した表示用合成画像（fixtures/demo/artworks/ukiyoe-hokusai-manga13.png）のSHA-256"
+          "evidenceHashNote": "evidenceHashはTwinfold（旧デモ）が作成した表示用合成画像（fixtures/demo/artworks/ukiyoe-hokusai-manga13.png）のSHA-256"
         }
       },
       {
@@ -49,7 +49,7 @@
           "artist": "葛飾北斎（推定、確度中）。根拠: 版面の柱の書名と店札の記載。落款はこの2面に見当たらない（北斎漫画は各図に落款を入れない図様のため）",
           "figureTitles": "振り仮名からの推定（確度中、「猿樂比部」は確度低）。左: 塗附／廟祝／山伏。右: 薩摩守／猿樂比部／業平餅",
           "sameOpeningNote": "左右2枚は同じ見開きの左右である可能性が高い（推定、確度中）。根拠: 柱の書名の位置（左の紙は左端、右の紙は右端）が袋綴じ本の見開きと一致し、隣接する余白で人物が枠で切れている",
-          "storeDescriptionNote": "店札（購入時のマット左上に貼付）は『北斎 HOKUSAI／北斎漫画 十三編／Hokusai manga (Hokusai sketchbook), vol.13／オリジナル版画／江戸時代』と記載。店の説明であり、OshiPinが確認した事実ではない。店名・住所・価格はrepoに含めない",
+          "storeDescriptionNote": "店札（購入時のマット左上に貼付）は『北斎 HOKUSAI／北斎漫画 十三編／Hokusai manga (Hokusai sketchbook), vol.13／オリジナル版画／江戸時代』と記載。店の説明であり、Twinfold（旧デモ）が確認した事実ではない。店名・住所・価格はrepoに含めない",
           "sourceImageHashes": {
             "scanImg6034": "01721d75e3940b9d55d10ca5345649374316c1db0bd85c9e8fcd6042b3396abb",
             "scanImg6035": "6e9563d4ff762937094fb479a8f17694afd164c60a9837d4f0773d57c44fd82c"
@@ -64,7 +64,7 @@
         "source": "offchain_evidence",
         "status": "confirmed",
         "metadata": {
-          "note": "現物をOshiPinが保管していることを、2026-09-30にデータへ反映した（創業者からの申告）。入庫日・保管施設・保険・入庫時写真のハッシュは未記録",
+          "note": "現物をTwinfold（旧デモ）が保管していることを、2026-09-30にデータへ反映した（創業者からの申告）。入庫日・保管施設・保険・入庫時写真のハッシュは未記録",
           "previousCustody": "SELF-CUSTODY / pending_intake（2026-09-27時点の記録）"
         }
       }
@@ -72,9 +72,9 @@
     "physical": {
       "physicalId": "PHY-DEMO-0001",
       "condition": "画像からの所見、第三者評価ではない（実物未確認）。摺り: 墨・灰色に薄紅の色版が入る淡彩摺で、当初の色か補彩かは判断不可。色: 2枚とも紙全体に黄変・くすみが見られ、原因は判断不可。紙: 左は上段中央に白い欠損、左上余白と四辺に小さな欠けや虫損らしき穴。右は上段中央に赤い小点、下辺と右上に小さな欠けや穴、右下の枠内に黒っぽい汚れ。裏打ち・補修・補彩の有無、余白の有無（トリミングの可能性）は写真からは判断不可",
-      "rights": "現物はOshiPinが保管（2026-09-30にデータへ反映。保管施設・保険の詳細は未記録）。図柄は著作権消滅（推定）。表示画像はOshiPinが実物を撮影し、傾き補正・合成した画像で、店の販売用ラベルは写っていない",
+      "rights": "現物はTwinfold（旧デモ）が保管（2026-09-30にデータへ反映。保管施設・保険の詳細は未記録）。図柄は著作権消滅（推定）。表示画像はTwinfoldが実物を撮影し、傾き補正・合成した画像で、店の販売用ラベルは写っていない",
       "custody": {
-        "vault": "OSHIPIN",
+        "vault": "TWINFOLD_LEGACY",
         "status": "vaulted"
       },
       "lastVerifiedAt": "2026-09-30T08:30:00Z",
@@ -110,7 +110,7 @@
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hiroshige-mii.png",
       "placeholder": true,
-      "rightsNote": "画像: 歌川広重「近江八景之内 三井晩鐘」（天保期頃、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/painting-utagawa-hiroshige-0080957/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。OshiPinが保有する実物の写真ではない"
+      "rightsNote": "画像: 歌川広重「近江八景之内 三井晩鐘」（天保期頃、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/painting-utagawa-hiroshige-0080957/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -158,7 +158,7 @@
     "physical": {
       "physicalId": "PHY-DEMO-0003",
       "condition": "軽微な退色、シミなし（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、OshiPinが保有する実物の写真ではない",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfold（旧デモ）が保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"
@@ -196,7 +196,7 @@
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-hokusai-yatsuhashi.png",
       "placeholder": true,
-      "rightsNote": "画像: 葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（天保4〜5年頃〈1833–34〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/katsushika-hokusai-0070448/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。OshiPinが保有する実物の写真ではない"
+      "rightsNote": "画像: 葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（天保4〜5年頃〈1833–34〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/katsushika-hokusai-0070448/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -244,7 +244,7 @@
     "physical": {
       "physicalId": "PHY-DEMO-0004",
       "condition": "軽微な退色、小さなトリミング痕（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、OshiPinが保有する実物の写真ではない",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfold（旧デモ）が保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"
@@ -282,7 +282,7 @@
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-chikanobu-moso.png",
       "placeholder": true,
-      "rightsNote": "画像: 楊洲周延「二十四孝見立画合 第二十三号 孟宗」（明治23年〈1890〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/toyohara-chikanobu-0049601/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。OshiPinが保有する実物の写真ではない"
+      "rightsNote": "画像: 楊洲周延「二十四孝見立画合 第二十三号 孟宗」（明治23年〈1890〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/toyohara-chikanobu-0049601/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -330,7 +330,7 @@
     "physical": {
       "physicalId": "PHY-DEMO-0005",
       "condition": "退色少なく発色良好（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、OshiPinが保有する実物の写真ではない",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfold（旧デモ）が保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"
@@ -368,7 +368,7 @@
       "kind": "image",
       "imageUrl": "/artworks/ukiyoe-shotei-sakura.png",
       "placeholder": true,
-      "rightsNote": "画像: 高橋松亭「根方の桜」（大正11年〈1922〉、新版画。松亭は1945年没で著作権消滅）。パブリックドメインQ（https://publicdomainq.net/takahashi-shotei-0048450/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。OshiPinが保有する実物の写真ではない"
+      "rightsNote": "画像: 高橋松亭「根方の桜」（大正11年〈1922〉、新版画。松亭は1945年没で著作権消滅）。パブリックドメインQ（https://publicdomainq.net/takahashi-shotei-0048450/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -416,7 +416,7 @@
     "physical": {
       "physicalId": "PHY-DEMO-0006",
       "condition": "発色良好、経年による軽微な焼け（デモ用架空表記）",
-      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、OshiPinが保有する実物の写真ではない",
+      "rights": "物理所有権はVault保管者。図柄は著作権消滅。表示画像はパブリックドメインの複製でデモ用、Twinfold（旧デモ）が保有する実物の写真ではない",
       "custody": {
         "vault": "TYO-DEMO-01",
         "status": "vaulted"
@@ -519,5 +519,131 @@
       "buybackEligible": true,
       "priceNote": "DEMO PLACEHOLDER - twinfoldPrice is not a real listed price; set by the user before any real use"
     }
+  },
+  {
+    "id": "tf-card-DEMO-1-C",
+    "network": "devnet",
+    "address": "DEMO-1-CARD",
+    "standard": "demo",
+    "owner": "DEMOwalletC3333333333333333333333333333333",
+    "title": "Collectibles AR Demo Card #1",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/twinfold-demo-card-1.svg",
+      "placeholder": true,
+      "rightsNote": "自作の単色プレースホルダーSVG。実在のカード画像・名称は使っていない（DEMO DATA）"
+    },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
+    "provenance": [
+      {
+        "id": "tf-card-DEMO-1-C-evt-1",
+        "assetId": "tf-card-DEMO-1-C",
+        "kind": "transferred",
+        "occurredAt": "2026-10-06T00:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-PULL-1",
+        "metadata": {
+          "note": "DEMO DATA: 架空のPull。実際の取引ではない",
+          "via": "MockGachaProvider"
+        }
+      }
+    ],
+    "category": "card",
+    "grade": "MINT 10",
+    "gradingCompany": "DEMO",
+    "gradingId": "DEMO-CERT-0001",
+    "insuredValueUsd": 30,
+    "vault": "DEMO VAULT",
+    "vaultId": "DEMO-VAULT-0001",
+    "source": "collectorCrypt",
+    "gachaMemo": "demo-memo-0001",
+    "imageUrl": "/artworks/twinfold-demo-card-1.svg"
+  },
+  {
+    "id": "tf-card-DEMO-2-C",
+    "network": "devnet",
+    "address": "DEMO-2-CARD",
+    "standard": "demo",
+    "owner": "DEMOwalletC3333333333333333333333333333333",
+    "title": "Collectibles AR Demo Card #2",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/twinfold-demo-card-2.svg",
+      "placeholder": true,
+      "rightsNote": "自作の単色プレースホルダーSVG。実在のカード画像・名称は使っていない（DEMO DATA）"
+    },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
+    "provenance": [
+      {
+        "id": "tf-card-DEMO-2-C-evt-1",
+        "assetId": "tf-card-DEMO-2-C",
+        "kind": "transferred",
+        "occurredAt": "2026-10-06T00:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-PULL-2",
+        "metadata": {
+          "note": "DEMO DATA: 架空のPull。実際の取引ではない",
+          "via": "MockGachaProvider"
+        }
+      }
+    ],
+    "category": "card",
+    "grade": "MINT 9",
+    "gradingCompany": "DEMO",
+    "gradingId": "DEMO-CERT-0002",
+    "insuredValueUsd": 48,
+    "vault": "DEMO VAULT",
+    "vaultId": "DEMO-VAULT-0002",
+    "source": "collectorCrypt",
+    "gachaMemo": "demo-memo-0002",
+    "imageUrl": "/artworks/twinfold-demo-card-2.svg"
+  },
+  {
+    "id": "tf-card-DEMO-3-C",
+    "network": "devnet",
+    "address": "DEMO-3-CARD",
+    "standard": "demo",
+    "owner": "DEMOwalletC3333333333333333333333333333333",
+    "title": "Collectibles AR Demo Card #3",
+    "display": {
+      "kind": "image",
+      "imageUrl": "/artworks/twinfold-demo-card-3.svg",
+      "placeholder": true,
+      "rightsNote": "自作の単色プレースホルダーSVG。実在のカード画像・名称は使っていない（DEMO DATA）"
+    },
+    "spatialRepresentation": {
+      "kind": "card"
+    },
+    "provenance": [
+      {
+        "id": "tf-card-DEMO-3-C-evt-1",
+        "assetId": "tf-card-DEMO-3-C",
+        "kind": "transferred",
+        "occurredAt": "2026-10-06T00:00:00Z",
+        "source": "onchain",
+        "status": "confirmed",
+        "transaction": "DEMO-TX-PULL-3",
+        "metadata": {
+          "note": "DEMO DATA: 架空のPull。実際の取引ではない",
+          "via": "MockGachaProvider"
+        }
+      }
+    ],
+    "category": "card",
+    "grade": "MINT 10",
+    "gradingCompany": "DEMO",
+    "gradingId": "DEMO-CERT-0003",
+    "insuredValueUsd": 125,
+    "vault": "DEMO VAULT",
+    "vaultId": "DEMO-VAULT-0003",
+    "source": "collectorCrypt",
+    "gachaMemo": "demo-memo-0003",
+    "imageUrl": "/artworks/twinfold-demo-card-3.svg"
   }
 ]

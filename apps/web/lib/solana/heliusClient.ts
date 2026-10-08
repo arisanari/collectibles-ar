@@ -8,7 +8,12 @@
 // HELIUS_API_KEY is read from process.env here (server-side only) and must
 // never be exposed as NEXT_PUBLIC_*.
 
-const HELIUS_DEVNET_RPC = "https://devnet.helius-rpc.com";
+export type HeliusNetwork = "devnet" | "mainnet";
+
+const HELIUS_HOSTS: Record<HeliusNetwork, string> = {
+  devnet: "https://devnet.helius-rpc.com",
+  mainnet: "https://mainnet.helius-rpc.com",
+};
 
 function getApiKey(): string {
   const key = process.env.HELIUS_API_KEY;
@@ -21,9 +26,11 @@ function getApiKey(): string {
   return key;
 }
 
-async function rpc<T>(method: string, params: unknown): Promise<T> {
+// `network` defaults to devnet. "mainnet" is only used for READ-ONLY DAS reads (getAssetsByOwner) by
+// app/api/solana/assets; nothing in the app signs or sends a transaction on mainnet.
+async function rpc<T>(method: string, params: unknown, network: HeliusNetwork = "devnet"): Promise<T> {
   const apiKey = getApiKey();
-  const response = await fetch(`${HELIUS_DEVNET_RPC}/?api-key=${apiKey}`, {
+  const response = await fetch(`${HELIUS_HOSTS[network]}/?api-key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: "twinfold", method, params }),
@@ -49,12 +56,16 @@ export type HeliusAsset = {
   interface: string;
   content: {
     json_uri: string;
+    // Image locations, used for the card assets (lib/gacha/normalize.ts). Present on NFTs, absent on some others.
+    links?: { image?: string };
+    files?: { uri?: string; cdn_uri?: string; cc_cdn?: string }[];
     metadata: {
       name: string;
       description?: string;
       attributes?: { trait_type: string; value: string }[];
     };
   };
+  grouping?: { group_key: string; group_value: string }[];
   ownership: { owner: string };
   mutable: boolean;
   burnt: boolean;
@@ -77,13 +88,24 @@ export function getAsset(assetAddress: string): Promise<HeliusAsset> {
   return rpc<HeliusAsset>("getAsset", { id: assetAddress });
 }
 
-/** DAS getAssetsByOwner: every Asset (of any standard DAS indexes) a wallet owns. */
-export function getAssetsByOwner(ownerAddress: string): Promise<HeliusAssetsByOwnerResult> {
-  return rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", {
-    ownerAddress,
-    page: 1,
-    limit: 1000,
-  });
+/** Pages of 1000 read by getAssetsByOwner. A wallet with more than MAX_OWNER_PAGES * 1000 assets is truncated. */
+const OWNER_PAGE_LIMIT = 1000;
+const MAX_OWNER_PAGES = 5;
+
+/**
+ * DAS getAssetsByOwner: every Asset (of any standard DAS indexes) a wallet owns. Devnet is one call as before;
+ * mainnet wallets can hold many NFTs, so it keeps reading pages (up to MAX_OWNER_PAGES) while a page is full.
+ */
+export async function getAssetsByOwner(ownerAddress: string, network: HeliusNetwork = "devnet"): Promise<HeliusAssetsByOwnerResult> {
+  const first = await rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", { ownerAddress, page: 1, limit: OWNER_PAGE_LIMIT }, network);
+  if (network === "devnet") return first;
+  let items = first.items;
+  for (let page = 2; page <= MAX_OWNER_PAGES && items.length === (page - 1) * OWNER_PAGE_LIMIT; page++) {
+    const next = await rpc<HeliusAssetsByOwnerResult>("getAssetsByOwner", { ownerAddress, page, limit: OWNER_PAGE_LIMIT }, network);
+    if (next.items.length === 0) break;
+    items = items.concat(next.items);
+  }
+  return { total: first.total, items };
 }
 
 /**
@@ -129,4 +151,21 @@ export function getTransaction(signature: string): Promise<HeliusTransaction | n
     signature,
     { encoding: "json", maxSupportedTransactionVersion: 0 },
   ]);
+}
+
+export type HeliusSignatureStatus = {
+  slot: number;
+  confirmations: number | null;
+  err: unknown;
+  confirmationStatus?: "processed" | "confirmed" | "finalized";
+} | null;
+
+/**
+ * Standard Solana RPC getSignatureStatuses (devnet). `searchTransactionHistory` lets it find a signature that
+ * has aged out of the recent status cache. One entry per requested signature, `null` when the cluster does not know it.
+ * Used by lib/gacha/openResult.ts to decide whether a Pull transaction is really on chain.
+ */
+export async function getSignatureStatuses(signatures: string[]): Promise<HeliusSignatureStatus[]> {
+  const result = await rpc<{ value: HeliusSignatureStatus[] }>("getSignatureStatuses", [signatures, { searchTransactionHistory: true }]);
+  return result?.value ?? [];
 }

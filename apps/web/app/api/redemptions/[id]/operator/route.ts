@@ -14,6 +14,7 @@ import {
   sanitizeNote,
 } from "../../../../../lib/redemptions/store";
 import { assertDevnetServerSigningAllowed } from "../../../../../lib/solana/devnetSigningGuard";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,8 @@ export const dynamic = "force-dynamic";
  * The operator `note` is kept in the operator view / audit only; it never reaches the public Passport or asset API.
  */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   try {
     assertDevnetServerSigningAllowed();
   } catch (error) {

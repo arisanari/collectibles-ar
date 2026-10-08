@@ -255,3 +255,328 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .slideCount { font:400 11px DM Mono; letter-spacing:.08em; color:var(--ink); min-width:44px; text-align:center; }
 .featureLabel { display:flex; align-items:center; gap:10px; }
 .featureNoImage { position:absolute; inset:0; display:grid; place-items:center; font:400 11px DM Mono; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+
+/* Collectibles AR: /pull and graded card display */
+.slabCard { gap:10px; }
+.slabTop { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.slabImage { position:relative; width:150px; aspect-ratio:300/480; background:#e5e2da; border:1px solid var(--line); overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.slabImage img { width:100%; height:100%; object-fit:contain; display:block; }
+.slabBadges { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.unverifiedBadge { background:#e8d68a; }
+.slabFacts { margin:0; border-top:1px solid var(--line); }
+.slabFacts div { display:flex; justify-content:space-between; gap:16px; padding:7px 0; border-bottom:1px solid var(--line); font:400 11px DM Mono; }
+.slabFacts dt { color:var(--muted); }
+.slabFacts dt small { font-size:9px; }
+.slabFacts dd { margin:0; text-align:right; word-break:break-all; }
+.slabFacts dd a { color:inherit; }
+.slabMemo { max-width:70%; }
+.passportSection { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+.passportSection h4 { margin:0; font:500 11px DM Mono; letter-spacing:.04em; text-transform:none; }
+.networkSwitch { display:flex; align-items:center; gap:8px; margin:12px 0 0; font:400 11px DM Mono; flex-wrap:wrap; }
+.networkSwitch button { border:1px solid var(--line); background:none; border-radius:999px; padding:5px 12px; font:400 11px DM Mono; cursor:pointer; color:var(--ink); }
+.networkSwitch button[aria-pressed="true"] { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.slabClaimNote { margin:0; font-size:11px; line-height:1.7; color:var(--muted); }
+.pullPage { padding:48px 0 90px; }
+.pullPage h1 { font-size:clamp(40px,6vw,72px); line-height:.95; letter-spacing:-.05em; margin:0 0 18px; font-weight:500; }
+.pullBadges { display:flex; gap:8px; align-items:center; margin-bottom:18px; }
+.pullLead { max-width:640px; font-size:13px; line-height:1.8; color:var(--muted); margin:0 0 6px; }
+.pullLayout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:28px; align-items:start; margin-top:28px; }
+@media(max-width:900px){.pullLayout{grid-template-columns:1fr}}
+.machinePanel, .resultPanel { border:1px solid var(--ink); padding:24px; display:flex; flex-direction:column; gap:12px; }
+.machinePanel h2, .resultPanel h2 { margin:0; font-size:24px; font-weight:500; letter-spacing:-.03em; }
+.machineHead { display:flex; gap:16px; align-items:center; }
+.machineThumb { width:64px; height:64px; object-fit:contain; background:#e5e2da; border:1px solid var(--line); }
+.machineSelect { font:400 12px DM Mono; padding:8px 10px; border:1px solid var(--ink); background:transparent; max-width:100%; }
+.machineFacts { margin:0; border-top:1px solid var(--line); }
+.machineFacts > div { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:8px 0; border-bottom:1px solid var(--line); font:400 12px DM Mono; }
+.machineFacts dt { color:var(--muted); }
+.machineFacts dd { margin:0; text-align:right; }
+.machineFacts small { display:block; font-size:9px; color:var(--muted); }
+.pullNote { margin:0; font-size:11px; line-height:1.7; color:var(--muted); }
+.pullActions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.pullActions .primary:disabled, .pullActions .secondary:disabled { opacity:.5; cursor:wait; }
+.pullStatus { display:flex; gap:10px; align-items:center; font:400 12px DM Mono; flex-wrap:wrap; }
+.pullError { color:#a94332; font-size:12px; line-height:1.7; margin:0; }
+.pullMemo { font:400 11px DM Mono; color:var(--muted); word-break:break-all; margin:0; }
+.orphanPanel { border:1px solid var(--line); padding:20px 24px; margin-top:28px; display:flex; flex-direction:column; gap:10px; }
+.orphanList { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.orphanList li { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline; }
+
+/* Landing (/): Pull a pack, it appears in your room */
+.srOnly { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.landingHero { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:48px; align-items:center; padding-top:84px; padding-bottom:84px; }
+.landingHeroText h1 { font-size:clamp(40px,5.6vw,84px); line-height:.98; letter-spacing:-.05em; margin:0; font-weight:500; overflow-wrap:anywhere; }
+.landingHeroText > p { color:var(--muted); font-size:15px; line-height:1.8; margin:28px 0 32px; max-width:540px; }
+.landingCtas { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.landingCtas .linkButton { margin-top:0; }
+.landingArt { margin:0; display:flex; flex-direction:column; align-items:center; gap:18px; min-width:0; }
+.landingArt figcaption { font:400 10px/1.7 DM Mono; letter-spacing:.06em; color:var(--muted); text-align:center; }
+.landingSlabs { position:relative; width:min(100%,440px); height:430px; }
+.slabFrame { position:absolute; width:210px; padding:10px; border-radius:16px; background:linear-gradient(145deg,#f7f8f4,#cfd3c8 55%,#e9ebe3); border:1px solid #b9bdb0; box-shadow:0 26px 54px #1a1b1738, inset 0 1px 0 #fff; }
+.slabFrame img { display:block; width:100%; height:auto; border-radius:8px; }
+.slabFrame1 { left:8px; top:42px; transform:rotate(-8deg); }
+.slabFrame2 { left:50%; top:0; margin-left:-105px; transform:rotate(1deg); z-index:2; }
+.slabFrame3 { right:8px; top:56px; transform:rotate(9deg); }
+.landingSection { padding:56px 0 8px; }
+.landingSection .sectionTitle h2 { font-size:clamp(26px,3.4vw,36px); }
+.landingSteps { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+.landingSteps li { border-top:1px solid var(--ink); padding-top:18px; }
+.stepNo { font:500 11px DM Mono; letter-spacing:.14em; color:var(--muted); }
+.landingSteps h3, .landingWhy h3 { font-size:21px; font-weight:500; letter-spacing:-.02em; margin:10px 0 8px; }
+.landingSteps p, .landingWhy p, .landingLead { color:var(--muted); font-size:14px; line-height:1.8; margin:0; }
+.landingWhy { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+.landingWhy article { border:1px solid var(--line); padding:22px 20px; }
+.landingWhy h3 { margin-top:0; }
+.landingWhy a, .landingNotice a { color:inherit; text-underline-offset:3px; }
+.landingLead { max-width:720px; margin-bottom:22px; }
+.landingTableWrap { overflow-x:auto; }
+.landingTable { width:100%; border-collapse:collapse; font-size:14px; }
+.landingTable th, .landingTable td { padding:14px 12px; border-bottom:1px solid var(--line); text-align:center; }
+.landingTable thead th { font:500 10px DM Mono; letter-spacing:.1em; text-transform:uppercase; border-bottom:1px solid var(--ink); }
+.landingTable tbody th { text-align:left; font-weight:500; }
+.landingTable td:last-child { background:#d9ff4338; font-weight:600; }
+.landingFine { font:400 11px/1.7 DM Mono; color:var(--muted); margin:14px 0 0; }
+.landingNotice { padding-bottom:96px; }
+.landingNotice ul { margin:0; padding-left:20px; display:grid; gap:10px; color:var(--muted); font-size:14px; line-height:1.8; }
+.passportLink { align-self:flex-start; margin:0 0 12px; }
+@media(max-width:900px){
+  .landingHero { grid-template-columns:1fr; gap:36px; padding-top:48px; padding-bottom:48px; }
+  .landingSteps, .landingWhy { grid-template-columns:1fr; }
+}
+@media(max-width:520px){
+  .landingSlabs { height:340px; }
+  .slabFrame { width:150px; padding:7px; border-radius:12px; }
+  .slabFrame2 { margin-left:-75px; }
+  .landingHeroText h1 { font-size:38px; }
+}
+@media(max-width:520px){ .brand { white-space:nowrap; font-size:11px; letter-spacing:.02em; gap:6px; } .langSelect { max-width:68px; } .nav { column-gap:8px; } }
+
+/* Collectibles AR: /pull/lab camera reveal prototype */
+.cameraReveal { position:fixed; inset:0; z-index:100; background:#05060a; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+.cameraRevealCanvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+.cameraRevealVideo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.cameraRevealTop { position:absolute; top:max(12px,env(safe-area-inset-top)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; pointer-events:none; }
+.cameraRevealNote { margin:6px 0 0; font:400 10px DM Mono; color:#fff; text-shadow:0 1px 4px #000; max-width:60vw; }
+.cameraRevealClose { pointer-events:auto; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,.6); background:rgba(0,0,0,.45); color:#fff; font-size:18px; cursor:pointer; }
+.cameraRevealBar { position:absolute; left:0; right:0; bottom:max(18px,env(safe-area-inset-bottom)); display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:0 16px; }
+.cameraRevealBtn { border:1px solid rgba(255,255,255,.8); background:rgba(0,0,0,.5); color:#fff; border-radius:999px; padding:12px 20px; font:500 13px DM Mono; cursor:pointer; }
+.cameraRevealBtn.solid { background:#fff; color:#111; }
+.labTiers { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; }
+.labTiers button { border:1px solid var(--line); background:none; border-radius:999px; padding:8px 16px; font:400 12px DM Mono; cursor:pointer; color:var(--ink); }
+.labTiers button[aria-pressed="true"] { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+.cameraRevealCut { position:absolute; left:9%; width:82%; top:68%; bottom:0; background:transparent; border:0; padding:0; pointer-events:none; }
+.cameraRevealCut:focus-visible { outline:2px solid #fff; outline-offset:-4px; }
+.cameraRevealBarIn { animation:cameraRevealFade .4s .9s both; }
+@keyframes cameraRevealFade { from { opacity:0; } to { opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .cameraRevealBarIn { animation:none; } }
+
+/* Collectibles AR: 3D camera reveal (/pull/lab) */
+.cameraRevealLayer { position:absolute; inset:0; pointer-events:none; }
+.cameraRevealEdge { background:radial-gradient(ellipse at center, transparent 55%, var(--edge, #ffc850) 135%); mix-blend-mode:screen; }
+.cameraRevealHint { position:absolute; left:0; right:0; margin:0; text-align:center; font:600 14px system-ui, sans-serif; color:#fff; text-shadow:0 1px 5px #000; pointer-events:none; transition:opacity .2s; }
+.cameraRevealTitle { position:absolute; left:16px; right:16px; bottom:calc(max(18px,env(safe-area-inset-bottom)) + 66px); margin:0; text-align:center; font:600 17px system-ui, sans-serif; color:#fff; text-shadow:0 1px 6px #000; pointer-events:none; }
+.cameraRevealDim { background:radial-gradient(ellipse at center, rgba(4,4,14,.4) 0%, rgba(4,4,14,.55) 55%, rgba(2,2,10,.78) 100%); transition:none; }
+
+/* Collectibles AR: /pull/lab/card single-card look (DOM + CSS only) */
+.holoCardStage { position:fixed; inset:0; z-index:100; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; background:radial-gradient(ellipse at 50% 35%, #2a2540, #07080f 70%); }
+.holoCardVideo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scale(1.12); filter:blur(6px) brightness(.55); pointer-events:none; }
+.holoCardWrap { position:absolute; inset:0; display:grid; place-items:center; padding-bottom:16vh; }
+.holoCardBar { position:absolute; left:0; right:0; bottom:calc(max(18px, env(safe-area-inset-bottom)) + 4px); display:flex; flex-direction:column; align-items:center; gap:8px; }
+.holoCardBar .labTiers { margin:0; }
+.holoCardBar .labTiers button { color:#fff; border-color:rgba(255,255,255,.6); background:rgba(0,0,0,.45); }
+.holoCardBar .labTiers button[aria-pressed="true"] { background:#fff; color:#111; }
+.holoCardClose { pointer-events:auto; }
+
+/* Card. Tunables: --foil-top/-left/-right/-bottom (foil region on the slab photo), the perspective below, glare strength in .holoGlare. */
+.holoCard { --foil-top:24%; --foil-left:9%; --foil-right:9%; --foil-bottom:4%; --rx:0deg; --ry:0deg; --mx:50%; --my:50%; --hyp:0; --edge-ang:0deg; --sx:0px; --sy:16px; --bmx:50%; --graze:0; --flash:0; --fx:50%; --bfx:50%; --bedge-ang:0deg; --ssx:1; --glare:1; --sp:50%; --bsp:50%; --streak-ang:115deg; --lz:0; --w:min(62vw,320px); --depth:calc(var(--w) * .086);
+  position:relative; width:var(--w); aspect-ratio:677/1136; perspective:900px; touch-action:none; cursor:grab; outline:none; }
+.holoCard:focus-visible { outline:2px solid #fff; outline-offset:8px; border-radius:6%; }
+.holoCardShadow { position:absolute; inset:5% 5% -2% 5%; background:rgba(0,0,0,.65); border-radius:8%; filter:blur(18px); transform:translate(var(--sx), var(--sy)) scaleX(var(--ssx)); pointer-events:none; }
+.holoCardBody { position:absolute; inset:0; transform-style:preserve-3d; transform:rotateX(var(--rx)) rotateY(var(--ry)); will-change:transform; }
+.holoCardFace { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:4.5% / 2.7%; overflow:hidden; background:#0d0d12; box-shadow:0 0 0 1px rgba(0,0,0,.65); }
+.holoCardImg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; }
+.holoPlaceholder { position:absolute; inset:0; background:linear-gradient(160deg,#1b1f4d,#3a1c63 55%,#0e1c3d); }
+.holoPlaceholderLabel { position:absolute; left:5%; right:5%; top:3%; height:17%; border-radius:2.5%; background:linear-gradient(180deg,#f2efe6,#cdc7b6); }
+.holoPlaceholderLabel::after { content:""; position:absolute; inset:18% 8%; background:repeating-linear-gradient(180deg, rgba(40,40,60,.55) 0 3px, transparent 3px 12px); }
+.holoPlaceholderArt { position:absolute; left:var(--foil-left); right:var(--foil-right); top:var(--foil-top); bottom:var(--foil-bottom); border-radius:2%; overflow:hidden;
+  background:radial-gradient(circle at 50% 46%, rgba(255,214,150,.65), transparent 40%), repeating-conic-gradient(from 0deg at 50% 46%, rgba(255,255,255,.09) 0 6deg, transparent 6deg 12deg), repeating-radial-gradient(circle at 50% 46%, transparent 0 22px, rgba(255,235,190,.35) 22px 24px), linear-gradient(180deg,#14183f,#2c1658 60%,#0b1735);
+  border:2px solid rgba(255,235,190,.5); }
+.holoPlaceholderArt::before { content:""; position:absolute; left:28%; right:28%; top:calc(46% - 22%); aspect-ratio:1; border:3px solid rgba(255,240,200,.85); transform:rotate(45deg); }
+
+/* Light layers (all pointer-events none). At most four use mix-blend-mode: glare, foil, glitter (foil 3 only). */
+.holoGlare, .holoMicro, .holoFoil, .holoGlitter, .holoEdge { position:absolute; pointer-events:none; }
+.holoFoil, .holoGlitter { top:var(--foil-top); left:var(--foil-left); right:var(--foil-right); bottom:var(--foil-bottom); border-radius:2%; }
+.holoFoil { mix-blend-mode:color-dodge; }
+.holoFoil.f1 { background:repeating-linear-gradient(90deg, hsl(340 90% 62%) 0%, hsl(45 95% 62%) 8%, hsl(140 80% 56%) 16%, hsl(195 90% 62%) 24%, hsl(260 85% 66%) 32%, hsl(340 90% 62%) 40%); background-size:200% 100%; background-position:var(--mx) 50%; filter:brightness(.55) saturate(1.1) contrast(1.1); opacity:.5; }
+.holoFoil.f2 { background-image:repeating-linear-gradient(115deg, hsl(340 95% 60%) 0%, hsl(45 100% 60%) 7%, hsl(140 85% 55%) 14%, hsl(195 95% 60%) 21%, hsl(260 90% 66%) 28%, hsl(340 95% 60%) 35%), repeating-linear-gradient(-30deg, rgba(255,255,255,.55) 0 1px, transparent 1px 5px);
+  background-size:300% 300%, 140% 140%; background-position:var(--mx) var(--my), calc(var(--mx) * .5) calc(var(--my) * .5); background-blend-mode:overlay; filter:brightness(.6) saturate(1.2) contrast(1.25); opacity:.65; }
+.holoFoil.f3 { background-image:repeating-linear-gradient(120deg, hsl(340 100% 62%) 0%, hsl(40 100% 62%) 6%, hsl(140 90% 55%) 12%, hsl(195 100% 62%) 18%, hsl(260 95% 68%) 24%, hsl(340 100% 62%) 30%), repeating-linear-gradient(-30deg, rgba(255,240,190,.6) 0 1px, transparent 1px 4px);
+  background-size:300% 300%, 130% 130%; background-position:var(--mx) var(--my), calc(var(--mx) * .6) calc(var(--my) * .6); background-blend-mode:overlay; filter:brightness(.7) saturate(1.3) contrast(1.3); opacity:.8; }
+.holoGlitter { background-image:radial-gradient(circle, rgba(255,243,176,1) 0 .9px, transparent 1.6px), radial-gradient(circle, rgba(255,205,110,1) 0 .8px, transparent 1.4px); background-size:6px 6px, 9px 9px;
+  background-position:calc(var(--mx) * .6) calc(var(--my) * .6), calc(var(--mx) * -.9) calc(var(--my) * .9); mix-blend-mode:screen; opacity:calc(.2 + var(--hyp) * .8); }
+.holoEdge { inset:0; border-radius:inherit; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5), inset 0 0 8px rgba(255,255,255,.2), inset 0 0 0 3px rgba(0,0,0,.28);
+  background:radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.14), rgba(255,255,255,0) 55%); }
+.holoEdge::before { content:""; position:absolute; inset:0; border-radius:inherit; padding:2px; background:linear-gradient(var(--edge-ang), rgba(255,255,255,.06) 0%, rgba(255,255,255,.2) 45%, rgba(255,255,255,.95) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+
+/* Slab with thickness: front and back faces plus four resin sides (--depth is about 8.6% of the width). */
+.holoFront { transform:translateZ(calc(var(--depth) / 2)); }
+.holoBack { --streak-ang:245deg; transform:rotateY(180deg) translateZ(calc(var(--depth) / 2)); --mx:var(--bmx); --fx:var(--bfx); --edge-ang:var(--bedge-ang); }
+.holoFlash { position:absolute; inset:0; pointer-events:none; background:linear-gradient(105deg, rgba(255,255,255,0) calc(var(--fx) - 14%), rgba(255,255,255,.85) var(--fx), rgba(255,255,255,0) calc(var(--fx) + 14%)); opacity:calc(var(--flash) * .8); }
+.holoPlaceholderBack { background:radial-gradient(circle at 50% 50%, rgba(255,214,150,.4), transparent 34%), repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.08) 0 5deg, transparent 5deg 10deg), repeating-radial-gradient(circle at 50% 50%, transparent 0 26px, rgba(255,235,190,.3) 26px 28px), linear-gradient(160deg,#13173d,#2a1452 55%,#0a1530); }
+.holoPlaceholderBack::before { content:""; position:absolute; left:30%; right:30%; top:calc(50% - 20%); aspect-ratio:1; border:3px solid rgba(255,240,200,.8); transform:rotate(45deg); }
+.holoPlaceholderBack::after { content:""; position:absolute; inset:4%; border:2px solid rgba(255,235,190,.45); border-radius:4.5% / 2.7%; }
+.holoCardHint { position:absolute; left:0; right:0; bottom:calc(max(18px,env(safe-area-inset-bottom)) + 56px); margin:0; text-align:center; font:400 11px DM Mono; color:#fff; text-shadow:0 1px 4px #000; pointer-events:none; animation:holoHintFade 5s forwards; }
+@keyframes holoHintFade { 0%,70% { opacity:.9; } 100% { opacity:0; } }
+@media (prefers-reduced-motion: reduce) { .holoCardHint { animation:none; opacity:.8; } }
+
+/* Reflection (screen blend: adds light without muddying the picture). --glare scales all of it (1 = default).
+   One layer holds the round reflection and the diagonal streak; --sp is the streak position, set from tilt. */
+.holoGlare { inset:0; mix-blend-mode:screen;
+  background:radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.9) 0%, rgba(255,255,255,.45) 12%, rgba(255,255,255,.12) 38%, rgba(255,255,255,0) 62%),
+    linear-gradient(var(--streak-ang), rgba(255,255,255,0) calc(var(--sp) - 12%), rgba(255,255,255,.5) var(--sp), rgba(255,255,255,0) calc(var(--sp) + 12%));
+  opacity:min(1, calc((.5 + var(--hyp) * .5 + var(--graze) * .5) * var(--glare))); }
+/* fine resin sparkle, visible only near the streak; also on with foil 0 and with reduced motion (it does not blink) */
+.holoMicro { inset:0; mix-blend-mode:screen;
+  background-image:radial-gradient(circle, rgba(255,255,255,.95) 0 .7px, transparent 1.3px), radial-gradient(circle, rgba(255,255,255,.8) 0 .6px, transparent 1.1px);
+  background-size:23px 19px, 37px 31px; background-position:calc(var(--mx) * .3) calc(var(--my) * .3), calc(var(--mx) * -.4 + 7px) 11px;
+  -webkit-mask-image:linear-gradient(var(--streak-ang), transparent calc(var(--sp) - 22%), #000 var(--sp), transparent calc(var(--sp) + 22%));
+  mask-image:linear-gradient(var(--streak-ang), transparent calc(var(--sp) - 22%), #000 var(--sp), transparent calc(var(--sp) + 22%));
+  opacity:min(1, calc((.2 + var(--hyp) * .4) * var(--glare))); }
+
+/* Case thickness: thin rounded outlines stacked between the faces (no blend, no filter). Tunables: --layer-bw (outline width), the colours and count in HoloCard.tsx. */
+.holoLayer { position:absolute; inset:0; box-sizing:border-box; border:var(--layer-bw, 3px) solid var(--layer-c, rgba(205,212,220,.55)); border-radius:4.5% / 2.7%; pointer-events:none;
+  transform:translateZ(calc(var(--lz) * var(--depth))); opacity:calc(.7 + var(--graze) * .3); }
+
+/* Collectibles AR: /pull/lab/open pack-and-lightning opening (DOM + one FX canvas) */
+.packReveal { --pop:0; --pkw:min(80vw, 420px); --pkh:calc(var(--pkw) / .564); --cut:0; --cw:min(62vw, 320px); --tc:226,232,245; --fy:0px; --jx:0px; --jy:0px; --aura:0; --aura-s:.9; --sheen:50%; --rise-y:0px; --rise-s:1; --rise-o:1; --pack-dy:0px; --pack-o:1;
+  position:fixed; inset:0; z-index:100; overflow:hidden; background:radial-gradient(ellipse at 50% 35%, #2a2540, #07080f 70%); touch-action:none; user-select:none; -webkit-user-select:none; }
+.packRevealWorld, .packRevealStage { position:absolute; inset:0; }
+.packRevealWorld { z-index:1; }
+.packRevealVideo { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); object-fit:cover; } /* 64px beyond every edge (OV in PackReveal.tsx) so shaking never uncovers an edge */
+.packRevealFx { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); pointer-events:none; z-index:2; } /* above the pack and the card: lightning is drawn in front of everything in the world */
+.packRevealWhite { position:absolute; left:-64px; top:-64px; right:-64px; bottom:-64px; background:#fff; opacity:0; pointer-events:none; z-index:3; }
+.packReveal .cameraRevealTop, .packReveal .cameraRevealBar, .packRevealHint, .packRevealTitle, .packReveal .holoCardHint { z-index:6; }
+/* In the opening the bottom holds the keep / sell-back buttons, so the turn hint sits under the top bar. */
+.packReveal .holoCardHint { bottom:auto; top:calc(max(14px, env(safe-area-inset-top)) + 58px); }
+
+/* Pack (own artwork): a pouch with zigzag seals, a geometric mark and a slow sheen. Size: --pkw, aspect .62 (see PACK in PackReveal.tsx). */
+.packRevealAura { position:absolute; left:50%; top:calc(var(--pack-top, 79%) + 6px); width:calc(var(--pkw) * 2.6); aspect-ratio:1; transform:translate(-50%, -50%) scale(var(--aura-s)); opacity:var(--aura); pointer-events:none;
+  background:radial-gradient(circle, rgba(var(--tc), .75) 0%, rgba(var(--tc), .3) 30%, rgba(var(--tc), 0) 62%); }
+.packRevealPack { position:absolute; left:50%; top:var(--pack-top, 79%); width:var(--pkw); aspect-ratio:.564; transform-origin:50% 0; transform:translate(-50%, 0) translate(var(--jx), calc(var(--fy) + var(--jy))) scale(calc((1 + var(--pop, 0) * .14) * var(--pack-sc, 1))); opacity:var(--pack-o, 1); filter:brightness(var(--pack-br, 1)); }
+.packReveal[data-phase="waiting"] .packRevealPack { filter:brightness(.55); }
+
+/* Card glow: a halo behind, and a neon outline that follows the card's rounded shape (no blur filter). */
+/* --sold / --sold-s are written on .packReveal by the render loop; do not redeclare them here or the card never fades. */
+.packRevealCardSlot { position:absolute; left:50%; top:42%; transform:translate(-50%, -50%) translateY(var(--rise-y, 0px)) scale(calc(var(--rise-s, 1) * (1 - var(--sold-s, 0) * .15))); opacity:calc((1 - var(--sold, 0)) * var(--rise-o, 1)); }
+.packReveal .packRevealCardSlot .holoCard { --w:var(--cw); }
+
+.packRevealHint { position:absolute; left:0; right:0; bottom:calc(max(18px, env(safe-area-inset-bottom)) + 24px); margin:0; text-align:center; font:600 14px system-ui, sans-serif; color:#fff; text-shadow:0 1px 5px #000; pointer-events:none; }
+.packRevealHint p { margin:0 0 10px; }
+.packRevealClose { pointer-events:auto; }
+.holoCard[data-interactive="false"] { pointer-events:none; }
+
+
+/* hit-stop: the CSS animations stop together with the canvas */
+.packReveal[data-hitstop] * { animation-play-state:paused !important; }
+
+/* big lettering: TAP!, x2 / x3, the rarity label (gradient fill, dark outline, glowing shadow layer; no filter) */
+.metalWrap { position:relative; isolation:isolate; font:900 var(--mt-size, calc(var(--pkw) * var(--mt-k, .2)))/1 Impact, "Arial Black", "Helvetica Neue", system-ui, sans-serif; letter-spacing:.02em; white-space:nowrap; pointer-events:none; }
+.metalWrap::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:#0a0618; -webkit-text-stroke:14px #0a0618; text-shadow:0 8px 0 #000, 0 0 22px rgba(var(--tc), .95), 0 0 50px rgba(var(--tc), .6); }
+.metalFill { position:relative; display:block; color:transparent; -webkit-text-stroke:2px rgba(10,6,24,.85);
+  background:linear-gradient(180deg, #fff 0%, rgb(var(--tc)) 38%, #1c1a2e 50%, rgb(var(--tc)) 60%, #fff 100%); -webkit-background-clip:text; background-clip:text; }
+.tapText { animation:packSlam .25s ease-out both, packBeat .8s ease-in-out .25s infinite; }
+@keyframes packSlam { 0% { transform:scale(2.2); opacity:0; } 35% { transform:scale(.88); opacity:1; } 65% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
+@keyframes packBeat { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+@keyframes packFade { from { opacity:0; } to { opacity:1; } }
+
+/* reduced motion: no slamming or punching; lettering fades in */
+@media (prefers-reduced-motion: reduce) {
+  .tapText, .comboText { animation:packFade .4s both; }
+}
+
+/* ---- Room layout: the camera image, the room's light (soft-light canvas) and the world (offset from the phone's direction) ---- */
+.packRevealCam { position:absolute; inset:0; isolation:isolate; }
+.packRevealLight { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); pointer-events:none; mix-blend-mode:soft-light; }
+.packRevealWorld { position:absolute; inset:0; pointer-events:none; will-change:transform; }
+.packRevealWorld .holoCard[data-interactive="true"] { pointer-events:auto; }
+.packRevealArrow { position:absolute; left:0; top:0; z-index:6; width:0; height:0; margin:-12px 0 0 -11px; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:22px solid rgba(var(--tc), .95); opacity:0; pointer-events:none; }
+
+/* the mark on the pack is dimmed while TAP! is written over it */
+.packReveal[data-phase="armed"] .packRevealMark, .packReveal[data-phase="struck1"] .packRevealMark, .packReveal[data-phase="struck2"] .packRevealMark { opacity:.2; }
+.packRevealHintWait { bottom:auto; top:calc(var(--pack-top, 79%) - 34px); font-size:13px; }
+
+/* Open pack: a back wall behind the card and the front face in front of it (the card comes up between them). */
+
+/* ---- Foil pack from a picture (/lab/pack-foil.webp), cut into three parts with clip-path: the top band, the front face and a dark back wall ---- */
+.packPart { position:absolute; inset:0; background:var(--pack-img) center / 100% 100% no-repeat; pointer-events:none; }
+.packPartFront { }
+/* the stage colour as a faint sheen on the silver, kept inside the pack's shape by using the picture as a mask (normal blending) */
+.packPartGloss { background:linear-gradient(115deg, transparent 18%, rgba(var(--tc), .5) 42%, transparent 66%); background-size:260% 100%; background-position:var(--sheen) 0;
+  -webkit-mask-image:var(--pack-img); mask-image:var(--pack-img); -webkit-mask-size:100% 100%; mask-size:100% 100%; opacity:.55; }
+.packReveal[data-packimg="fallback"] .packPartFront, .packReveal[data-packimg="fallback"] .packPartBand, .packReveal[data-packimg="fallback"] .packPartBack { background:linear-gradient(160deg, #d3d8df, #8d94a0 50%, #cfd3da); border-radius:3%; }
+.packReveal[data-packimg="fallback"] .packPartGloss { -webkit-mask-image:none; mask-image:none; border-radius:3%; }
+
+/* slide-to-open guide on the cut line: a light running to the right, and arrows lighting in turn */
+/* where a finger can start: a strip along the cut line with room above and below (64px each) */
+/* readable over a bright room: a dark band at the bottom for the buttons and notes */
+
+/* ---- Facts under the face-down card: they come up one by one (delays are set inline), then fade away when the sheet takes over ---- */
+/* the edge of the card, once, when the emphasised row comes in */
+/* the face-down card sways very slowly while the facts appear */
+.packReveal[data-phase="facts"] .packRevealCardSlot { animation:factSway 4.5s ease-in-out infinite; }
+@keyframes factSway { 0%, 100% { rotate:-1.2deg; } 50% { rotate:1.2deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .packReveal[data-phase="facts"] .packRevealCardSlot { animation:none; }
+}
+
+/* ---- Bottom sheet with the card's information: data-ui is "open", "peek" (a thin bar) or "hidden" (only the card and the room) ---- */
+.packRevealTopBtns { display:flex; gap:8px; }
+.packRevealTopBtns .cameraRevealClose { pointer-events:auto; display:grid; place-items:center; padding:0; }
+.packRevealScrim { position:absolute; inset:0; pointer-events:auto; }
+.packRevealShade { position:absolute; left:0; right:0; bottom:0; height:38%; z-index:5; pointer-events:none; background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); opacity:0; transition:opacity var(--ui-ms, 280ms); }
+.packReveal[data-ui="open"] .packRevealShade { opacity:1; }
+.packRevealSheet { position:absolute; left:0; right:0; bottom:0; z-index:7; display:flex; flex-direction:column; max-height:62vh; padding-bottom:env(safe-area-inset-bottom); background:rgba(10,12,24,.82);
+  border-radius:16px 16px 0 0; color:#fff; transition:transform var(--ui-ms, 280ms) ease, opacity var(--ui-ms, 280ms) ease; transform:translateY(0); }
+.packReveal[data-ui="peek"] .packRevealSheet { transform:translateY(calc(100% - 48px - env(safe-area-inset-bottom))); background:rgba(10,12,24,.6); }
+.packReveal[data-ui="hidden"] .packRevealSheet { transform:translateY(100%); opacity:0; pointer-events:none; }
+.packRevealSheetBar { position:relative; flex:none; height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 16px 0; background:none; border:0; color:inherit; cursor:pointer; text-align:left; }
+.packRevealGrab { position:absolute; top:6px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:rgba(255,255,255,.55); }
+.packRevealSheetName { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:600 14px system-ui, sans-serif; }
+.packRevealChevron { flex:none; transition:transform var(--ui-ms, 280ms); }
+.packReveal[data-ui="open"] .packRevealChevron { transform:rotate(180deg); }
+.packRevealSheetBody { flex:1; min-height:0; overflow-y:auto; padding:4px 16px 14px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.packReveal[data-ui="peek"] .packRevealSheetBody { visibility:hidden; transition:visibility 0s var(--ui-ms, 280ms); }
+.packRevealSheetTitle { margin:0; font:600 16px system-ui, sans-serif; text-align:center; }
+.packRevealSheetFacts { width:100%; max-width:360px; margin:0; display:flex; flex-direction:column; gap:6px; }
+.packRevealSheetFacts div { display:flex; justify-content:space-between; gap:16px; font:400 12px DM Mono; border-bottom:1px solid rgba(255,255,255,.15); padding-bottom:5px; }
+.packRevealSheetFacts dt { color:rgba(255,255,255,.65); } .packRevealSheetFacts dd { margin:0; text-align:right; word-break:break-word; }
+.packRevealChoice { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+.packRevealChoice .cameraRevealBtn { max-width:100%; }
+.packRevealChoice .cameraRevealBtn:disabled { opacity:.6; cursor:wait; }
+.packRevealChoiceNote { margin:0; max-width:340px; text-align:center; font:400 10px DM Mono; line-height:1.6; color:rgba(255,255,255,.8); }
+.packRevealOutcome { margin:0; font:600 15px system-ui, sans-serif; text-align:center; }
+.packRevealTextBar { display:flex; justify-content:center; gap:22px; }
+.packRevealTextBtn { background:none; border:0; color:rgba(255,255,255,.85); font:400 12px DM Mono; text-decoration:underline; cursor:pointer; padding:8px; }
+/* hidden: only the card, the room and a small badge remain */
+.packReveal[data-ui="hidden"] .packRevealClose, .packReveal[data-ui="hidden"] .packRevealHideUi, .packReveal[data-ui="hidden"] .holoCardHint { opacity:0; pointer-events:none; }
+.packReveal[data-ui="hidden"] .demoBadge { font-size:9px; opacity:.7; }
+@media (prefers-reduced-motion: reduce) {
+  .packRevealSheet { transition:opacity var(--ui-ms, 280ms); }
+  .packRevealChevron { transition:none; }
+}
+
+/* ---- Facts in huge type, one at a time over a dark navy veil (the face-down card shows faintly through it) ---- */
+.packRevealFactVeil { position:absolute; left:-64px; top:-64px; right:-64px; bottom:-64px; z-index:4; pointer-events:none; background:#12131c; opacity:0;
+  animation:packVeilIn var(--veil-in, .35s) ease-out both, packVeilOut var(--veil-out, .3s) linear var(--veil-out-at, 3.9s) forwards; }
+@keyframes packVeilIn { from { opacity:0; } to { opacity:var(--veil, .86); } }
+@keyframes packVeilOut { from { opacity:var(--veil, .86); } to { opacity:0; } }
+.packRevealBigFacts { position:absolute; left:0; right:0; top:42%; z-index:5; height:0; display:flex; justify-content:center; pointer-events:none; }
+.packRevealBigFact { position:absolute; transform:translateY(-50%); max-width:84vw; white-space:nowrap; text-align:center; opacity:0;
+  font:700 min(17vw, calc(84vw / (var(--len, 4) * .6))) / 1 system-ui, -apple-system, "Helvetica Neue", sans-serif; letter-spacing:.01em; color:#e8edff;
+  animation:packBigFact 1.2s ease-out both; }
+@keyframes packBigFact { 0% { opacity:0; transform:translateY(calc(-50% + 6px)); } 20.8% { opacity:1; transform:translateY(-50%); } 83.3% { opacity:1; transform:translateY(-50%); } 100% { opacity:0; transform:translateY(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .packRevealBigFact { animation-name:packBigFactFade; }
+}
+@keyframes packBigFactFade { 0% { opacity:0; } 20.8% { opacity:1; } 83.3% { opacity:1; } 100% { opacity:0; } }

@@ -6,5 +6,9 @@
   "walletB": {
     "label": "Owner B (demo)",
     "address": "DEMOwalletB2222222222222222222222222222222"
+  },
+  "walletC": {
+    "label": "Card collector (demo)",
+    "address": "DEMOwalletC3333333333333333333333333333333"
   }
 }

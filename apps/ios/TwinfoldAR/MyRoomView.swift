@@ -6,6 +6,7 @@ import TwinfoldCore
 /// selection/transfer. Replaces the old My Collection list -> per-asset AR
 /// screen navigation.
 struct MyRoomView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var controller: RoomController
     @State private var showsFullList = false
     /// User-controlled open/closed state of the bottom tray, kept for the
@@ -30,6 +31,13 @@ struct MyRoomView: View {
             AssetTrayView(controller: controller, showsFullList: $showsFullList, isOpen: $isTrayOpen)
         }
         .task { await controller.start() }
+        #if DEBUG
+        .task { await DebugLaunchActions.run(controller) }
+        #endif
+        // Pull-feed polling (3 s) and ownership refresh (30 s) run only while the app is active.
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            controller.setRoomActive(phase == .active)
+        }
         // `twinfold://link?code=XXXXXXXX` (Web QR scanned with the Camera app): opens the link sheet prefilled.
         .onOpenURL { controller.handleLinkURL($0) }
         .onChange(of: controller.holdingAssetId) { oldValue, newValue in
@@ -50,8 +58,10 @@ struct MyRoomView: View {
         .sheet(isPresented: $showsFullList) {
             CollectionView(
                 assets: controller.ownedAssets,
-                isDemoData: controller.provider.isDemoData,
-                isPlaced: { controller.isPlaced($0) }
+                dataMode: controller.dataMode,
+                needsWalletLink: controller.mainnetNeedsLink,
+                isPlaced: { controller.isPlaced($0) },
+                onSelectMode: { controller.switchDataMode(to: $0) }
             )
         }
         .overlay {

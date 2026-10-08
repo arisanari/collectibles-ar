@@ -4,18 +4,33 @@ import TwinfoldCore
 /// Full-screen list of every asset the active wallet owns, presented as a
 /// sheet from `AssetTrayView`'s "全部見る" affordance. Read-only browsing —
 /// placement/selection/transfer all happen in `MyRoomView`'s AR scene, not
-/// here. Wallet switching lives on the AR screen's overflow menu, not in
-/// this sheet.
+/// here. A segmented control at the top switches the data source (Demo /
+/// Devnet / Mainnet read-only); wallet switching lives on the AR screen's
+/// overflow menu, not in this sheet.
 struct CollectionView: View {
     let assets: [TwinfoldAsset]
-    let isDemoData: Bool
+    let dataMode: DataMode
+    /// Mainnet (read-only) with no linked Web wallet yet: nothing to read.
+    let needsWalletLink: Bool
     let isPlaced: (String) -> Bool
+    let onSelectMode: (DataMode) -> Void
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    if assets.isEmpty {
+                    Picker("データソース", selection: Binding(get: { dataMode }, set: { onSelectMode($0) })) {
+                        Text("Demo").tag(DataMode.demo)
+                        Text("Devnet").tag(DataMode.devnet)
+                        Text("Mainnet (read-only)").tag(DataMode.mainnet)
+                    }
+                    .pickerStyle(.segmented)
+                }
+                Section {
+                    if needsWalletLink {
+                        Text("Webでwalletを連携すると、あなたのwalletのMainnetカードを表示します（読み取り専用）")
+                            .foregroundStyle(.secondary)
+                    } else if assets.isEmpty {
                         Text("このwalletにAssetはありません")
                             .foregroundStyle(.secondary)
                     }
@@ -23,7 +38,7 @@ struct CollectionView: View {
                         row(for: asset)
                     }
                 } header: {
-                    demoDataBadge
+                    dataBadge
                 }
             }
             .navigationTitle("My Collection")
@@ -38,9 +53,28 @@ struct CollectionView: View {
                 .padding(.top, 6)
             VStack(alignment: .leading, spacing: 4) {
                 Text(asset.displayTitle()).font(.headline)
+                if asset.isGradedCard {
+                    let lines = GradedSlabDimensions.labelLines(for: asset)
+                    if !lines.headline.isEmpty {
+                        Text(lines.headline).font(.caption.bold())
+                    }
+                }
                 Text(asset.address).font(.caption).foregroundStyle(.secondary)
                 if let physical = asset.physical {
                     Text(physical.condition).font(.caption2).foregroundStyle(.secondary)
+                }
+                HStack(spacing: 6) {
+                    if asset.network == "mainnet" {
+                        Text(DataMode.mainnet.badge).font(.caption2.bold()).foregroundStyle(.purple)
+                    }
+                    if asset.sourceVerified == false {
+                        Text("UNVERIFIED SOURCE").font(.caption2.bold()).foregroundStyle(.red)
+                    }
+                }
+                if asset.sourceVerified == false {
+                    Text("Collector Cryptの発行かどうかを確認できていません。ARには置けません")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
                 Text(isPlaced(asset.id) ? "配置済み" : "未配置")
                     .font(.caption2)
@@ -50,12 +84,12 @@ struct CollectionView: View {
         .padding(.vertical, 4)
     }
 
-    private var demoDataBadge: some View {
-        Text(isDemoData ? "DEMO DATA" : "DEVNET")
+    private var dataBadge: some View {
+        Text(dataMode.badge)
             .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Color.orange.opacity(0.85))
+            .background((dataMode == .mainnet ? Color.purple : Color.orange).opacity(0.85))
             .foregroundStyle(.white)
             .clipShape(Capsule())
             .textCase(nil)

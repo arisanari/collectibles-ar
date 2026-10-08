@@ -31,14 +31,41 @@ public final class SolanaAssetProvider: AssetProvider, Sendable {
     }
 
     public func getAssets(wallet: String) async throws -> [TwinfoldAsset] {
+        try await getAssets(wallet: wallet, network: .devnet)
+    }
+
+    /// `GET /api/solana/assets?wallet=<addr>[&network=mainnet]`. `.devnet` sends no `network` query (the server's
+    /// default); `.mainnet` is READ-ONLY display of Collector Crypt cards (each element `network: "mainnet"`,
+    /// `sourceVerified: true`). Public chain data: never carries the device token.
+    public func getAssets(wallet: String, network: ChainNetwork) async throws -> [TwinfoldAsset] {
         guard var components = URLComponents(url: baseURL.appendingPathComponent("api/solana/assets"), resolvingAgainstBaseURL: false) else {
             throw AssetProviderError.decodingFailed("invalid baseURL: \(baseURL)")
         }
-        components.queryItems = [URLQueryItem(name: "wallet", value: wallet)]
+        var items = [URLQueryItem(name: "wallet", value: wallet)]
+        if network == .mainnet { items.append(URLQueryItem(name: "network", value: network.rawValue)) }
+        components.queryItems = items
         guard let url = components.url else {
             throw AssetProviderError.decodingFailed("failed to build getAssets URL")
         }
         return try await get([TwinfoldAsset].self, url: url)
+    }
+
+    /// `GET /api/gacha/packs[?since=<ISO 8601>]` (device Bearer token required): the linked wallet's own Pull
+    /// records, newest `openedAt` first, at most 20. The server keeps records changed at or after `since`. Throws
+    /// `AssetProviderError.linkRequired` without a token (nothing is sent), and a 401 clears the token like every
+    /// authorized call. Not part of `AssetProvider`; `MockAssetProvider` has the same-named method (DEMO DATA).
+    public func getRecentPacks(since: Date? = nil) async throws -> GachaPacksResponse {
+        guard sessionLink?.token != nil else { throw AssetProviderError.linkRequired }
+        guard var components = URLComponents(url: baseURL.appendingPathComponent("api/gacha/packs"), resolvingAgainstBaseURL: false) else {
+            throw AssetProviderError.decodingFailed("invalid baseURL: \(baseURL)")
+        }
+        if let since {
+            components.queryItems = [URLQueryItem(name: "since", value: GachaDates.format(since))]
+        }
+        guard let url = components.url else {
+            throw AssetProviderError.decodingFailed("failed to build getRecentPacks URL")
+        }
+        return try await get(GachaPacksResponse.self, url: url, authorized: true)
     }
 
     public func getAsset(assetId: String) async throws -> TwinfoldAsset {

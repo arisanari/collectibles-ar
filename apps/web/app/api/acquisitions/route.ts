@@ -15,6 +15,7 @@ import { findOffchainRecord } from "../../../lib/solana/normalize";
 import { authorize } from "../../../lib/transferRequests/access";
 import { isAssetInRedemption } from "../../../lib/redemptions/store";
 import { assertVaultFunded, VAULT_LOW_BALANCE_MESSAGE, VaultLowBalanceError } from "../../../lib/transferRequests/chain";
+import { refuseMainnet } from "../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,8 @@ const refuse = (status: number, error: string, extra: object = {}) => NextRespon
  * from the chain on later GETs.
  */
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { mutating: true });
   if (!access.ok) return access.response;
   const wallet = access.auth.wallet;
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
     return refuse(403, error instanceof Error ? error.message : "devnet server signing disabled");
   }
   const vaultWallet = devnetWalletAddressOrNull("vault");
-  if (!vaultWallet) return refuse(503, "OshiPin vault wallet is not configured on this server");
+  if (!vaultWallet) return refuse(503, "Twinfold (legacy demo) vault wallet is not configured on this server");
   if (wallet === vaultWallet) return refuse(400, "invalid_input: the vault wallet cannot acquire from itself");
 
   const offchainRecord = findOffchainRecord(assetId);

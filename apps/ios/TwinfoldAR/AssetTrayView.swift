@@ -67,13 +67,32 @@ struct AssetTrayView: View {
             .padding(.horizontal, 16)
 
             if !isCollapsed {
+                if controller.dataMode == .demo {
+                    Button {
+                        controller.simulatePull()
+                    } label: {
+                        Text("Simulate pull (DEMO DATA)")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.orange.opacity(0.9), in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 16)
+                }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(controller.ownedAssets) { asset in
+                        ForEach(controller.trayAssets) { asset in
                             thumbnail(for: asset)
                         }
                     }
                     .padding(.horizontal, 16)
+                }
+                if controller.mainnetNeedsLink {
+                    Text("Mainnet (read-only)：Webでwalletを連携すると、あなたのwalletのカードが表示されます。")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.horizontal, 16)
                 }
 
                 if controller.dataMode == .devnet, !controller.vaultAssets.isEmpty {
@@ -89,7 +108,7 @@ struct AssetTrayView: View {
     /// acquisition sheet; the sheet explains when the Web wallet link is missing.
     private var vaultGroup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("OshiPinから取得（DEVNET・支払いなし）")
+            Text("Twinfold（旧デモ）から取得（DEVNET・支払いなし）")
                 .font(.footnote.bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
@@ -179,9 +198,25 @@ struct AssetTrayView: View {
         }
     }
 
+    static func remoteImageURL(for asset: TwinfoldAsset) -> URL? {
+        guard let url = URL(string: asset.imageUrl ?? asset.display.imageUrl), url.scheme?.lowercased() == "https" else { return nil }
+        return url
+    }
+
     @ViewBuilder
     private func artworkImage(for asset: TwinfoldAsset) -> some View {
-        if let url = TwinfoldCoreResources.artworkURL(forImageUrl: asset.display.imageUrl),
+        // A real card's picture comes from the NFT metadata host at runtime (never bundled).
+        if let remote = Self.remoteImageURL(for: asset) {
+            AsyncImage(url: remote) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(Text(String(asset.displayTitle().prefix(1))).foregroundStyle(.white))
+                }
+            }
+        } else if let url = TwinfoldCoreResources.artworkURL(forImageUrl: asset.display.imageUrl),
            let data = try? Data(contentsOf: url),
            let uiImage = UIImage(data: data) {
             Image(uiImage: uiImage)

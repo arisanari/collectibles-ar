@@ -20,6 +20,7 @@ import {
   toView,
   type TransferRequestKind,
 } from "../../../lib/transferRequests/store";
+import { refuseMainnet } from "../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,8 @@ const inflight: Map<string, Inflight> = (g.__twinfoldCreateInflight ??= new Map(
  * request per asset. TTL 10 minutes. Capped per wallet per hour.
  */
 export async function POST(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { mutating: true });
   if (!access.ok) return access.response;
   const wallet = access.auth.wallet;
@@ -136,10 +139,10 @@ async function createFlow(p: {
     });
     if (!eligibility.eligible || !offchainRecord?.commerce) return err(409, "not_eligible", { reasons: eligibility.reasons });
     const vault = devnetWalletAddressOrNull("vault");
-    if (!vault) return err(503, "OshiPin vault wallet is not configured on this server");
+    if (!vault) return err(503, "Twinfold (legacy demo) vault wallet is not configured on this server");
     const commerce = offchainRecord.commerce;
     toWallet = vault;
-    toLabel = "OshiPin Vault";
+    toLabel = "Twinfold Vault (legacy demo)";
     quote = {
       basis: { amount: commerce.twinfoldPrice.amount, currency: commerce.twinfoldPrice.currency },
       rate: commerce.buybackRate,
@@ -153,7 +156,7 @@ async function createFlow(p: {
     // Twinfold's own wallets are reached only through buyback / redeem, never a plain send (an Asset could be stranded in escrow).
     if (isTwinfoldOperatedWallet(to, devnetWalletAddressOrNull("vault"), devnetWalletAddressOrNull("escrow"))) {
       recordAudit("transfer_refused", { wallet, detail: "send to a Twinfold-operated wallet refused" });
-      return err(400, "invalid_input: To send to an OshiPin wallet, use Sell to OshiPin or Redeem instead");
+      return err(400, "invalid_input: To send to a Twinfold (legacy demo) wallet, use Sell to Twinfold or Redeem instead");
     }
     toWallet = to;
   }

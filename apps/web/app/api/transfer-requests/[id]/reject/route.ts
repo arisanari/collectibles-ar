@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { authorize, ownedRequest } from "../../../../../lib/transferRequests/access";
 import { markRejected, toView } from "../../../../../lib/transferRequests/store";
+import { refuseMainnet } from "../../../../../lib/network";
 
 export const dynamic = "force-dynamic";
 
 /** POST /api/transfer-requests/[id]/reject  (web session, same-origin). Only a request that is not yet submitted can be rejected. */
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const access = await authorize(request, { webOnly: true, mutating: true });
   if (!access.ok) return access.response;
   const { id } = await context.params;
