@@ -5,6 +5,7 @@ import { openPackForUi } from "../../../../lib/gacha/openResult";
 import { getPack, getOwnedPack, recordError, recordGenerated, type GachaPackError, type GachaPackRecord } from "../../../../lib/gacha/packStore";
 import { gachaErrorResponse, isPlayerAddress, MEMO, memoNotOwned, OPEN_PER_HOUR, requireSession } from "../../../../lib/gacha/routeUtils";
 import { GachaApiError } from "../../../../lib/gacha/types";
+import { reconcileSubmit } from "../../../../lib/gacha/submitReconcile";
 import { takeSlot } from "../../../../lib/rateLimit";
 import { refuseMainnet } from "../../../../lib/network";
 
@@ -18,11 +19,11 @@ export const dynamic = "force-dynamic";
  * The memo must belong to the signed-in wallet (the pack record made by /api/gacha/pack), otherwise 403.
  * The Pull event is `confirmed` only when its signature is found on chain; until then `pending`.
  * A refusal is kept on the pack record as `lastError` and returned in the response.
- * `{ error: "unpaid", code: "unpaid" }` (409): the record is `failed` and no payment is going to arrive, so the client stops
- * polling instead of waiting for a payment that never lands. Two cases: the submit failed because the transaction expired
- * (nothing was ever sent: answered at once, Collector Crypt is not asked), or the record is `failed` for another reason and
- * Collector Crypt still answers WAITING_FOR_WEBHOOK. A failed record that Collector Crypt DOES open (paid, then an upstream
- * error) still opens: only the WAITING answer is turned into `unpaid`.
+ * `{ error: "unpaid", code: "unpaid" }` (409): only when there are grounds that no payment happened: the record carries
+ * `tx_expired` (upstream said the blockhash ran out, or the chain showed no signature after the blockhash window passed).
+ * Answered at once; Collector Crypt is not asked. A `failed` record without that (HTTP 500, network error on submit) is NOT
+ * unpaid: its saved signature is looked up on chain first (landed -> back to `submitted`, the open goes on), and a WAITING
+ * answer stays `{ state: "waiting" }` ("checking"), so the client keeps the memo and can check again.
  */
 /** The pack never reached Collector Crypt as a payment: stop polling. Not a failure of the request itself, so 409. */
 function unpaid(record: GachaPackRecord): NextResponse {
@@ -30,7 +31,7 @@ function unpaid(record: GachaPackRecord): NextResponse {
     {
       error: "unpaid",
       code: "unpaid",
-      message: "No payment was found for this memo. Check again, or start a new pull.",
+      message: "The transaction expired before it landed on chain. No payment was made. Start a new pull.",
       ...(record.lastError ? { lastError: record.lastError } : {}),
     },
     { status: 409 }
@@ -64,7 +65,10 @@ export async function POST(request: Request) {
       console.error("[gacha open]", { memo, wallet: session.wallet, httpStatus: 403, code: "memo_not_owned", message: "memo does not belong to the signed-in wallet" });
       return memoNotOwned();
     }
-    // The submit failed on an expired transaction: it never landed, so there is nothing to wait for (Collector Crypt is not asked).
+    // A submit that errored without proof either way: ask the chain about its saved signature (landed -> normal open flow;
+    // not there and the blockhash window is over -> tx_expired below; otherwise leave it as "checking").
+    if (record.state === "failed") await reconcileSubmit(record);
+    // The transaction expired (grounds recorded): it never landed, so there is nothing to wait for (Collector Crypt is not asked).
     if (record.state === "failed" && record.lastError?.code === "tx_expired") return unpaid(record);
     if (!takeSlot("gacha_open", `${session.wallet}\n${memo}`, OPEN_PER_HOUR)) {
       const lastError = recordError(record, { stage: "open", code: "rate_limited", httpStatus: 429, message: "Too many requests. Please try again later." });
@@ -75,8 +79,6 @@ export async function POST(request: Request) {
   try {
     const provider = getGachaProvider({ demo });
     const payload = await openPackForUi(provider, record, owner);
-    // A failed record that Collector Crypt still reports as waiting: no payment is coming. (A paid one would have opened.)
-    if (payload.state === "waiting" && record.state === "failed") return unpaid(record);
     return NextResponse.json(payload);
   } catch (error) {
     // Why it failed stays on the pack record (and in the response) so the screen can show it. markFailed already ran in openPackForUi.

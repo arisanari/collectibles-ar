@@ -36,11 +36,11 @@ function Stage({ imageUrl, backImageUrl, title, foil, onFoil, onClose }: { image
     <div className="holoCardStage" role="dialog" aria-modal="true">
       <video ref={videoRef} className="holoCardVideo" playsInline muted autoPlay />
       <div className="holoCardWrap">
-        <HoloCard imageUrl={imageUrl} backImageUrl={backImageUrl} title={title} foil={foil} demo={!imageUrl && !backImageUrl} />
+        <HoloCard imageUrl={imageUrl} backImageUrl={backImageUrl} title={title} foil={foil} demo />
       </div>
       <div className="cameraRevealTop">
         <div>
-          <span className="demoBadge">{imageUrl || backImageUrl ? "DEVNET" : "DEMO DATA"}</span>
+          <span className="demoBadge">DEMO DATA</span>
           {(imageUrl || backImageUrl) && <p className="cameraRevealNote">{t(holoUi.imgNote)}</p>}
           {camera.failed && <p className="cameraRevealNote">{t(holoUi.noCamera)}{camera.error ? ` (${camera.error})` : ""}</p>}
         </div>
@@ -76,7 +76,7 @@ function CardLab() {
   return (
     <main className="shell pullPage">
       <div className="pullBadges">
-        <span className="demoBadge">{imageUrl || backImageUrl ? "DEVNET" : "DEMO DATA"}</span>
+        <span className="demoBadge">DEMO DATA</span>
         <span className="eyebrow" style={{ margin: 0 }}>LAB</span>
       </div>
       <h1>{t(holoUi.title)}</h1>

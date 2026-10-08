@@ -33,6 +33,22 @@ export async function signatureIsOnChain(signature: string): Promise<boolean> {
 }
 
 /**
+ * Three-way answer for a signature (devnet): "landed" (confirmed / finalized, no error), "absent" (the cluster answered and does
+ * not know it), "unknown" (RPC failure, still processed, or landed with an error: no claim either way).
+ */
+export type SignatureLookup = "landed" | "absent" | "unknown";
+export async function lookupSignature(signature: string): Promise<SignatureLookup> {
+  try {
+    const status = (await getSignatureStatuses([signature]))[0];
+    if (!status) return "absent";
+    return isStatusConfirmed(status) ? "landed" : "unknown";
+  } catch (error) {
+    console.warn("gacha: getSignatureStatuses failed, no claim about the submit", error instanceof Error ? error.message : "unknown error");
+    return "unknown";
+  }
+}
+
+/**
  * One openPack attempt for a Pull whose pack record the caller already checked belongs to the signed-in wallet.
  * The first success is recorded (mint, signature, time); later calls with the same memo reuse the recorded time, so
  * the card and its event time do not change between calls. Only the Status can move pending -> confirmed.

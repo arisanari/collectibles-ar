@@ -322,16 +322,101 @@ test("DEMO DATA records log nothing and stay out of the file", () => {
   assert.equal(r.lastError.code, "upstream_error");
 });
 
-test("isTxExpiredFailure: blockhash / expired / block height wording, or a bare 500 after our signer check passed", () => {
+test("isTxExpiredFailure: only the upstream wording (blockhash / expired / block height) counts; a bare 500 does not", () => {
   const f = store.isTxExpiredFailure;
-  assert.equal(f({ httpStatus: 400, message: "Blockhash not found", signerVerified: true }), true);
-  assert.equal(f({ httpStatus: 502, message: "transaction has expired", signerVerified: false }), true);
-  assert.equal(f({ httpStatus: 400, message: "block height exceeded", signerVerified: true }), true);
-  assert.equal(f({ httpStatus: 500, message: "Internal Server Error", signerVerified: true }), true);
-  assert.equal(f({ httpStatus: 500, message: "Internal Server Error", signerVerified: false }), false); // no signer check, no claim
-  assert.equal(f({ httpStatus: 400, message: "insufficient funds", signerVerified: true }), false);
-  assert.equal(f({ httpStatus: 429, message: "Too many pending packs", signerVerified: true }), false);
-  assert.equal(f({ httpStatus: 502, message: "Collector Crypt could not be reached", signerVerified: true }), false);
+  assert.equal(f({ httpStatus: 400, message: "Blockhash not found" }), true);
+  assert.equal(f({ httpStatus: 502, message: "transaction has expired" }), true);
+  assert.equal(f({ httpStatus: 500, message: "block height exceeded" }), true);
+  assert.equal(f({ httpStatus: 500, message: "blockhash expired" }), true);
+  assert.equal(f({ httpStatus: 500, message: "Internal Server Error" }), false); // no proof it did not land
+  assert.equal(f({ httpStatus: 400, message: "insufficient funds" }), false);
+  assert.equal(f({ httpStatus: 429, message: "Too many pending packs" }), false);
+  assert.equal(f({ httpStatus: 502, message: "Collector Crypt could not be reached" }), false);
+});
+
+const { reconcileSubmit, LANDING_WINDOW_MS } = await import("../lib/gacha/submitReconcile.ts");
+const { firstSignature } = await import("../lib/gacha/submitCheck.ts");
+
+function failedWithSignature(over = {}) {
+  const r = store.recordGenerated(pack({ wallet: "ReconcileWallet" }), T0);
+  store.recordSubmitSignature(r, "SigAAAA", T0 + 1);
+  store.markFailed(r, T0 + 2);
+  store.recordError(r, { stage: "submit", code: "upstream_error", httpStatus: 500, message: "Internal Server Error" }, T0 + 3);
+  Object.assign(r, over);
+  return r;
+}
+const quietly = async (fn) => {
+  const orig = console.error;
+  console.error = () => {};
+  try {
+    return await fn();
+  } finally {
+    console.error = orig;
+  }
+};
+
+test("submit failed with HTTP 500 and no expiry wording: not tx_expired, not unpaid", async () => {
+  const r = failedWithSignature();
+  assert.equal(r.lastError.code, "upstream_error");
+  // inside the window and the chain does not know the signature yet: checking, not unpaid
+  assert.equal(await reconcileSubmit(r, { lookup: async () => "absent", now: T0 + 10_000 }), "pending");
+  assert.equal(r.lastError.code, "upstream_error");
+  assert.equal(r.state, "failed");
+  // resume logic keeps the memo
+  assert.deepEqual(resolveResume({ state: r.state, lastError: r.lastError, createdAt: r.createdAt }, { paid: false, opened: false, refunded: false }, T0 + 10_000), { action: "unconfirmed" });
+});
+
+test("blockhash expired message is still tx_expired and drops the record at once", () => {
+  const expired = store.isTxExpiredFailure({ httpStatus: 400, message: "Blockhash not found" });
+  assert.equal(expired, true);
+  assert.deepEqual(resolveResume({ state: "failed", lastError: { stage: "submit", code: "tx_expired", httpStatus: 502, message: "" }, createdAt: T0 }, null, T0 + 1000), { action: "drop", reason: "failed_unpaid" });
+});
+
+test("500 then the signature is found on chain: back to submitted, joins the normal open flow (and lastError is cleared)", async () => {
+  const r = failedWithSignature();
+  assert.equal(await reconcileSubmit(r, { lookup: async () => "landed", now: T0 + 5000 }), "landed");
+  assert.equal(r.state, "submitted");
+  assert.equal(r.landed, true);
+  assert.equal(r.lastError, undefined);
+  assert.equal(store.getPackStatusLocal(r.memo, "ReconcileWallet").local.landed, true);
+  assert.deepEqual(resolveResume({ state: r.state, landed: true, createdAt: r.createdAt }, { paid: false, opened: false, refunded: false }, T0 + 5000), { action: "poll" });
+  // idempotent: asking again does not look up the chain again
+  assert.equal(await reconcileSubmit(r, { lookup: async () => assert.fail("must not ask again"), now: T0 + 6000 }), "none");
+});
+
+test("500 then the signature is absent AND the blockhash window is over: only then unpaid (tx_expired)", async () => {
+  const r = failedWithSignature();
+  // the window is counted from the last relay attempt (T0 + 1 in the helper), not from when the pack was issued
+  assert.equal(await quietly(() => reconcileSubmit(r, { lookup: async () => "absent", now: T0 + 1 + LANDING_WINDOW_MS + 1 })), "unpaid");
+  assert.equal(r.state, "failed");
+  assert.equal(r.lastError.code, "tx_expired");
+  // a submit relayed long after the pack was issued is still inside its own window: absent right after it is "pending"
+  const late = failedWithSignature();
+  store.recordSubmitSignature(late, "SigLATE", T0 + LANDING_WINDOW_MS * 3);
+  assert.equal(await reconcileSubmit(late, { lookup: async () => "absent", now: T0 + LANDING_WINDOW_MS * 3 + 1000 }), "pending");
+  assert.equal(late.lastError.code, "upstream_error");
+  // an RPC failure ("unknown") is never grounds, even after the window
+  const r2 = failedWithSignature();
+  assert.equal(await reconcileSubmit(r2, { lookup: async () => "unknown", now: T0 + LANDING_WINDOW_MS * 10 }), "pending");
+  assert.equal(r2.lastError.code, "upstream_error");
+  // a record that never relayed anything (no signature) has no grounds either
+  const r3 = store.recordGenerated(pack({ wallet: "ReconcileWallet" }), T0);
+  store.markFailed(r3, T0 + 1);
+  assert.equal(await reconcileSubmit(r3, { lookup: async () => "absent", now: T0 + LANDING_WINDOW_MS * 10 }), "none");
+});
+
+test("firstSignature: the transaction id of a signed transaction; null when unsigned or garbage", async () => {
+  const payer = web3.Keypair.generate();
+  const tx = new web3.Transaction({ feePayer: payer.publicKey, recentBlockhash: web3.Keypair.generate().publicKey.toBase58() });
+  tx.add(web3.SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: web3.Keypair.generate().publicKey, lamports: 1 }));
+  const unsigned = tx.serialize({ requireAllSignatures: false }).toString("base64");
+  assert.equal(firstSignature(unsigned), null);
+  tx.sign(payer);
+  const signed = tx.serialize().toString("base64");
+  assert.match(firstSignature(signed), /^[1-9A-HJ-NP-Za-km-z]{80,90}$/);
+  const bs58 = (await import("bs58")).default;
+  assert.equal(firstSignature(signed), bs58.encode(tx.signature));
+  assert.equal(firstSignature("!!!"), null);
 });
 
 test("Mock submit failure flags (DEMO DATA only) throw GachaApiError; the normal path still succeeds", async () => {
@@ -339,7 +424,7 @@ test("Mock submit failure flags (DEMO DATA only) throw GachaApiError; the normal
   const { GachaApiError } = await import("../lib/gacha/types.ts");
   const provider = new MockGachaProvider();
   await assert.rejects(provider.submitSigned({ signedTransaction: MOCK_FAIL_SUBMIT }), (e) => e instanceof GachaApiError && e.status === 400);
-  await assert.rejects(provider.submitSigned({ signedTransaction: MOCK_FAIL_EXPIRED }), (e) => e instanceof GachaApiError && store.isTxExpiredFailure({ httpStatus: e.status, message: e.message, signerVerified: false }));
+  await assert.rejects(provider.submitSigned({ signedTransaction: MOCK_FAIL_EXPIRED }), (e) => e instanceof GachaApiError && store.isTxExpiredFailure({ httpStatus: e.status, message: e.message }));
   assert.equal((await provider.submitSigned({ signedTransaction: "" })).success, true);
 });
 
@@ -385,10 +470,14 @@ test("resolveResume: paid but not opened -> keep polling (even when the local re
   assert.deepEqual(resolveResume({ state: "submitted", createdAt: old }, R(true), NOW), { action: "poll" });
 });
 
-test("resolveResume: failed locally and not paid (or Collector Crypt silent) -> not resumed", () => {
-  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, R(false), NOW), { action: "drop", reason: "failed_unpaid" });
-  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, null, NOW), { action: "drop", reason: "failed_unpaid" });
-  assert.deepEqual(resolveResume({ state: "failed" }, null, NOW), { action: "drop", reason: "failed_unpaid" });
+test("resolveResume: failed with tx_expired (confirmed unpaid) -> not resumed; failed for any other cause stays unconfirmed", () => {
+  const expired = { at: "x", stage: "submit", code: "tx_expired", httpStatus: 502, message: "" };
+  assert.deepEqual(resolveResume({ state: "failed", lastError: expired, createdAt: fresh }, R(false), NOW), { action: "drop", reason: "failed_unpaid" });
+  assert.deepEqual(resolveResume({ state: "failed", lastError: expired, createdAt: fresh }, null, NOW), { action: "drop", reason: "failed_unpaid" });
+  const http500 = { at: "x", stage: "submit", code: "upstream_error", httpStatus: 500, message: "" };
+  assert.deepEqual(resolveResume({ state: "failed", lastError: http500, createdAt: fresh }, R(false), NOW), { action: "unconfirmed" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: fresh }, null, NOW), { action: "unconfirmed" });
+  assert.deepEqual(resolveResume({ state: "failed", createdAt: old }, null, NOW), { action: "drop", reason: "expired_unpaid" });
 });
 
 test("resolveResume: generated / submitted and unpaid -> unconfirmed inside 2 hours, failed after", () => {
@@ -460,7 +549,7 @@ test("pack/status route (DEMO DATA): the documented shape, 404 unknown, 403 for 
   const body = await ok.json();
   assert.deepEqual(Object.keys(body).sort(), ["isDemoData", "local", "memo", "remote"]);
   assert.equal(body.memo, demo.memo);
-  assert.deepEqual(Object.keys(body.local).sort(), ["createdAt", "lastError", "state"]);
+  assert.deepEqual(Object.keys(body.local).sort(), ["createdAt", "landed", "lastError", "state"]);
   assert.equal(body.local.state, "failed");
   assert.equal(body.local.lastError, null);
   assert.equal(body.remote, null); // DEMO DATA has no Collector Crypt to ask
@@ -510,17 +599,14 @@ test("CollectorCryptGachaProvider.packStatus asks GET /api/pack/status?memo= and
 const openPost = (body) =>
   openRoute.POST(new Request("http://localhost:3000/api/gacha/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
 
-test("open route: a failed record that Collector Crypt still reports as waiting answers 409 unpaid; a failed record that opens still opens", async () => {
+test("open route: a failed record (submit errored, no proof) answers waiting, not unpaid; tx_expired answers 409 unpaid; a failed record that opens still opens", async () => {
   // DEMO DATA (the mock answers `waiting` on the first call, then opens): same code path as a real record.
   const failed = store.recordGenerated(pack({ wallet: "DEMO-PLAYER-WALLET", demo: true }), Date.now());
   store.markFailed(failed);
   store.recordError(failed, { stage: "submit", code: "upstream_error", httpStatus: 500, message: "x" });
   const first = await openPost({ memo: failed.memo, playerAddress: "DEMO-PLAYER-WALLET", demo: true });
-  assert.equal(first.status, 409);
-  const body = await first.json();
-  assert.equal(body.code, "unpaid");
-  assert.equal(body.error, "unpaid");
-  assert.equal(body.lastError.code, "upstream_error");
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).state, "waiting"); // WAITING alone is not "unpaid"
   assert.equal(failed.state, "failed");
   const second = await openPost({ memo: failed.memo, playerAddress: "DEMO-PLAYER-WALLET", demo: true });
   assert.equal(second.status, 200);

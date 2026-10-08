@@ -143,7 +143,7 @@ function parseLocal(value: unknown): ResumeLocal | null {
   if (typeof v.state !== "string" || !LOCAL_STATES.includes(v.state)) return null;
   const sent = v.lastError as Partial<PullLastError> | null | undefined;
   const lastError = sent && typeof sent.code === "string" ? { at: sent.at, stage: sent.stage ?? "open", code: sent.code, httpStatus: sent.httpStatus ?? 0, message: String(sent.message ?? "") } : null;
-  return { state: v.state as ResumeLocalState, lastError, createdAt: typeof v.createdAt === "string" || typeof v.createdAt === "number" ? v.createdAt : undefined };
+  return { state: v.state as ResumeLocalState, lastError, createdAt: typeof v.createdAt === "string" || typeof v.createdAt === "number" ? v.createdAt : undefined, landed: v.landed === true };
 }
 
 function parseRemote(value: unknown): RemotePackStatus | null {

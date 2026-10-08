@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getGachaProvider } from "../../../../../lib/gacha/index";
 import { hasPackStatus } from "../../../../../lib/gacha/collectorCryptProvider";
-import { getPackStatusLocal } from "../../../../../lib/gacha/packStore";
+import { getOwnedPack, getPackStatusLocal } from "../../../../../lib/gacha/packStore";
 import { type RemotePackStatus, remoteFromCc } from "../../../../../lib/gacha/resume";
 import { MEMO, memoNotOwned, rateLimited, requireSessionRead } from "../../../../../lib/gacha/routeUtils";
+import { reconcileSubmit } from "../../../../../lib/gacha/submitReconcile";
 import { refuseMainnet } from "../../../../../lib/network";
 import { takeSlot } from "../../../../../lib/rateLimit";
 
@@ -32,10 +33,17 @@ export async function GET(request: Request) {
   if (memo === null || !MEMO.test(memo)) {
     return NextResponse.json({ error: "invalid_input", message: "memo is required" }, { status: 400 });
   }
-  const found = getPackStatusLocal(memo, session.wallet);
+  let found = getPackStatusLocal(memo, session.wallet);
   if (found.kind === "forbidden") return memoNotOwned();
   if (found.kind === "unknown") return NextResponse.json({ error: "unknown_memo", message: "No DEMO DATA record for this memo" }, { status: 404 });
   if (!demo && !takeSlot("gacha_pack_status", session.wallet as string, STATUS_PER_HOUR)) return rateLimited();
+  // A submit that errored may still have landed: ask the chain about its saved signature (landed -> `local.landed`, or tx_expired
+  // once the blockhash window is over) before the client decides what to do with the memo.
+  if (!demo && found.kind === "ok" && found.local.state !== "opened") {
+    const record = getOwnedPack(memo, session.wallet as string);
+    if (record && (await reconcileSubmit(record)) !== "none") found = getPackStatusLocal(memo, session.wallet);
+  }
+  if (found.kind !== "ok") return memoNotOwned();
 
   const provider = getGachaProvider({ demo });
   let remote: RemotePackStatus | null = null;

@@ -27,10 +27,9 @@ function readFacts(params: URLSearchParams, t: (x: { en: string; ja: string }) =
     const v = params.get(d.key);
     if (v) out.push({ label: t(d.label), value: (d.emphasis ? v.toUpperCase() : v).slice(0, FACT_MAX), emphasis: d.emphasis });
   }
-  if (out.length > 0) return { facts: out, demo: false };
+  if (out.length > 0) return { facts: out };
   // DEMO DATA stand-ins, made up for this lab page
   return {
-    demo: true,
     facts: [
       { label: t(packUi.factYear), value: "2000" },
       { label: t(packUi.factGrade), value: "DEMO 10" },
@@ -73,7 +72,7 @@ function OpenLab() {
   return (
     <main className="shell pullPage">
       <div className="pullBadges">
-        <span className="demoBadge">{imageUrl || backImageUrl ? "DEVNET" : "DEMO DATA"}</span>
+        <span className="demoBadge">DEMO DATA</span>
         <span className="eyebrow" style={{ margin: 0 }}>LAB</span>
       </div>
       <h1>{t(packUi.title)}</h1>
@@ -89,7 +88,7 @@ function OpenLab() {
         ))}
       </div>
       <button type="button" className="primary" onClick={start}>{t(labUi.start)}</button>
-      {open && <PackReveal tier={tier} facts={facts} ready={ready} imageUrl={imageUrl} backImageUrl={backImageUrl} title={title} demo={!imageUrl && !backImageUrl} onClose={() => setOpen(false)} buyback={{ amountLabel: t(packUi.demoAmount) }} outcome={outcome} onKeep={() => setOutcome("kept")} onSell={() => new Promise<void>((resolve) => window.setTimeout(() => { setOutcome("sold"); resolve(); }, SELL_WAIT_MS))} onAgain={() => setOutcome("none")} />}
+      {open && <PackReveal tier={tier} facts={facts} ready={ready} imageUrl={imageUrl} backImageUrl={backImageUrl} title={title} demo onClose={() => setOpen(false)} buyback={{ amountLabel: t(packUi.demoAmount) }} outcome={outcome} onKeep={() => setOutcome("kept")} onSell={() => new Promise<void>((resolve) => window.setTimeout(() => { setOutcome("sold"); resolve(); }, SELL_WAIT_MS))} onAgain={() => setOutcome("none")} />}
     </main>
   );
 }

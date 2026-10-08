@@ -13,6 +13,8 @@ export type ResumeLocal = {
   state: ResumeLocalState;
   lastError?: { at?: string; stage: string; code: string; httpStatus: number; message: string } | null;
   createdAt?: string | number;
+  /** A submit signature was seen on chain: the payment went through. */
+  landed?: boolean;
 };
 
 /** What Collector Crypt's /api/pack/status says. `null` (instead of this object) means Collector Crypt did not answer. */
@@ -72,8 +74,9 @@ function issuedMs(createdAt: string | number | undefined): number | null {
  *   1. local opened, or remote opened                    -> open  (fetch the card again)
  *   2. remote refunded                                    -> drop (refunded)
  *   3. remote paid (not opened yet)                       -> poll
- *   4. local failed (remote unpaid, or no answer)         -> drop (failed_unpaid)
- *   5. local generated / submitted, unpaid:
+ *   4. local landed (signature seen on chain)             -> poll
+ *   5. local failed with tx_expired (confirmed unpaid)    -> drop (failed_unpaid)
+ *   6. local generated / submitted / failed (other cause), unpaid:
  *        issued more than 2 hours ago                     -> drop (expired_unpaid)
  *        otherwise (or the issue time is unknown)         -> unconfirmed
  * `now` is epoch ms.
@@ -81,8 +84,10 @@ function issuedMs(createdAt: string | number | undefined): number | null {
 export function resolveResume(local: ResumeLocal, remote: RemotePackStatus | null, now: number): ResumeDecision {
   if (local.state === "opened" || remote?.opened) return { action: "open" };
   if (remote?.refunded) return { action: "drop", reason: "refunded" };
-  if (remote?.paid) return { action: "poll" };
-  if (local.state === "failed") return { action: "drop", reason: "failed_unpaid" };
+  if (remote?.paid || local.landed) return { action: "poll" };
+  // Only a confirmed non-payment (tx_expired: upstream said the blockhash ran out, or the chain showed no signature after the
+  // blockhash window) drops a failed record at once. Any other failure (HTTP 500, network error) leaves it unconfirmed below.
+  if (local.state === "failed" && local.lastError?.code === "tx_expired") return { action: "drop", reason: "failed_unpaid" };
   const issued = issuedMs(local.createdAt);
   if (issued !== null && now - issued > UNPAID_WINDOW_MS) return { action: "drop", reason: "expired_unpaid" };
   return { action: "unconfirmed" };

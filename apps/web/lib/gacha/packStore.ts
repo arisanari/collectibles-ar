@@ -52,6 +52,15 @@ export type GachaPackRecord = {
   imageUrl?: string;
   /** DAS `interface` found with it. */
   assetInterface?: string;
+  /**
+   * First signature (transaction id) of each signed transaction relayed for this memo (newest last, at most 3). Lets the server ask
+   * the chain whether a submit that errored actually landed. Public data.
+   */
+  submitSignatures?: string[];
+  /** When a signed transaction was last handed to the relay for this memo (ms). The landing window is counted from here. */
+  lastSubmitAt?: number;
+  /** A submit signature was seen on chain (confirmed / finalized, no error): the payment went through, whatever submit answered. */
+  landed?: boolean;
   /** The most recent refusal (upstream or ours). Cleared when the pack is submitted or opened. */
   lastError?: GachaPackError;
 };
@@ -118,7 +127,7 @@ export function getOwnedPack(memo: string, wallet: string): GachaPackRecord | un
 }
 
 /** The server's view of one memo for GET /api/gacha/pack/status (`createdAt` = when the pack was issued, ISO 8601). */
-export type PackStatusLocal = { state: GachaPackState; lastError: GachaPackError | null; createdAt: string };
+export type PackStatusLocal = { state: GachaPackState; lastError: GachaPackError | null; createdAt: string; landed: boolean };
 
 /**
  * The record a status read may show. A real wallet only sees its own records; someone else's memo, an unknown memo and a
@@ -133,7 +142,7 @@ export function getPackStatusLocal(memo: string, wallet: string | null): { kind:
   } else if (!record || record.demo || record.wallet !== wallet) {
     return { kind: "forbidden" };
   }
-  return { kind: "ok", local: { state: record.state, lastError: record.lastError ?? null, createdAt: new Date(record.createdAt).toISOString() } };
+  return { kind: "ok", local: { state: record.state, lastError: record.lastError ?? null, createdAt: new Date(record.createdAt).toISOString(), landed: record.landed === true } };
 }
 
 /**
@@ -264,11 +273,27 @@ export function recordError(
 }
 
 /**
- * The signed transaction can no longer land, so no payment happened: its blockhash expired. Collector Crypt reports that
- * as a message mentioning blockhash / expired / block height, or as a bare HTTP 500 for a transaction our own signer check
- * already accepted (`signerVerified`). Used only for a Pull submit; a buyback is not classified.
+ * Upstream says the transaction's blockhash ran out, so it can no longer land and no payment happened. Only the wording
+ * counts: a bare HTTP 500 (or any other status) does not prove the transaction did not land, so it is NOT classified here.
+ * Whether it landed is answered by the chain (lib/gacha/submitReconcile.ts). Used only for a Pull submit; a buyback is not classified.
  */
-export function isTxExpiredFailure(input: { httpStatus: number; message: string; signerVerified: boolean }): boolean {
-  if (/blockhash|expired|block height/i.test(input.message)) return true;
-  return input.httpStatus === 500 && input.signerVerified;
+export function isTxExpiredFailure(input: { httpStatus: number; message: string }): boolean {
+  return /blockhash|expired|block height/i.test(input.message);
+}
+
+/** Remembers the signature of a transaction about to be relayed (deduplicated, newest last, at most 3). */
+export function recordSubmitSignature(record: GachaPackRecord, signature: string, now = Date.now()): GachaPackRecord {
+  const list = record.submitSignatures ?? [];
+  record.lastSubmitAt = now;
+  if (!list.includes(signature)) record.submitSignatures = [...list, signature].slice(-3);
+  record.updatedAt = now;
+  persist();
+  return record;
+}
+
+/** The chain shows a submit signature: the payment went through. Back to `submitted` so the normal open flow takes over. */
+export function markLanded(record: GachaPackRecord, now = Date.now()): GachaPackRecord {
+  if (record.state === "opened") return record;
+  record.landed = true;
+  return markSubmitted(record, now);
 }
