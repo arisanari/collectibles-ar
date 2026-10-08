@@ -228,26 +228,77 @@ export const pullUi = {
 
 // /pull/lab: a prototype of the opening effect. Effect strength only; no rarity names, no outcome wording.
 export const cameraRevealUi = {
-  placeLabel: { en: "Place your plush toy here", ja: "ぬいぐるみをここに置いてね" },
-  placed: { en: "Placed", ja: "置いた" },
-  skipPlace: { en: "Continue without placing", ja: "置かずに進む" },
-  tapToOpen: { en: "Tap the pack to open it", ja: "パックをタップして開ける" },
+  cutHint: { en: "Swipe along the line to open", ja: "なぞって開ける" },
+  cutLabel: { en: "Open the pack", ja: "パックを開ける" },
+  noOrientation: { en: "Motion sensors are unavailable, so the view drifts on its own.", ja: "傾きセンサーを使えないので、視点は自動で揺れます" },
+  noWebgl: { en: "3D is unavailable on this device.", ja: "この端末では3Dを使えません" },
   noCamera: { en: "The camera is unavailable, so this is shown without a background.", ja: "カメラを使えないので背景なしで表示しています" },
   again: { en: "Again", ja: "もう一度" },
   close: { en: "Close", ja: "閉じる" },
   closeLabel: { en: "Close the camera view", ja: "カメラ表示を閉じる" },
-  placeholderCard: { en: "Placeholder card", ja: "プレースホルダーカード" },
 } as const;
 
 export const labUi = {
   title: { en: "Opening effect lab", ja: "開封演出ラボ" },
   note: { en: "A prototype of the effect. No real Pull is made.", ja: "演出の試作で、実際のPullは行いません。" },
   lead: {
-    en: "Pick an effect strength, then try it with your camera. Put a plush toy inside the frame and watch it take the hit.",
-    ja: "演出の強さを選んで、カメラで試せます。枠にぬいぐるみを置くと、攻撃を受けたように見えます。",
+    en: "Pick an effect strength, then try it with your camera. Swipe across the pack's cut line to open it and watch the light and storm fill the camera view.",
+    ja: "演出の強さを選んで、カメラで試せます。パックの切り取り線を指でなぞって開けると、カメラ映像に光と嵐の演出が重なります。",
   },
   tierLabel: { en: "Effect strength", ja: "演出の強さ" },
   tierName: { en: "Effect", ja: "演出" },
   start: { en: "Try the opening with the camera", ja: "カメラで開封を試す" },
+  modeLabel: { en: "Rendering", ja: "描画" },
+  mode3d: { en: "3D (spatial)", ja: "3D（空間）" },
+  mode2d: { en: "2D", ja: "2D" },
   dummyTitle: { en: "Sample Card", ja: "サンプルカード" },
+} as const;
+
+// /pull/lab/card: a prototype of the card's look (light reacting to tilt). Foil strength only; no rarity names.
+export const holoUi = {
+  title: { en: "Card look lab", ja: "カードの質感ラボ" },
+  note: { en: "A prototype of the card's look. No real Pull is made.", ja: "質感の試作で、実際のPullは行いません。" },
+  lead: {
+    en: "Tilt your phone or drag the card to see the light move over it. Pick a foil strength and compare.",
+    ja: "端末を傾けるか、カードをドラッグすると、光が動きます。箔の強さを選んで見比べられます。",
+  },
+  spinHint: { en: "Drag sideways to turn, tap to flip", ja: "横にドラッグで回転、タップで裏返す" },
+  foilLabel: { en: "Foil strength", ja: "箔の強さ" },
+  foilName: { en: "Foil", ja: "箔" },
+  start: { en: "View with the camera", ja: "カメラで見る" },
+  imgNote: {
+    en: "The image is served by Collector Crypt's devnet and is read at run time.",
+    ja: "画像は Collector Crypt の devnet が配信するものを実行時に読んでいます",
+  },
+  noCamera: { en: "The camera is unavailable, so this is shown without a background.", ja: "カメラを使えないので背景なしで表示しています" },
+  closeLabel: { en: "Close", ja: "閉じる" },
+  dummyTitle: { en: "Sample Card", ja: "サンプルカード" },
+} as const;
+
+// /pull/lab/open: the pack-and-lightning opening experiment. Effect strength only; no rarity names, no outcome wording.
+export const packUi = {
+  title: { en: "Opening lab: lightning", ja: "開封ラボ（雷）" },
+  lead: {
+    en: "Pick an effect strength, then try it. The pack opens by itself and lightning comes down in the middle of the screen: point the camera at a plush toy there. The card rises from the bottom of the screen and waits face down while its year, grade and rarity appear one by one, then it turns over. When the card is up, the interface can be hidden to take a screenshot of the room.",
+    ja: "演出の強さを選んで試せます。パックは自動で開き、画面の真ん中に雷が落ちます。ぬいぐるみを真ん中に映してみてください。カードは画面の下から上がり、裏向きのまま年・グレード・レア度が順に出てから表になります。カードが出たあとは、表示を隠して部屋のスクリーンショットを撮れます。",
+  },
+  preparing: { en: "Getting the pack ready…", ja: "パックを準備しています" },
+  factYear: { en: "YEAR", ja: "年" },
+  factSeries: { en: "SERIES", ja: "シリーズ" },
+  factGrade: { en: "GRADE", ja: "グレード" },
+  factRarity: { en: "RARITY", ja: "レア度" },
+  hideUi: { en: "Hide the interface", ja: "画面の表示を隠す" },
+  tierHint: [
+    { en: "blue", ja: "青" },
+    { en: "green", ja: "緑" },
+    { en: "red", ja: "赤" },
+    { en: "rainbow", ja: "虹" },
+  ],
+  keep: { en: "Keep in collection", ja: "コレクションに入れる" },
+  sell: { en: "Sell back to Collector Crypt", ja: "Collector Cryptに売り戻す" },
+  processing: { en: "Processing…", ja: "処理中…" },
+  kept: { en: "Added to your collection.", ja: "コレクションに入れました" },
+  sold: { en: "Sold back. The card has left the room.", ja: "売り戻しました。カードは空間から消えました。" },
+  sellNote: { en: "Selling back is a display prototype; no real transaction is made.", ja: "売り戻しは表示の試作で、実際の取引は行いません" },
+  demoAmount: { en: "$0.00 (DEMO DATA)", ja: "$0.00（DEMO DATA）" },
 } as const;
