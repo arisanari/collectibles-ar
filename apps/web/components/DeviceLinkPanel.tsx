@@ -3,6 +3,7 @@
 import qrcode from "qrcode-generator";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useI18n, type Lang, type Localized } from "../lib/i18n";
+import { issueLinkCode } from "../lib/link/issueCode";
 
 const text = {
   qrLabel: { en: "QR code for linking your iPhone", ja: "iPhone連携用QRコード" },
@@ -36,6 +37,7 @@ const text = {
   linked: { en: "Linked", ja: "連携" },
   validUntil: { en: "valid until", ja: "有効期限" },
   revoke: { en: "Unlink", ja: "連携を解除" },
+  openInApp: { en: "Open in the iPhone app", ja: "iPhoneアプリで開く" },
 } satisfies Record<string, Localized>;
 
 type Issued = { code: string; display: string; expiresAt: number };
@@ -103,14 +105,13 @@ export function DeviceLinkPanel() {
     setBusy(true);
     setMessage("");
     try {
-      const res = await fetch("/api/link/code", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      if (!res.ok) {
-        setMessage(res.status === 401 ? tr(text.sessionExpired) : tr(text.issueFailed));
+      const result = await issueLinkCode();
+      if (!result.ok) {
+        setMessage(result.status === 401 ? tr(text.sessionExpired) : tr(text.issueFailed));
         return;
       }
-      const data = (await res.json()) as { code: string; display: string; expiresAt: string };
       setNow(Date.now());
-      setIssued({ code: data.code, display: data.display, expiresAt: Date.parse(data.expiresAt) });
+      setIssued({ code: result.code, display: result.display, expiresAt: result.expiresAt });
     } finally {
       setBusy(false);
     }
@@ -142,6 +143,7 @@ export function DeviceLinkPanel() {
           <div className="linkCode" aria-live="polite">{issued.display}</div>
           <div className="linkCountdown">{tr(text.remaining)} {mm}:{ss}</div>
           <QrSvg text={`twinfold://link?code=${issued.code}`} label={tr(text.qrLabel)} />
+          <a className="primary" href={`twinfold://link?code=${issued.code}`}>{tr(text.openInApp)}</a>
         </div>
       ) : (
         issued && <p className="emptyState small">{tr(text.codeExpired)}</p>

@@ -89,7 +89,7 @@ struct AssetTrayView: View {
                     .padding(.horizontal, 16)
                 }
                 if controller.mainnetNeedsLink {
-                    Text("Mainnet (read-only)：Webでwalletを連携すると、あなたのwalletのカードが表示されます。")
+                    Text("Mainnet (read-only)：右上の「walletを連携」から連携すると、あなたのwalletのカードが表示されます（読み取り専用）")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.horizontal, 16)

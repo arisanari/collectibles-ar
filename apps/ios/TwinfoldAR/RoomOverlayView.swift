@@ -19,7 +19,11 @@ struct RoomOverlayView: View {
         VStack {
             HStack {
                 demoDataBadge
-                walletChip
+                walletButton
+                if controller.dataMode == .devnet,
+                   controller.activeWallet.id != controller.linkedSession?.wallet {
+                    walletChip
+                }
                 Spacer()
                 overflowMenu
             }
@@ -339,42 +343,73 @@ struct RoomOverlayView: View {
             .clipShape(Capsule())
     }
 
+    /// Always-visible entry point for wallet linking (every data mode).
+    /// Unlinked: prominent 「walletを連携」 button. Linked: a checkmark chip
+    /// with the short address; tapping opens the same sheet, which shows
+    /// the linked state and 「連携を解除」.
+    @ViewBuilder
+    private var walletButton: some View {
+        if let linked = controller.linkedSession {
+            let short = DemoWallet(id: linked.wallet, label: "").shortAddress
+            Button {
+                controller.showsLinkSheet = true
+            } label: {
+                Label(short, systemImage: "checkmark.circle.fill")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.55))
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button {
+                controller.showsLinkSheet = true
+            } label: {
+                Label("walletを連携", systemImage: "link")
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        }
+    }
+
     private var overflowMenu: some View {
         Menu {
-            Menu("データソース: \(controller.dataMode.label)") {
+            Menu("表示: \(controller.dataMode.label)") {
                 ForEach(DataMode.allCases) { mode in
                     Button(mode.label) { controller.switchDataMode(to: mode) }
                 }
             }
 
-            Menu("Wallet: \(controller.activeWallet.label)") {
-                ForEach(controller.walletOptions) { wallet in
-                    Button(wallet.label) { controller.switchWallet(to: wallet) }
-                }
-            }
-
-            if controller.dataMode != .demo {
-                if let linked = controller.linkedSession {
-                    Section("連携中: \(DemoWallet(id: linked.wallet, label: "").shortAddress)") {
-                        Button("連携を解除", role: .destructive) { controller.unlink() }
+            if controller.walletOptions.count > 1 || controller.dataMode == .demo {
+                Menu("デモ・テスト") {
+                    if controller.walletOptions.count > 1 {
+                        Menu("Wallet: \(controller.activeWallet.label)") {
+                            ForEach(controller.walletOptions) { wallet in
+                                Button(wallet.label) { controller.switchWallet(to: wallet) }
+                            }
+                        }
                     }
-                } else {
-                    Button("Webのwalletと連携") { controller.showsLinkSheet = true }
+
+                    if controller.dataMode == .demo {
+                        Button("Simulate pull (DEMO DATA)") {
+                            controller.simulatePull()
+                        }
+                        Button("Simulate buyback (DEMO DATA)") {
+                            controller.simulateBuybackForSelected()
+                        }
+                        .disabled(controller.selectedAssetId == nil)
+                        Button("失敗をシミュレート (demo)") {
+                            controller.simulateFailureForSelected()
+                        }
+                        .disabled(controller.selectedAssetId == nil || controller.transferState(for: controller.selectedAssetId ?? "") == .pending)
+                    }
                 }
             }
 
-            if controller.dataMode == .demo {
-                Button("Simulate pull (DEMO DATA)") {
-                    controller.simulatePull()
-                }
-                Button("Simulate buyback (DEMO DATA)") {
-                    controller.simulateBuybackForSelected()
-                }
-                .disabled(controller.selectedAssetId == nil)
-                Button("失敗をシミュレート (demo)") {
-                    controller.simulateFailureForSelected()
-                }
-                .disabled(controller.selectedAssetId == nil || controller.transferState(for: controller.selectedAssetId ?? "") == .pending)
+            if controller.linkedSession != nil {
+                Button("連携を解除", role: .destructive) { controller.unlink() }
             }
 
             Button("リセット") {
@@ -427,6 +462,8 @@ struct RoomOverlayView: View {
                     Button("Passport") { controller.presentPassportForSelected() }
                         .buttonStyle(.borderedProminent)
                     Button("来歴") { controller.pullProvenanceForSelected() }
+                        .buttonStyle(.bordered)
+                    Button(controller.isCardOnly(asset.id) ? "ケースに戻す" : "ケースから出す") { controller.toggleCardOnlyForSelected() }
                         .buttonStyle(.bordered)
                     Button("外す") { controller.removeSelected() }
                         .buttonStyle(.bordered)

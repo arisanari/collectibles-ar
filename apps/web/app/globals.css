@@ -100,6 +100,7 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .linkPanel h3 { margin:14px 0 0; font:500 11px DM Mono; text-transform:uppercase; letter-spacing:.08em; }
 .linkPanel .linkNote { margin:0; font-size:12px; line-height:1.8; color:var(--muted); }
 .linkCodeBox { display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.linkCodeBox a.primary { display:inline-block; text-decoration:none; color:inherit; }
 .linkCode { font:500 40px DM Mono; letter-spacing:.12em; }
 .linkCountdown { font:500 12px DM Mono; color:var(--muted); }
 .linkActions { display:flex; gap:10px; }
@@ -580,3 +581,7 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
   .packRevealBigFact { animation-name:packBigFactFade; }
 }
 @keyframes packBigFactFade { 0% { opacity:0; } 20.8% { opacity:1; } 83.3% { opacity:1; } 100% { opacity:0; } }
+.linkPage { max-width:520px; margin:0 auto; padding:64px 0; text-align:center; display:flex; flex-direction:column; align-items:center; gap:18px; }
+.linkPage h1 { font-size:clamp(36px,8vw,56px); line-height:.95; letter-spacing:-.06em; margin:0; font-weight:500; }
+.linkPage .primary { width:100%; display:block; box-sizing:border-box; padding:22px 20px; text-align:center; text-decoration:none; color:inherit; }
+.linkPage .primary:disabled { opacity:.5; cursor:wait; }

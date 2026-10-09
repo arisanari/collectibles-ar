@@ -194,6 +194,8 @@ WebでPhantomを接続
 - Phantomの秘密鍵はWeb、Backend、iPhoneへ保存しない。
 - wallet addressを入力しただけでは所有者向け機能を有効にしない。
 - link codeは短時間・一回限りとし、端末sessionは個別に失効できるようにする。
+- 入口はiPhone側にもある（2026-10-09）: アプリの「walletを連携」→「Phantomで連携」が、Phantomの browse deeplink でPhantom内蔵ブラウザにWebの `/link` を開く。`/link` はサインイン→code発行→`twinfold://link?code=` でアプリへ戻る（自動復帰、ボタン、8文字手入力の順に後退）。iPhoneにはPhantomのブラウザ拡張が無く、`window.phantom` を注入できるのはPhantom内蔵ブラウザだけなので、自前WebViewでは成立しない。Phantom `connect` deeplinkによる直接接続（NaCl boxの復号が必要）は提出後。
+- Demoモードから連携した場合は `MAINNET (read-only)` に切り替えて、自分のwalletの本物のカードをすぐ出す。
 
 #### B. 台の表示とPull／開封（Collector Crypt）
 

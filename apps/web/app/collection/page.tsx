@@ -193,11 +193,11 @@ export default function CollectionPage() {
         </div>
       </section>
 
-      {/* The panels below act on devnet (approvals, redeem dry run, iPhone link). The mainnet view is display only. */}
+      {/* The approval and redeem dry run panels act on devnet only; the mainnet view is display only. The iPhone link panel is shown for both devnet and mainnet (read-only) views. */}
       {/* The Twinfold buyback / redeem panels belong to the legacy fixture Assets only. A wallet that holds a card (or no legacy Asset) never sees them: buyback and shipping are Collector Crypt's. */}
       {authedWallet && !mainnet && showLegacyPanels && <PendingRequestsPanel tr={tr} />}
       {authedWallet && !mainnet && showLegacyPanels && <RedemptionPanel rd={rd} />}
-      {authedWallet && !mainnet && <DeviceLinkPanel />}
+      {authedWallet && <DeviceLinkPanel />}
 
       {status === "loading" && <p className="emptyState">{t(text.loading)}</p>}
       {status === "error" && <p className="emptyState" role="alert">{t(text.loadFailed)}</p>}

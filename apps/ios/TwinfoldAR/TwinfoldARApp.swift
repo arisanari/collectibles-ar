@@ -31,7 +31,7 @@ struct CollectionRootView: View {
     var body: some View {
         Group {
             if let mockProvider {
-                MyRoomView(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink)
+                MyRoomView(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink, webBaseURL: Self.webBaseURL)
             } else if let loadError {
                 Text("fixtureの読み込みに失敗しました: \(loadError)")
                     .multilineTextAlignment(.center)
@@ -60,5 +60,19 @@ struct CollectionRootView: View {
             return url
         }
         return URL(string: "http://localhost:3000")!
+    }
+
+    /// `TWINFOLD_WEB_URL` (Info.plist): the public https URL of the Web app
+    /// that the 「Phantomで連携」 button opens inside Phantom's in-app browser.
+    /// Empty or invalid falls back to `apiBaseURL`.
+    private static var webBaseURL: URL {
+        if let raw = Bundle.main.object(forInfoDictionaryKey: "TWINFOLD_WEB_URL") as? String,
+           case let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines),
+           !trimmed.isEmpty,
+           let url = URL(string: trimmed),
+           url.scheme != nil, url.host != nil {
+            return url
+        }
+        return apiBaseURL
     }
 }

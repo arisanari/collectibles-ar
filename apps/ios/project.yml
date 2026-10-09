@@ -35,6 +35,10 @@ targets:
       path: Generated/Info.plist
       properties:
         TWINFOLD_API_BASE_URL: "http://localhost:3000"
+        # 「Phantomで連携」ボタンが開くWebの公開URL（https。実機ではcloudflaredの
+        # クイックトンネル等）。空ならTWINFOLD_API_BASE_URLを使う。Phantomの
+        # ブラウザから開くので、httpのLAN IPでは動かないことがある。
+        TWINFOLD_WEB_URL: ""
         CFBundleDisplayName: Collectibles AR
         # twinfold://link?code=XXXXXXXX（Webの連携QRをiPhoneカメラで読む、Issue #45）
         CFBundleURLTypes:
