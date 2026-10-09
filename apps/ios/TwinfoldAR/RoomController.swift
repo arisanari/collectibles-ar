@@ -129,6 +129,9 @@ struct TransferToast: Identifiable {
 /// wallet changes.
 private struct LiveEntity {
     var anchor: AnchorEntity
+    /// ARKit anchor registered with the session (nil in the simulator fallback). ARKit corrects its pose on map
+    /// relocalization, which keeps the entity from drifting.
+    var arAnchor: ARAnchor?
     var cardEntity: Entity
     var provenanceColumn: Entity?
     var twinFootprint: (width: Float, height: Float)?
@@ -206,6 +209,11 @@ final class RoomController {
 
     private var placementCoords: [String: PlacementCoord] = [:]
     private var liveEntities: [String: LiveEntity] = [:]
+    /// Graded cards shown out of their holder ("ケースから出す": the card alone, 63 x 88 mm). Session-only, like
+    /// `placementCoords`; the default for every card is the slab in its holder.
+    private(set) var cardOnlyAssetIds: Set<String> = []
+
+    func isCardOnly(_ assetId: String) -> Bool { cardOnlyAssetIds.contains(assetId) }
 
     // MARK: Appear (Pull feed), Disappear (ownership refresh), Passport state
 
@@ -275,7 +283,11 @@ final class RoomController {
     static let linkRequiredMessage = "この操作にはWebでwallet連携が必要です"
     private static let linkedRoomLabel = "あなたのwallet"
 
-    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient) {
+    /// Public URL of the Web app, opened by the 「Phantomで連携」 button (`TWINFOLD_WEB_URL`).
+    let webBaseURL: URL
+
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient, webBaseURL: URL) {
+        self.webBaseURL = webBaseURL
         self.mockProvider = mockProvider
         self.devnetProvider = devnetProvider
         self.sessionLink = sessionLink
@@ -449,8 +461,9 @@ final class RoomController {
 
     private func activateLinkedRoom() {
         guard let linked = linkedWallet else { return }
+        // Demoから連携したら、自分のwalletの本物のカード（read-only）をすぐ出す。Devnetのときはそのまま
         if dataMode == .demo {
-            switchDataMode(to: .devnet) // selects the first room; fixed up below
+            switchDataMode(to: .mainnet) // selects the first room; fixed up below
         }
         if activeWallet.id == linked.id {
             activeWallet = linked
@@ -799,7 +812,7 @@ final class RoomController {
         guard mode != dataMode else { return }
 
         for live in liveEntities.values {
-            arView?.scene.removeAnchor(live.anchor)
+            removeLiveAnchor(live)
         }
         liveEntities.removeAll()
         placementCoords.removeAll()
@@ -908,15 +921,22 @@ final class RoomController {
         }
     }
 
+    /// Removes a live entity's RealityKit anchor and, if present, its ARKit anchor from the session.
+    private func removeLiveAnchor(_ live: LiveEntity) {
+        arView?.scene.removeAnchor(live.anchor)
+        if let arAnchor = live.arAnchor {
+            arView?.session.remove(anchor: arAnchor)
+        }
+    }
+
     /// Disappear: fades the entity out (scale untouched), then removes its anchor. The provenance column goes at once.
     private func retire(_ live: LiveEntity) {
         live.provenanceColumn?.removeFromParent()
         guard let arView else { return }
-        let anchor = live.anchor
         let entity = live.cardEntity
-        Task { [weak arView] in
+        Task { [weak self] in
             await PresenceAnimation.disappear(entity)
-            arView?.scene.removeAnchor(anchor)
+            self?.removeLiveAnchor(live)
         }
     }
 
@@ -1173,11 +1193,36 @@ final class RoomController {
         }
     }
 
+    // MARK: - Case / card only ("ケースから出す")
+
+    /// Flips the selected graded card between the slab in its holder and the card alone. If it is placed, it is
+    /// removed and materialized again at the same world transform and surface; selection is kept.
+    func toggleCardOnlyForSelected() {
+        guard let assetId = selectedAssetId,
+              let asset = ownedAssets.first(where: { $0.id == assetId }),
+              AssetRepresentationEntity.isSlab(asset) else { return }
+        if cardOnlyAssetIds.contains(assetId) {
+            cardOnlyAssetIds.remove(assetId)
+        } else {
+            cardOnlyAssetIds.insert(assetId)
+        }
+        guard let live = liveEntities[assetId], let coord = placementCoords[assetId] else { return }
+        removeLiveAnchor(live)
+        liveEntities[assetId] = nil
+        let footprintHeight = AssetRepresentationEntity.footprint(
+            for: asset, style: cardOnlyAssetIds.contains(assetId) ? .cardOnly : .holder
+        ).height
+        materialize(
+            assetId: assetId, asset: asset, transform: coord.transform, isWall: coord.isWallPlacement,
+            cardHeightOverride: coord.isWallPlacement ? footprintHeight : 0, slabSurface: coord.slabSurface
+        )
+    }
+
     // MARK: - Remove ("外す")
 
     func removeSelected() {
         guard let assetId = selectedAssetId, let live = liveEntities[assetId] else { return }
-        arView?.scene.removeAnchor(live.anchor)
+        removeLiveAnchor(live)
         liveEntities[assetId] = nil
         placementCoords[assetId] = nil
         transferStates[assetId] = nil
@@ -1668,10 +1713,11 @@ final class RoomController {
     func reset() {
         guard !transferStates.values.contains(.pending) else { return }
         for live in liveEntities.values {
-            arView?.scene.removeAnchor(live.anchor)
+            removeLiveAnchor(live)
         }
         liveEntities.removeAll()
         placementCoords.removeAll()
+        cardOnlyAssetIds.removeAll()
         transferStates.removeAll()
         transferOperationKinds.removeAll()
         selectedAssetId = nil
@@ -1718,7 +1764,7 @@ final class RoomController {
             }
         }
         if mainnetNeedsLink {
-            return "Mainnet (read-only)：Webでwallet連携すると、あなたのwalletのカードを表示します"
+            return "Mainnet (read-only)：右上の「walletを連携」から連携すると、あなたのwalletのカードが表示されます（読み取り専用）"
         }
         if selectedAssetId != nil {
             return isReadOnlyMode ? "カードをタップするとPassportが出ます" : "作品をタップすると来歴や送るが出ます"
@@ -1741,8 +1787,19 @@ final class RoomController {
         animateAppear: Bool = false
     ) {
         guard let arView else { return }
-        let anchor = AnchorEntity(world: transform)
-        let entity = AssetRepresentationEntity.makeForWallPlacement(asset: asset)
+        // Register an ARAnchor so ARKit corrects its pose on map relocalization; the simulator fallback keeps a plain world anchor.
+        var arAnchor: ARAnchor?
+        let anchor: AnchorEntity
+        if isARSupported {
+            let registered = ARAnchor(name: "twinfold.asset.\(assetId)", transform: transform)
+            arView.session.add(anchor: registered)
+            arAnchor = registered
+            anchor = AnchorEntity(anchor: registered)
+        } else {
+            anchor = AnchorEntity(world: transform)
+        }
+        let style: SlabStyle = cardOnlyAssetIds.contains(assetId) ? .cardOnly : .holder
+        let entity = AssetRepresentationEntity.makeForWallPlacement(asset: asset, style: style)
         anchor.addChild(entity)
         let isSlab = AssetRepresentationEntity.isSlab(asset)
         if isSlab { GradedSlabEntity.pose(entity, on: slabSurface) }
@@ -1757,12 +1814,14 @@ final class RoomController {
         if isTwin {
             twinFootprint = AssetRepresentationEntity.settleOnAnchor(entity: entity, anchor: anchor)
         } else if isSlab, slabSurface == .horizontal {
-            // Standing slab: the provenance column is sized against its (tilted) height, like a floor twin.
-            let size = GradedSlabDimensions.psaStandard
-            twinFootprint = (size.width, size.height * cos(GradedSlabDimensions.standingTilt))
+            // Lying flat on the surface (card or slab): as wide as the object, almost no height.
+            twinFootprint = (
+                style == .cardOnly ? GradedSlabDimensions.card.width : GradedSlabDimensions.psaStandard.width,
+                0.001
+            )
         }
 
-        liveEntities[assetId] = LiveEntity(anchor: anchor, cardEntity: entity, provenanceColumn: nil, twinFootprint: twinFootprint)
+        liveEntities[assetId] = LiveEntity(anchor: anchor, arAnchor: arAnchor, cardEntity: entity, provenanceColumn: nil, twinFootprint: twinFootprint)
         // Store the exact `transform` parameter, not a read-back of
         // `anchor.transform` — re-materializing the same asset later (a
         // wallet switch, or Appear after a transfer) always passes
@@ -1882,7 +1941,9 @@ final class RoomController {
         if let twinFootprint = live.twinFootprint {
             return twinFootprint.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
         }
-        let footprint = AssetRepresentationEntity.footprint(for: asset)
+        let footprint = AssetRepresentationEntity.footprint(
+            for: asset, style: cardOnlyAssetIds.contains(asset.id) ? .cardOnly : .holder
+        )
         return footprint.width / 2 + 0.02 + ProvenanceNodeEntity.width / 2
     }
 

@@ -28,7 +28,7 @@ struct CollectionView: View {
                 }
                 Section {
                     if needsWalletLink {
-                        Text("Webでwalletを連携すると、あなたのwalletのMainnetカードを表示します（読み取り専用）")
+                        Text("右上の「walletを連携」から連携すると、あなたのwalletのMainnetカードを表示します（読み取り専用）")
                             .foregroundStyle(.secondary)
                     } else if assets.isEmpty {
                         Text("このwalletにAssetはありません")

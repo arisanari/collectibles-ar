@@ -68,8 +68,8 @@ public enum AssetRepresentationEntity {
     /// always aims a `card` asset's holding preview at a wall. visionOS
     /// (`ImmersiveGalleryView`) and any other caller should keep calling
     /// `make(asset:)` directly, unchanged.
-    public static func makeForWallPlacement(asset: TwinfoldAsset) -> Entity {
-        if isSlab(asset) { return GradedSlabEntity.make(asset: asset) }
+    public static func makeForWallPlacement(asset: TwinfoldAsset, style: SlabStyle = .holder) -> Entity {
+        if isSlab(asset) { return GradedSlabEntity.make(asset: asset, style: style) }
         guard case .model = asset.spatialRepresentation else {
             let paper = AssetCardEntity.makePaper(asset: asset)
             applyGroundingShadow(to: paper)
@@ -85,8 +85,9 @@ public enum AssetRepresentationEntity {
     }
 
     /// Real-world footprint (width, height) in meters of what `make(asset:)` builds for `asset`.
-    public static func footprint(for asset: TwinfoldAsset) -> (width: Float, height: Float) {
+    public static func footprint(for asset: TwinfoldAsset, style: SlabStyle = .holder) -> (width: Float, height: Float) {
         if isSlab(asset) {
+            if style == .cardOnly { return (GradedSlabDimensions.card.width, GradedSlabDimensions.card.height) }
             return (GradedSlabDimensions.psaStandard.width, GradedSlabDimensions.psaStandard.height)
         }
         let size = AssetCardEntity.size(for: asset)

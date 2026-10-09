@@ -17,8 +17,8 @@ struct MyRoomView: View {
     /// so placing/cancelling can restore it instead of always reopening.
     @State private var trayOpenBeforeHolding: Bool?
 
-    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient) {
-        _controller = State(initialValue: RoomController(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink))
+    init(mockProvider: MockAssetProvider, devnetProvider: SolanaAssetProvider, sessionLink: SessionLinkClient, webBaseURL: URL) {
+        _controller = State(initialValue: RoomController(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink, webBaseURL: webBaseURL))
     }
 
     var body: some View {

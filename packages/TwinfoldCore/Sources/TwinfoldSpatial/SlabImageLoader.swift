@@ -11,7 +11,7 @@ actor SlabImageLoader {
     static let shared = SlabImageLoader()
 
     /// Longest side kept after decoding; bounds memory for large card scans.
-    private static let maxPixelSize = 1024
+    private static let maxPixelSize = 2048
     /// Refuse bodies larger than this (bytes).
     private static let maxBytes = 12 * 1024 * 1024
 

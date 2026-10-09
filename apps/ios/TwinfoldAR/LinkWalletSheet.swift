@@ -10,6 +10,7 @@ import TwinfoldCore
 /// which opens this app with the code prefilled.
 struct LinkWalletSheet: View {
     let controller: RoomController
+    @Environment(\.openURL) private var openURL
     @State private var code = ""
     @FocusState private var focused: Bool
 
@@ -43,6 +44,18 @@ struct LinkWalletSheet: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             Text("秘密鍵やシードフレーズはこのiPhoneに入りません。連携しても、walletのアドレスだけでは送る・売るはできません。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Button {
+                if let url = Self.phantomBrowseURL(web: controller.webBaseURL) { openURL(url) }
+            } label: {
+                Text("Phantomで連携")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(Self.phantomBrowseURL(web: controller.webBaseURL) == nil)
+            Text("Phantomアプリ内のブラウザでWebが開きます。サインインすると、コードが入力された状態でここに戻ります。戻らないときは画面の8文字を下に入力してください。")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -108,6 +121,24 @@ struct LinkWalletSheet: View {
         guard let pending = controller.pendingLinkCode else { return }
         code = Self.format(pending)
         controller.pendingLinkCode = nil
+    }
+
+    /// Phantom browse deeplink: opens `<web>/link` inside Phantom's in-app
+    /// browser (the only place `window.phantom` is injected on iPhone).
+    /// `ref` is the origin of `web`. Both are percent-encoded as URL components.
+    private static func phantomBrowseURL(web: URL) -> URL? {
+        guard var parts = URLComponents(url: web, resolvingAgainstBaseURL: false),
+              let scheme = parts.scheme, parts.host != nil else { return nil }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        parts.path = ""
+        parts.query = nil
+        parts.fragment = nil
+        guard let origin = parts.string else { return nil }
+        let target = origin + "/link"
+        guard scheme == "https" || scheme == "http",
+              let encodedURL = target.addingPercentEncoding(withAllowedCharacters: allowed),
+              let encodedRef = origin.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
+        return URL(string: "https://phantom.app/ul/browse/\(encodedURL)?ref=\(encodedRef)")
     }
 
     /// Accepts input with or without the dash, any case; shows XXXX-XXXX (max 8 characters).
