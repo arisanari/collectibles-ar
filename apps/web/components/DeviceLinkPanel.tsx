@@ -2,42 +2,37 @@
 
 import qrcode from "qrcode-generator";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useI18n, type Lang, type Localized } from "../lib/i18n";
+import { useI18n, type Localized } from "../lib/i18n";
 import { issueLinkCode } from "../lib/link/issueCode";
 
 const text = {
-  qrLabel: { en: "QR code for linking your iPhone", ja: "iPhone連携用QRコード" },
+  qrLabel: { en: "QR code for linking your iPhone" },
   sessionExpired: {
     en: "Your session has expired. Please sign again.",
-    ja: "セッションが切れています。もう一度署名してください",
   },
   issueFailed: {
     en: "Could not issue a code. Please wait a moment and try again.",
-    ja: "コードを発行できませんでした。時間をおいて再試行してください",
   },
   revoked: {
     en: "Unlinked. Your iPhone is now view-only.",
-    ja: "連携を解除しました。iPhoneはviewのみになります",
   },
-  revokeFailed: { en: "Could not unlink.", ja: "解除に失敗しました" },
-  title: { en: "Link your iPhone", ja: "iPhoneと連携" },
+  revokeFailed: { en: "Could not unlink." },
+  title: { en: "Link your iPhone" },
   note: {
     en: "Your private key and seed phrase never leave this browser. The code shown expires in 2 minutes and works once. Enter it under \"Link with web wallet\" in the iPhone app, or scan the QR.",
-    ja: "秘密鍵・シードフレーズはこのブラウザの外へ出ません。表示されるコードは2分で失効し、一度しか使えません。iPhoneアプリの「Webのwalletと連携」にコードを入力するか、QRを読み取ってください。",
   },
-  remaining: { en: "Time left", ja: "残り" },
+  remaining: { en: "Time left" },
   codeExpired: {
     en: "The code has expired. Please issue a new one.",
-    ja: "コードの有効期限が切れました。もう一度発行してください。",
   },
-  reissue: { en: "Issue a new code", ja: "コードを再発行" },
-  issue: { en: "Issue a link code", ja: "連携コードを発行" },
-  devicesTitle: { en: "Linked iPhones", ja: "連携中のiPhone" },
-  noDevices: { en: "No linked devices.", ja: "連携中の端末はありません" },
-  linked: { en: "Linked", ja: "連携" },
-  validUntil: { en: "valid until", ja: "有効期限" },
-  revoke: { en: "Unlink", ja: "連携を解除" },
-  openInApp: { en: "Open in the iPhone app", ja: "iPhoneアプリで開く" },
+  reissue: { en: "Issue a new code" },
+  issue: { en: "Issue a link code" },
+  devicesTitle: { en: "Linked iPhones" },
+  noDevices: { en: "No linked devices." },
+  linked: { en: "Linked" },
+  validUntil: { en: "valid until" },
+  revoke: { en: "Unlink" },
+  openInApp: { en: "Open in the iPhone app" },
 } satisfies Record<string, Localized>;
 
 type Issued = { code: string; display: string; expiresAt: number };
@@ -64,13 +59,13 @@ function QrSvg({ text: data, label }: { text: string; label: string }) {
   );
 }
 
-function formatTime(iso: string, lang: Lang) {
-  return new Date(iso).toLocaleString(lang === "ja" ? "ja-JP" : "en-US", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleString("en-US", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 /** "iPhoneと連携" panel for /collection (authenticated only). Uses /api/link/* via the session cookie. */
 export function DeviceLinkPanel() {
-  const { lang, t: tr } = useI18n();
+  const { t: tr } = useI18n();
   const [issued, setIssued] = useState<Issued | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [devices, setDevices] = useState<Device[]>([]);
@@ -165,7 +160,7 @@ export function DeviceLinkPanel() {
             {devices.map((d) => (
               <li key={d.id}>
                 <b>{d.name}</b>
-                <span>{tr(text.linked)} {formatTime(d.linkedAt, lang)} / {tr(text.validUntil)} {formatTime(d.expiresAt, lang)}</span>
+                <span>{tr(text.linked)} {formatTime(d.linkedAt)} / {tr(text.validUntil)} {formatTime(d.expiresAt)}</span>
               </li>
             ))}
           </ul>

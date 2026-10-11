@@ -77,8 +77,8 @@ export function Carousel({ header, badge, headClassName = "sectionTitle", intro,
           {badge}
           {!hasPlaceholder && (
             <div className="carouselButtons" style={scrollable ? undefined : { visibility: "hidden" }}>
-              <button type="button" className="carouselBtn" aria-label={t({ en: "Scroll left", ja: "左へスクロール" })} disabled={edges.start} onClick={() => go(-1)}>←</button>
-              <button type="button" className="carouselBtn" aria-label={t({ en: "Scroll right", ja: "右へスクロール" })} disabled={edges.end} onClick={() => go(1)}>→</button>
+              <button type="button" className="carouselBtn" aria-label={t({ en: "Scroll left" })} disabled={edges.start} onClick={() => go(-1)}>←</button>
+              <button type="button" className="carouselBtn" aria-label={t({ en: "Scroll right" })} disabled={edges.end} onClick={() => go(1)}>→</button>
             </div>
           )}
         </div>

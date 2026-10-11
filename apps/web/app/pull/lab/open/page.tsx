@@ -15,7 +15,7 @@ const WAIT_MS = 1500;
 const FACT_MAX = 60; // characters kept from each value in the query
 
 /** Facts from the query, in this order. Strings are shown as given (rarity is upper-cased only). Placeholders when nothing is given. */
-function readFacts(params: URLSearchParams, t: (x: { en: string; ja: string }) => string) {
+function readFacts(params: URLSearchParams, t: (x: { en: string }) => string) {
   const defs = [
     { key: "year", label: packUi.factYear },
     { key: "grade", label: packUi.factGrade },

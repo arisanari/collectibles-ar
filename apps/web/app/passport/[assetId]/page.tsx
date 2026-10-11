@@ -24,43 +24,36 @@ const isDemoCardId = (id: string) => id.startsWith("tf-card-DEMO-");
 const looksLikeCardId = (id: string) => id.startsWith("tf-card-");
 
 const text = {
-  loading: { en: "Loading…", ja: "読み込み中…" },
+  loading: { en: "Loading…" },
   missing: {
     en: "No Passport has been issued for this work yet (it is issued once redemption is complete).",
-    ja: "この作品のPassportはまだ発行されていません（引き取りが完了すると発行されます）",
   },
   error: {
     en: "Could not load the Passport. Please wait a moment and reload.",
-    ja: "Passportを読み込めませんでした。時間をおいて再読み込みしてください",
   },
-  backToDiscover: { en: "Back to Discover", ja: "Discoverへ戻る" },
+  backToDiscover: { en: "Back to Discover" },
   rehearsalTitle: {
     en: "A rehearsal token for the redeem dry run. Not a Reference Asset.",
-    ja: "redeem dry run用のリハーサルToken。Reference Assetではありません",
   },
-  dryRun: { en: "DRY RUN · no real shipping", ja: "DRY RUN · 実配送なし" },
+  dryRun: { en: "DRY RUN · no real shipping" },
   subtitle: {
     en: "Provenance record of a retired Asset (up to Vault exit)",
-    ja: "失効済みAssetの来歴記録（Vault退出まで）",
   },
-  notGuaranteeTitle: { en: "What this Passport does not show", ja: "このPassportが示さないこと" },
+  notGuaranteeTitle: { en: "What this Passport does not show" },
   imageCaption: {
     en: "Record image as of Vault exit. It does not show that the work is authentic.",
-    ja: "Vault退出時点の記録画像です（作品の真正性を示すものではありません）",
   },
-  retiredSuffix: { en: " (retired)", ja: "（失効済み）" },
-  onchainBurn: { en: "On-chain (burn)", ja: "On-chain（burn）" },
+  retiredSuffix: { en: " (retired)" },
+  onchainBurn: { en: "On-chain (burn)" },
   interpretationNote: {
     en: "Collectibles AR interpretation (not an appraisal)",
-    ja: "Collectibles AR interpretation（鑑定ではない）",
   },
-  signaturesTitle: { en: "Onchain signatures (devnet)", ja: "Onchain signatures（devnet）" },
-  lockLabel: { en: "Lock (out of circulation)", ja: "Lock（流通停止）" },
-  retireLabel: { en: "Retire (burn)", ja: "Retire（burn）" },
-  provenanceTitle: { en: "Provenance (up to Vault exit)", ja: "Provenance（Vault退出まで）" },
+  signaturesTitle: { en: "Onchain signatures (devnet)" },
+  lockLabel: { en: "Lock (out of circulation)" },
+  retireLabel: { en: "Retire (burn)" },
+  provenanceTitle: { en: "Provenance (up to Vault exit)" },
   provenanceNote: {
     en: "On-chain, Off-chain evidence and Collectibles AR interpretation are shown separately. The dry-run steps involve no real shipping.",
-    ja: "On-chain / Off-chain evidence / Collectibles AR interpretation を区別して表示します。dry runの手順は実配送を伴いません。",
   },
 } satisfies Record<string, Localized>;
 
@@ -94,7 +87,7 @@ async function findCard(assetId: string, wallet: string | null): Promise<{ asset
  */
 export default function PassportPage({ params }: { params: Promise<{ assetId: string }> }) {
   const { assetId } = use(params);
-  const { lang, t } = useI18n();
+  const { t } = useI18n();
   const auth = useAuth();
   const wallet = auth.status === "authenticated" ? auth.wallet : null;
   // A card that is not a DEMO fixture is read from the signed-in wallet, so wait for the session check first.
@@ -158,8 +151,7 @@ export default function PassportPage({ params }: { params: Promise<{ assetId: st
   }
 
   const p = load.passport;
-  const isJa = lang.toLowerCase().startsWith("ja");
-  const title = (isJa ? p.titleLocalized?.ja : undefined) ?? p.titleLocalized?.en ?? p.title;
+  const title = p.titleLocalized?.en ?? p.title;
 
   return (
     <main className="shell passportPage">

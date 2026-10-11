@@ -1,7 +1,7 @@
 // Server-only: runs openPack once and turns the answer into the UI payload. Used by app/api/gacha/open.
 import { getAsset, getSignatureStatuses, type HeliusSignatureStatus } from "../solana/heliusClient";
 import type { TwinfoldAsset } from "../contract";
-import { openPackToAsset, pickImageUrl } from "./normalize";
+import { httpsOnly, openPackToAsset, pickImageUrl } from "./normalize";
 import { markFailed, markOpened, recordAsset, type GachaPackRecord } from "./packStore";
 import { GachaApiError, type GachaProvider } from "./types";
 
@@ -13,6 +13,8 @@ export type OpenResultPayload =
       isDemoData: boolean;
       asset: TwinfoldAsset;
       rarity?: string;
+      /** The slab's back photo (second file of the metadata), for the opening where the card first shows its back. Read at runtime, never stored in the repo. */
+      backImageUrl?: string;
       roll?: number | string;
       transactionSignature?: string;
     };
@@ -88,13 +90,15 @@ export async function openPackForUi(provider: GachaProvider, record: GachaPackRe
   const chainConfirmed =
     Boolean(won.transactionSignature) && (provider.isDemoData || alreadyConfirmed || (await signatureIsOnChain(won.transactionSignature as string)));
   const asset = openPackToAsset({ won, memo, owner: playerAddress, fallbackImageUrl, assetInterface, chainConfirmed, now: new Date(record.openedAt ?? Date.now()) });
-  recordAsset(record, { asset, imageUrl: fallbackImageUrl, assetInterface });
+  const backImageUrl = httpsOnly(won.nftWon?.content?.files?.[1]?.cc_cdn) ?? httpsOnly(won.nftWon?.content?.files?.[1]?.uri);
+  recordAsset(record, { asset, imageUrl: fallbackImageUrl, assetInterface, rarity: won.rarity, backImageUrl });
   return {
     state: "opened",
     memo,
     isDemoData: provider.isDemoData,
     asset,
     rarity: won.rarity,
+    backImageUrl,
     roll: won.roll,
     transactionSignature: won.transactionSignature,
   };

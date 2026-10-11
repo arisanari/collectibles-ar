@@ -4,13 +4,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CardAssetCard } from "../../components/CardAssetCard";
+import { PackReveal } from "../../components/PackReveal";
 import { useAuth } from "../../components/AuthProvider";
-import { pullUi } from "../../lib/copy/pull";
+import { packUi, pullUi } from "../../lib/copy/pull";
 import { formatEv, formatOdds, formatStock } from "../../lib/gacha/format";
 import type { GachaMachine } from "../../lib/gacha/types";
 import { usePull, type PullState } from "../../lib/gacha/usePull";
 import { useI18n } from "../../lib/i18n";
 import { explorerTxUrl, shortAddress } from "../../lib/labels";
+import { backPhotoUrl, effectTier, revealFacts } from "../../lib/reveal/pullReveal";
 
 const DEFAULT_MACHINE = "pokemon_25";
 const TIERS = ["common", "uncommon", "rare", "epic"] as const;
@@ -41,8 +43,24 @@ const stageText = (state: PullState) => {
 const HINTED = ["wallet_not_signer", "invalid_transaction", "memo_not_owned", "rate_limited", "tx_expired", "signature_too_slow", "unpaid_window_closed", "network"] as const;
 
 /** A plain-language line for the error codes this app produces itself; Collector Crypt's own codes show only their message. */
-function codeHint(code: string, t: (text: { en: string; ja: string }) => string): string | null {
+function codeHint(code: string, t: (text: { en: string }) => string): string | null {
   return (HINTED as readonly string[]).includes(code) ? t(pullUi.detailsCode[code as (typeof HINTED)[number]]) : null;
+}
+
+/**
+ * Address of the page that replays the opening for this card, and the same address in the form that iOS opens in Safari
+ * (x-safari-https). Only the card's public address and its rarity are passed.
+ */
+function revealUrls(nftAddress: string, rarity: string | undefined): { https: string; safari: string } {
+  if (typeof window === "undefined") return { https: "#", safari: "#" };
+  const https = `${window.location.origin}/pull/reveal?nft=${encodeURIComponent(nftAddress)}${rarity ? `&rarity=${encodeURIComponent(rarity)}` : ""}`;
+  return { https, safari: https.replace(/^https:/, "x-safari-https:") };
+}
+
+/** Phantom's universal link that opens the current page in the Phantom app's own browser (the page address is the only thing passed). */
+function phantomBrowseUrl(): string {
+  if (typeof window === "undefined") return "#";
+  return `https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}?ref=${encodeURIComponent(window.location.origin)}`;
 }
 
 /** Pull page: machine info (Collector Crypt's values as received), Pull button, result card. */
@@ -79,6 +97,21 @@ export default function PullPage() {
 
   const pull = usePull({ demo: isDemo, wallet: authedWallet });
   const { state } = pull;
+  // The opening plays once, by itself, when a pack that was being opened here turns into a card (not for a result that was already
+  // open when the page loaded). It can be played again from the result panel.
+  const [revealOpen, setRevealOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [revealOutcome, setRevealOutcome] = useState<"none" | "kept">("none");
+  const [prevStage, setPrevStage] = useState(state.stage);
+  if (prevStage !== state.stage) {
+    setPrevStage(state.stage);
+    if (state.stage === "opened" && prevStage === "opening") {
+      setRevealOutcome("none");
+      setRevealOpen(true);
+    } else if (state.stage !== "opened") {
+      setRevealOpen(false);
+    }
+  }
   const inProgress = ["creating", "signing", "submitting"].includes(state.stage) || (state.stage === "opening" && !state.paused);
   const connecting = auth.status === "connecting" || auth.status === "awaiting_signature";
   // An expired, unpaid transaction: only a fresh Pull makes sense (its own button replaces the plain Pull button).
@@ -162,10 +195,14 @@ export default function PullPage() {
                     {isDemo ? t(pullUi.pullDemo) : t(pullUi.pull)}
                   </button>
                 )}
-                {canPull && !isDemo && !authedWallet && (
+                {canPull && !isDemo && !authedWallet && auth.status !== "no_wallet" && (
                   <button className="primary" disabled={connecting} onClick={() => void auth.connect()}>
                     {connecting ? t(pullUi.connecting) : t(pullUi.connect)}
                   </button>
+                )}
+                {/* No Phantom in this browser (for example Safari on a phone): the same page opens inside the Phantom app, where it can sign. */}
+                {canPull && !isDemo && !authedWallet && auth.status === "no_wallet" && (
+                  <a className="primary linkButton" href={phantomBrowseUrl()}>{t(pullUi.openInPhantom)}</a>
                 )}
                 {inProgress && <button className="primary" disabled>{t(pullUi.busy)}</button>}
                 {expiredUnpaid && (
@@ -181,6 +218,7 @@ export default function PullPage() {
                   <button className="secondary" onClick={startNewPull}>{t(pullUi.newPull)}</button>
                 )}
               </div>
+              {!isDemo && !authedWallet && auth.status === "no_wallet" && <p className="pullNote">{t(pullUi.noPhantomNote)}</p>}
             </>
           )}
         </section>
@@ -227,12 +265,40 @@ export default function PullPage() {
                 )
               )}
               <div className="pullActions">
+                <button className="secondary" onClick={() => { setRevealOutcome("none"); setRevealOpen(true); }}>{t(pullUi.replayOpening)}</button>
                 <Link href="/collection" className="secondary linkButton">{t(pullUi.collectionLink)}</Link>
               </div>
+              {/* The Phantom app's own browser cannot use the camera: the same opening can be played in Safari, which can. */}
+              {!isDemo && state.asset.address && (
+                <div className="pullNote">
+                  <p style={{ margin: "12px 0 6px" }}>{t(pullUi.revealElsewhereNote)}</p>
+                  <div className="pullActions">
+                    <a className="secondary linkButton" href={revealUrls(state.asset.address, state.rarity).safari}>{t(pullUi.revealInSafari)}</a>
+                    <button className="secondary" onClick={() => { const url = revealUrls(state.asset?.address ?? "", state.rarity).https; void navigator.clipboard?.writeText(url).then(() => setCopied(true), () => setCopied(false)); }}>
+                      {copied ? t(pullUi.revealCopied) : t(pullUi.revealCopy)}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </section>
       </div>
+
+      {revealOpen && state.stage === "opened" && state.asset && (
+        <PackReveal
+          tier={effectTier(state.rarity)}
+          imageUrl={state.asset.display.placeholder ? undefined : state.asset.display.imageUrl}
+          backImageUrl={state.asset.display.placeholder ? undefined : (state.backImageUrl ?? backPhotoUrl(state.asset.display.imageUrl))}
+          facts={revealFacts({ title: state.asset.title, grade: state.asset.grade, gradingCompany: state.asset.gradingCompany, rarity: state.rarity }, { year: packUi.factYear, grade: packUi.factGrade, rarity: packUi.factRarity }, t)}
+          title={state.asset.title}
+          demo={isDemo}
+          outcome={revealOutcome}
+          onKeep={() => setRevealOutcome("kept")}
+          onAgain={() => setRevealOutcome("none")}
+          onClose={() => setRevealOpen(false)}
+        />
+      )}
 
       {myOrphans.length > 0 && (
         <section className="orphanPanel" aria-label={t(pullUi.orphanTitle)}>

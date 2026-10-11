@@ -52,6 +52,9 @@ export type GachaPackRecord = {
   imageUrl?: string;
   /** DAS `interface` found with it. */
   assetInterface?: string;
+  /** Rarity and the slab's back photo as openPack reported them (Collector Crypt's values, kept for the opening shown in another browser). */
+  rarity?: string;
+  backImageUrl?: string;
   /**
    * First signature (transaction id) of each signed transaction relayed for this memo (newest last, at most 3). Lets the server ask
    * the chain whether a submit that errored actually landed. Public data.
@@ -118,6 +121,19 @@ function sweep(now: number) {
 
 export function getPack(memo: string): GachaPackRecord | undefined {
   return load().get(memo);
+}
+
+/**
+ * The newest opened, non-demo Pull whose card is `nftAddress`. Looked up by the card's public address (not by memo), for the page
+ * that only replays the opening: it gives out nothing but the card's public facts.
+ */
+export function getOpenedPackByNft(nftAddress: string): GachaPackRecord | undefined {
+  let found: GachaPackRecord | undefined;
+  load().forEach((record) => {
+    if (record.demo || record.state !== "opened" || record.nftAddress !== nftAddress || !record.asset) return;
+    if (!found || record.updatedAt > found.updatedAt) found = record;
+  });
+  return found;
 }
 
 /** The record for `memo`, only when it belongs to `wallet`. Someone else's memo and an unknown memo look the same. */
@@ -197,14 +213,16 @@ export function markOpened(record: GachaPackRecord, result: { txSignature?: stri
  */
 export function recordAsset(
   record: GachaPackRecord,
-  snapshot: { asset: TwinfoldAsset; imageUrl?: string; assetInterface?: string },
+  snapshot: { asset: TwinfoldAsset; imageUrl?: string; assetInterface?: string; rarity?: string; backImageUrl?: string },
   now = Date.now()
 ): GachaPackRecord {
-  const before = JSON.stringify([record.asset, record.imageUrl, record.assetInterface]);
+  const before = JSON.stringify([record.asset, record.imageUrl, record.assetInterface, record.rarity, record.backImageUrl]);
   record.asset = snapshot.asset;
   if (snapshot.imageUrl) record.imageUrl = snapshot.imageUrl;
   if (snapshot.assetInterface) record.assetInterface = snapshot.assetInterface;
-  if (JSON.stringify([record.asset, record.imageUrl, record.assetInterface]) !== before) {
+  if (snapshot.rarity) record.rarity = snapshot.rarity;
+  if (snapshot.backImageUrl) record.backImageUrl = snapshot.backImageUrl;
+  if (JSON.stringify([record.asset, record.imageUrl, record.assetInterface, record.rarity, record.backImageUrl]) !== before) {
     record.updatedAt = now;
     persist();
   }

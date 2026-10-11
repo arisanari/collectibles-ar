@@ -7,60 +7,53 @@ import { useI18n, type Localized } from "../lib/i18n";
 import type { TransferRequestsState } from "../lib/transferRequests/useTransferRequests";
 
 const statusLabel: Record<TransferRequestView["status"], Localized> = {
-  awaiting_approval: { en: "Awaiting approval", ja: "承認待ち" },
-  submitted: { en: "Submitted, awaiting confirmation", ja: "送信済み・確定待ち" },
-  confirmed: { en: "Confirmed", ja: "確定（confirmed）" },
-  failed: { en: "Failed", ja: "失敗" },
-  rejected: { en: "Rejected", ja: "拒否済み" },
-  expired: { en: "Expired", ja: "期限切れ" },
+  awaiting_approval: { en: "Awaiting approval" },
+  submitted: { en: "Submitted, awaiting confirmation" },
+  confirmed: { en: "Confirmed" },
+  failed: { en: "Failed" },
+  rejected: { en: "Rejected" },
+  expired: { en: "Expired" },
 };
 
 const phaseLabel: Record<"preparing" | "signing" | "submitting", Localized> = {
-  preparing: { en: "Preparing…", ja: "準備中…" },
-  signing: { en: "Sign in Phantom…", ja: "Phantomで署名してください…" },
-  submitting: { en: "Verifying and sending…", ja: "検証・送信中…" },
+  preparing: { en: "Preparing…" },
+  signing: { en: "Sign in Phantom…" },
+  submitting: { en: "Verifying and sending…" },
 };
 
 const text = {
-  title: { en: "Requests awaiting approval", ja: "承認待ちの依頼" },
+  title: { en: "Requests awaiting approval" },
   note: {
     en: "Requests arrive here when you tap \"Send\", \"Sell to Twinfold (legacy demo)\" or \"Redeem the physical item\" on iPhone, or request a redemption on the web. Nothing happens until you sign in Phantom (devnet). Twinfold's vault wallet pays the network fee.",
-    ja: "iPhoneで「送る」「Twinfold（旧デモ）に売る」「現物を引き取る」を押すか、Webで引き取りを申請すると、ここに依頼が届きます。あなたがPhantomで署名するまで、何も動きません（devnet）。送信手数料はTwinfoldのvault walletが負担します。",
   },
-  none: { en: "No requests awaiting approval.", ja: "承認待ちの依頼はありません" },
-  kindBuyback: { en: "Sell to Twinfold", ja: "Twinfoldに売る" },
-  kindRedeem: { en: "Redeem the physical item: stop the Asset (lock)", ja: "現物の引き取り：流通Assetを止める（lock）" },
-  kindSend: { en: "Send", ja: "送る" },
-  fromDevice: { en: "Request from iPhone", ja: "iPhoneからの依頼" },
+  none: { en: "No requests awaiting approval." },
+  kindBuyback: { en: "Sell to Twinfold" },
+  kindRedeem: { en: "Redeem the physical item: stop the Asset (lock)" },
+  kindSend: { en: "Send" },
+  fromDevice: { en: "Request from iPhone" },
   fullAddress: {
     en: "Destination address (full; check it character by character)",
-    ja: "送信先アドレス（全文。1文字ずつ確認してください）",
   },
   deviceWarning: {
     en: "This request was created by your linked iPhone. If you do not recognize it, reject it and unlink the device.",
-    ja: "この依頼はiPhoneの連携端末から作成されました。心当たりがなければ「拒否」し、連携を解除してください。",
   },
   redeemNote: {
     en: "When you sign, the Asset moves to Twinfold's redemption escrow and stops circulating (it disappears from your wall). You can cancel before shipping, and the Asset is returned from escrow. This is a dry run: nothing is shipped and no delivery address is recorded.",
-    ja: "署名するとAssetはTwinfoldのredemption escrowへ移り、流通が止まります（あなたの壁から消えます）。取消はescrowからの返却で、発送前なら可能です。dry runのため実配送はなく、配送先も記録しません。",
   },
-  buybackOffer: { en: "Buyback offer", ja: "買取オファー" },
+  buybackOffer: { en: "Buyback offer" },
   buybackNote: {
     en: "This is an offer, not a guarantee. On devnet no real payment is made.",
-    ja: "オファーであり、保証ではありません。devnetでは実際の支払いは発生しません。",
   },
-  explorer: { en: "View on Explorer (devnet)", ja: "Explorerで確認（devnet）" },
+  explorer: { en: "View on Explorer (devnet)" },
   confirmSend: {
     en: "Send to this destination (it is not the Twinfold Vault address)",
-    ja: "この宛先へ送る（Twinfold Vault以外のアドレスです）",
   },
-  approve: { en: "Approve (sign in Phantom)", ja: "承認（Phantomで署名）" },
-  reject: { en: "Reject", ja: "拒否" },
+  approve: { en: "Approve (sign in Phantom)" },
+  reject: { en: "Reject" },
 } satisfies Record<string, Localized>;
 
 const buybackBasis = (price: string, percent: number): Localized => ({
   en: ` (${percent}% of the list price ${price})`,
-  ja: `（販売価格 ${price} の${percent}%）`,
 });
 
 function destination(r: TransferRequestView) {

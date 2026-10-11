@@ -12,7 +12,6 @@ export function parseRehearsalId(assetId: string): { baseId: string; n: number }
   return match ? { baseId: match[1], n: Number(match[2]) } : null;
 }
 
-export const REHEARSAL_SUFFIX_JA = "（リハーサル）";
 export const REHEARSAL_SUFFIX_EN = " (rehearsal)";
 
 /** Off-chain record of a rehearsal Asset, derived from the base record. Never labeled a Reference Asset. */
@@ -24,7 +23,6 @@ export function rehearsalRecord(base: TwinfoldAsset, assetId: string): TwinfoldA
     address: `DEMO-REHEARSAL-${assetId}`,
     title: `${base.title}${REHEARSAL_SUFFIX_EN}`,
     titleLocalized: {
-      ja: localized?.ja ? `${localized.ja}${REHEARSAL_SUFFIX_JA}` : undefined,
       en: `${localized?.en ?? base.title}${REHEARSAL_SUFFIX_EN}`,
     },
     provenance: base.provenance.map((event) => ({ ...event, id: `${assetId}-${event.id}`, assetId })),

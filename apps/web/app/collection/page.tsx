@@ -25,69 +25,60 @@ const mockProvider = new MockAssetProvider();
 const solanaProvider = new SolanaAssetProvider();
 
 const authLabel: Record<AuthStatus, Localized> = {
-  disconnected: { en: "Not connected", ja: "未接続" },
-  connecting: { en: "Connecting…", ja: "接続中…" },
+  disconnected: { en: "Not connected" },
+  connecting: { en: "Connecting…" },
   awaiting_signature: {
     en: "Sign in Phantom (no fee, no transfer)",
-    ja: "Phantomで署名してください（費用なし・送金なし）",
   },
-  authenticated: { en: "Signed in", ja: "認証済み" },
-  rejected: { en: "Signature was rejected", ja: "署名が拒否されました" },
-  expired: { en: "Session expired", ja: "有効期限切れ" },
-  switched: { en: "Wallet was switched", ja: "ウォレットが切り替わりました" },
-  no_wallet: { en: "Phantom not found", ja: "Phantomが見つかりません" },
-  error: { en: "Sign-in error", ja: "認証エラー" },
+  authenticated: { en: "Signed in" },
+  rejected: { en: "Signature was rejected" },
+  expired: { en: "Session expired" },
+  switched: { en: "Wallet was switched" },
+  no_wallet: { en: "Phantom not found" },
+  error: { en: "Sign-in error" },
 };
 
 const text = {
-  eyebrow: { en: "YOUR ARCHIVE", ja: "YOUR ARCHIVE" },
-  title: { en: "My collection", ja: "My collection" },
+  eyebrow: { en: "YOUR ARCHIVE" },
+  title: { en: "My collection" },
   connectPrompt: {
     en: "Sign in with Phantom (devnet) to see the Assets your wallet owns. Signing is free and sends no funds.",
-    ja: "Phantom（devnet）で署名すると、あなたのウォレットが所有するAssetが表示されます。署名は無料で、送金は行われません。",
   },
-  status: { en: "Status:", ja: "状態:" },
-  retry: { en: "Retry sign-in", ja: "Retry sign-in" },
-  connect: { en: "Connect Phantom", ja: "Connect Phantom" },
+  status: { en: "Status:" },
+  retry: { en: "Retry sign-in" },
+  connect: { en: "Connect Phantom" },
   demoTitle: {
     en: "Fixture demo wallet (does not connect to Solana)",
-    ja: "Fixtureのデモウォレット（Solanaには接続しません）",
   },
-  demoTry: { en: "Try with DEMO DATA", ja: "DEMO DATAで試す" },
+  demoTry: { en: "Try with DEMO DATA" },
   demoNote: {
     en: "Showing the fixture demo wallet (not connected to Solana).",
-    ja: "fixtureのデモウォレット（Solanaには接続していません）の表示です。",
   },
-  demoOff: { en: "Leave DEMO DATA", ja: "DEMO DATAをやめる" },
-  demoAsset: { en: "DEMO DATA Asset", ja: "DEMO DATA Asset" },
-  devnetAsset: { en: "devnet Asset", ja: "devnet Asset" },
-  loading: { en: "Loading…", ja: "読み込み中…" },
+  demoOff: { en: "Leave DEMO DATA" },
+  demoAsset: { en: "DEMO DATA Asset" },
+  devnetAsset: { en: "devnet Asset" },
+  loading: { en: "Loading…" },
   loadFailed: {
     en: "Could not load the Assets you own. Please wait a moment and reload.",
-    ja: "所有Assetの取得に失敗しました。時間をおいて再読み込みしてください。",
   },
   empty: {
     en: "This wallet owns no devnet Assets.",
-    ja: "このウォレットが所有するdevnet Assetはありません",
   },
-  pullAPack: { en: "Pull a pack", ja: "パックを引く" },
+  pullAPack: { en: "Pull a pack" },
   sellTitle: {
     en: "Creates a request and asks Phantom to sign it (devnet, no payment)",
-    ja: "依頼を作成し、そのままPhantomで署名します（devnet・支払いなし）",
   },
-  networkLabel: { en: "Network:", ja: "ネットワーク:" },
-  networkDevnet: { en: "Devnet", ja: "Devnet" },
-  networkMainnet: { en: "Mainnet (read-only)", ja: "Mainnet（読み取り専用）" },
+  networkLabel: { en: "Network:" },
+  networkDevnet: { en: "Devnet" },
+  networkMainnet: { en: "Mainnet (read-only)" },
   mainnetNote: {
     en: "Display only. Pull, buyback and transfer are not done in this app.",
-    ja: "表示だけ。Pull・買取・送金はこのアプリでは行わない",
   },
-  mainnetAsset: { en: "mainnet card", ja: "mainnetのカード" },
+  mainnetAsset: { en: "mainnet card" },
   mainnetEmpty: {
     en: "No Collector Crypt cards found in this wallet on mainnet.",
-    ja: "このウォレットにはmainnetのCollector Cryptカードが見つかりません。",
   },
-  sell: { en: "Sell to Twinfold (legacy demo; approve in Phantom)", ja: "Twinfold（旧デモ）に売る（Phantomで承認）" },
+  sell: { en: "Sell to Twinfold (legacy demo; approve in Phantom)" },
 } satisfies Record<string, Localized>;
 
 type Result = { key: string; assets: TwinfoldAsset[]; failed: boolean; fetchedAt: string };

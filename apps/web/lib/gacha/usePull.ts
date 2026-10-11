@@ -49,6 +49,8 @@ export type PullState = {
   packType?: string;
   asset?: TwinfoldAsset;
   rarity?: string;
+  /** The slab's back photo, when the Pull result carried one (used by the opening only). */
+  backImageUrl?: string;
   transactionSignature?: string;
   error?: PullErrorKind;
   errorDetail?: string;
@@ -99,6 +101,7 @@ type StoredPull = {
   createdAt: string;
   asset?: TwinfoldAsset;
   rarity?: string;
+  backImageUrl?: string;
   transactionSignature?: string;
 };
 
@@ -202,6 +205,8 @@ export function usePull({ demo, wallet }: { demo: boolean; wallet: string | null
   const player = demo ? DEMO_PLAYER : wallet;
 
   const fail = useCallback((error: PullErrorKind, patch: Partial<PullState> = {}, detail?: string) => {
+    // Shown on the page under "Details" too; logged so a failure on a phone can be read from the dev server's log. No keys or signatures here.
+    console.warn("pull failed", JSON.stringify({ error, detail, lastError: patch.lastError, unpaid: patch.unpaid }));
     setState((s) => ({ ...s, stage: "failed", error, errorDetail: detail, paused: false, busyRetry: false, ...patch }));
   }, []);
 
@@ -221,9 +226,10 @@ export function usePull({ demo, wallet }: { demo: boolean; wallet: string | null
           const asset = res.data.asset as TwinfoldAsset;
           if (pullEventPending(asset)) continue;
           const rarity = typeof res.data.rarity === "string" ? res.data.rarity : undefined;
+          const backImageUrl = typeof res.data.backImageUrl === "string" ? res.data.backImageUrl : undefined;
           const transactionSignature = typeof res.data.transactionSignature === "string" ? res.data.transactionSignature : undefined;
-          writeStored(storeKey, { v: 1, memo, packType, playerAddress, stage: "opened", createdAt: new Date().toISOString(), asset, rarity, transactionSignature });
-          setState((s) => ({ ...s, asset, rarity: rarity ?? s.rarity, transactionSignature: transactionSignature ?? s.transactionSignature }));
+          writeStored(storeKey, { v: 1, memo, packType, playerAddress, stage: "opened", createdAt: new Date().toISOString(), asset, rarity, backImageUrl, transactionSignature });
+          setState((s) => ({ ...s, asset, rarity: rarity ?? s.rarity, backImageUrl: backImageUrl ?? s.backImageUrl, transactionSignature: transactionSignature ?? s.transactionSignature }));
           return;
         }
       }
@@ -244,9 +250,10 @@ export function usePull({ demo, wallet }: { demo: boolean; wallet: string | null
         if (res.ok && res.data.state === "opened") {
           const asset = res.data.asset as TwinfoldAsset;
           const rarity = typeof res.data.rarity === "string" ? res.data.rarity : undefined;
+          const backImageUrl = typeof res.data.backImageUrl === "string" ? res.data.backImageUrl : undefined;
           const transactionSignature = typeof res.data.transactionSignature === "string" ? res.data.transactionSignature : undefined;
-          writeStored(storeKey, { v: 1, memo, packType, playerAddress, stage: "opened", createdAt: new Date().toISOString(), asset, rarity, transactionSignature });
-          setState((s) => ({ ...s, stage: "opened", memo, asset, rarity, transactionSignature, paused: false, busyRetry: false, error: undefined, resumable: false }));
+          writeStored(storeKey, { v: 1, memo, packType, playerAddress, stage: "opened", createdAt: new Date().toISOString(), asset, rarity, backImageUrl, transactionSignature });
+          setState((s) => ({ ...s, stage: "opened", memo, asset, rarity, backImageUrl, transactionSignature, paused: false, busyRetry: false, error: undefined, resumable: false }));
           if (pullEventPending(asset)) void recheckConfirmation(memo, packType, playerAddress, myRun, storeKey);
           return;
         }
@@ -340,7 +347,7 @@ export function usePull({ demo, wallet }: { demo: boolean; wallet: string | null
         return;
       }
       if (stored.stage === "opened" && stored.asset) {
-        setState({ ...IDLE, stage: "opened", memo: stored.memo, packType: stored.packType, asset: stored.asset, rarity: stored.rarity, transactionSignature: stored.transactionSignature });
+        setState({ ...IDLE, stage: "opened", memo: stored.memo, packType: stored.packType, asset: stored.asset, rarity: stored.rarity, backImageUrl: stored.backImageUrl, transactionSignature: stored.transactionSignature });
         if (pullEventPending(stored.asset)) void recheckConfirmation(stored.memo, stored.packType, stored.playerAddress, myRun, key);
         return;
       }

@@ -33,6 +33,7 @@ export function gachaErrorResponse(error: unknown): NextResponse {
     const kind =
       error.status === 429 ? "busy_pending" : error.status === 503 ? "busy_opening" : /off balance/i.test(text) ? "machine_off_balance" : "upstream_error";
     const status = error.status === 429 || error.status === 503 ? error.status : 502;
+    console.warn("gacha upstream refused", kind, error.status, error.message, error.details ?? "");
     return NextResponse.json({ error: kind, message: error.message, ...(error.details ? { details: error.details } : {}) }, { status });
   }
   console.error("gacha route failed", error instanceof Error ? error.message : "unknown error");

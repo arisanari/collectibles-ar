@@ -143,7 +143,7 @@ export class SolanaAssetProvider implements AssetProvider {
     });
     const json = (await response.json().catch(() => ({}))) as Partial<AcquisitionView> & { error?: string; message?: string; reasons?: string[] };
     if ("requestId" in json && json.requestId) return { ok: response.ok, status: response.status, view: json as AcquisitionView };
-    return { ok: false, status: response.status, message: json.message ?? json.reasons?.join("／") ?? json.error ?? `HTTP ${response.status}` };
+    return { ok: false, status: response.status, message: json.message ?? json.reasons?.join(", ") ?? json.error ?? `HTTP ${response.status}` };
   }
 
   /** GET /api/acquisitions/{requestId} — polls an acquisition started above. */

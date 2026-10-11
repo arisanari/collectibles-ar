@@ -4,23 +4,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LanguageSelect, useI18n, type Localized } from "../lib/i18n";
+import { useI18n, type Localized } from "../lib/i18n";
 import { shortAddress } from "../lib/labels";
 import { useAuth } from "./AuthProvider";
 
 const copy = {
-  home: { en: "Collectibles AR home", ja: "Collectibles AR ホーム" },
-  mainNav: { en: "Main navigation", ja: "メインナビゲーション" },
-  pull: { en: "Pull", ja: "Pull" },
-  collection: { en: "Collection", ja: "コレクション" },
-  myCollection: { en: "My collection", ja: "マイコレクション" },
-  signOut: { en: "Sign out", ja: "サインアウト" },
-  install: { en: "Install Phantom", ja: "Phantomをインストール" },
-  connecting: { en: "Connecting…", ja: "接続中…" },
-  signing: { en: "Sign in Phantom…", ja: "Phantomで署名…" },
-  retry: { en: "Retry", ja: "再試行" },
-  connect: { en: "Connect Phantom", ja: "Phantomに接続" },
-  tagline: { en: "Pull a pack. It appears in your room.", ja: "パックを引く。部屋に出る。" },
+  home: { en: "Collectibles AR home" },
+  mainNav: { en: "Main navigation" },
+  pull: { en: "Pull" },
+  collection: { en: "Collection" },
+  myCollection: { en: "My collection" },
+  signOut: { en: "Sign out" },
+  install: { en: "Install Phantom" },
+  connecting: { en: "Connecting…" },
+  signing: { en: "Sign in Phantom…" },
+  retry: { en: "Retry" },
+  connect: { en: "Connect Phantom" },
+  tagline: { en: "Pull a pack. It appears in your room." },
 } satisfies Record<string, Localized>;
 
 export function SiteHeader() {
@@ -58,7 +58,6 @@ export function SiteHeader() {
         <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
       </nav>
       <div className="navRight">
-        <LanguageSelect />
         <div className="walletMenuWrap">
           {authedWallet ? (
             <>

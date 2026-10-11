@@ -6,37 +6,31 @@ import { useI18n, type Localized } from "../../lib/i18n";
 import { issueLinkCode } from "../../lib/link/issueCode";
 
 const text = {
-  title: { en: "Link your iPhone", ja: "iPhoneと連携" },
+  title: { en: "Link your iPhone" },
   lead: {
     en: "Sign in with Phantom, then return to Collectibles AR. Your key never leaves this browser.",
-    ja: "Phantomでサインインすると、Collectibles ARへ戻れます。秘密鍵はこのブラウザの外へ出ません。",
   },
-  signIn: { en: "Sign in with Phantom", ja: "Phantomでサインイン" },
-  retry: { en: "Try again", ja: "やり直す" },
-  connecting: { en: "Connecting…", ja: "接続中…" },
-  signing: { en: "Sign in Phantom…", ja: "Phantomで署名…" },
+  signIn: { en: "Sign in with Phantom" },
+  retry: { en: "Try again" },
+  connecting: { en: "Connecting…" },
+  signing: { en: "Sign in Phantom…" },
   noWallet: {
     en: "Open this page inside the Phantom app's browser.",
-    ja: "このページはPhantomアプリ内のブラウザで開いてください。",
   },
-  returnToApp: { en: "Return to Collectibles AR", ja: "Collectibles ARに戻る" },
+  returnToApp: { en: "Return to Collectibles AR" },
   fallback: {
     en: "If the app doesn't open, type this code in the app.",
-    ja: "アプリが開かないときは、この8文字をアプリに入力してください。",
   },
-  remaining: { en: "Time left", ja: "残り" },
+  remaining: { en: "Time left" },
   codeExpired: {
     en: "The code has expired. Please issue a new one.",
-    ja: "コードの有効期限が切れました。もう一度発行してください。",
   },
-  reissue: { en: "Issue a new code", ja: "コードを再発行" },
+  reissue: { en: "Issue a new code" },
   sessionExpired: {
     en: "Session expired. Sign in again.",
-    ja: "セッションが切れました。もう一度サインインしてください。",
   },
   issueFailed: {
     en: "Could not issue a code. Please wait a moment and try again.",
-    ja: "コードを発行できませんでした。時間をおいて再試行してください",
   },
 } satisfies Record<string, Localized>;
 

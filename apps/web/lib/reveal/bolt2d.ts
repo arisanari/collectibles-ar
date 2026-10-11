@@ -1,10 +1,10 @@
 export type Rand = () => number;
 export type Pt = [number, number];
 
-/** Midpoint displacement: a jagged polyline from (x1, y1) to (x2, y2). */
-export function bolt2d(rand: Rand, x1: number, y1: number, x2: number, y2: number, depth: number): Pt[] {
+/** Midpoint displacement: a polyline from (x1, y1) to (x2, y2). `jag` is the starting offset as a share of the length (0.2 = jagged, near 0 = almost straight). */
+export function bolt2d(rand: Rand, x1: number, y1: number, x2: number, y2: number, depth: number, jag = 0.2): Pt[] {
   let pts: Pt[] = [[x1, y1], [x2, y2]];
-  let d = Math.hypot(x2 - x1, y2 - y1) * 0.2;
+  let d = Math.hypot(x2 - x1, y2 - y1) * jag;
   for (let i = 0; i < depth; i++) {
     const next: Pt[] = [pts[0]];
     for (let k = 0; k < pts.length - 1; k++) {
@@ -23,8 +23,8 @@ export function bolt2d(rand: Rand, x1: number, y1: number, x2: number, y2: numbe
 export type BoltShape = { main: Pt[]; branches: Pt[][] };
 
 /** A bolt with side branches (kept as points so a caller can redraw the same shape, or rebuild it to make it flicker). */
-export function makeBolt(rand: Rand, from: Pt, to: Pt, branches: number): BoltShape {
-  const main = bolt2d(rand, from[0], from[1], to[0], to[1], 7);
+export function makeBolt(rand: Rand, from: Pt, to: Pt, branches: number, jag = 0.2): BoltShape {
+  const main = bolt2d(rand, from[0], from[1], to[0], to[1], 7, jag);
   const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
   const base = Math.atan2(to[1] - from[1], to[0] - from[0]);
   const out: Pt[][] = [];
@@ -32,7 +32,7 @@ export function makeBolt(rand: Rand, from: Pt, to: Pt, branches: number): BoltSh
     const [sx, sy] = main[Math.floor(main.length * (0.15 + rand() * 0.6))];
     const ang = base + (rand() < 0.5 ? -1 : 1) * (0.35 + rand() * 0.6);
     const l = len * (0.15 + rand() * 0.2);
-    out.push(bolt2d(rand, sx, sy, sx + Math.cos(ang) * l, sy + Math.sin(ang) * l, 5));
+    out.push(bolt2d(rand, sx, sy, sx + Math.cos(ang) * l, sy + Math.sin(ang) * l, 5, jag));
   }
   return { main, branches: out };
 }

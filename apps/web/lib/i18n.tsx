@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
-/** Supported UI languages. To add one: add an entry here, then TypeScript flags every `Localized` missing it. */
+/** Supported UI languages. English only (decided 2026-10-10). To add one: add an entry here, then TypeScript flags every `Localized` missing it. */
 export const LANGUAGES = [
   { code: "en", label: "English" },
-  { code: "ja", label: "日本語" },
 ] as const;
 
 export type Lang = (typeof LANGUAGES)[number]["code"];
@@ -65,26 +64,4 @@ export function useI18n() {
   const lang = useSyncExternalStore(subscribe, readStored, () => DEFAULT_LANG);
   const t = useCallback((text: Localized) => text[lang], [lang]);
   return { lang, setLang: writeLang, t };
-}
-
-/** Header language picker. A <select> so more languages can be added without a layout change. */
-export function LanguageSelect() {
-  const { lang, setLang } = useI18n();
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-  return (
-    <select
-      className="langSelect"
-      aria-label="Language"
-      value={lang}
-      onChange={(event) => {
-        if (isLang(event.target.value)) setLang(event.target.value);
-      }}
-    >
-      {LANGUAGES.map((entry) => (
-        <option key={entry.code} value={entry.code}>{entry.label}</option>
-      ))}
-    </select>
-  );
 }

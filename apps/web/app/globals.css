@@ -449,84 +449,66 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .holoLayer { position:absolute; inset:0; box-sizing:border-box; border:var(--layer-bw, 3px) solid var(--layer-c, rgba(205,212,220,.55)); border-radius:4.5% / 2.7%; pointer-events:none;
   transform:translateZ(calc(var(--lz) * var(--depth))); opacity:calc(.7 + var(--graze) * .3); }
 
-/* Collectibles AR: /pull/lab/open pack-and-lightning opening (DOM + one FX canvas) */
-.packReveal { --pop:0; --pkw:min(80vw, 420px); --pkh:calc(var(--pkw) / .564); --cut:0; --cw:min(62vw, 320px); --tc:226,232,245; --fy:0px; --jx:0px; --jy:0px; --aura:0; --aura-s:.9; --sheen:50%; --rise-y:0px; --rise-s:1; --rise-o:1; --pack-dy:0px; --pack-o:1;
-  position:fixed; inset:0; z-index:100; overflow:hidden; background:radial-gradient(ellipse at 50% 35%, #2a2540, #07080f 70%); touch-action:none; user-select:none; -webkit-user-select:none; }
+/* Collectibles AR: /pull/lab/open capsule opening (DOM + one FX canvas). The render loop in PackReveal.tsx writes --tc, --ball-*, --lid*, --seam, --shade, --aura* and --rise-*. */
+.packReveal { --ball:min(34vw, 160px); --ball-floor:74%; --ball-x:120vw; --ball-y:0px; --ball-s:1; --ball-sq:1; --shadow-dy:0px; --shadow-k:1; --mark-x:0; --mark-w:1; --ball-dy:0px; --ball-rot:0deg; --ball-o:1; --lid:0; --lid-o:1; --seam:0; --shade:1; --cw:min(62vw, 320px); --tc:226,232,245; --aura:0; --aura-s:.9; --rise-y:0px; --rise-s:1; --rise-o:1;
+  position:fixed; inset:0; z-index:100; overflow:hidden; background:radial-gradient(ellipse at 50% 35%, #3b3d41, #0e0f11 70%); touch-action:none; user-select:none; -webkit-user-select:none; }
 .packRevealWorld, .packRevealStage { position:absolute; inset:0; }
 .packRevealWorld { z-index:1; }
-.packRevealVideo { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); object-fit:cover; } /* 64px beyond every edge (OV in PackReveal.tsx) so shaking never uncovers an edge */
-.packRevealFx { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); pointer-events:none; z-index:2; } /* above the pack and the card: lightning is drawn in front of everything in the world */
+.packRevealVideo { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); object-fit:cover; } /* 64px beyond every edge (OV in PackReveal.tsx) */
+.packRevealFx { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); pointer-events:none; z-index:2; } /* above the capsule and the card: the light is drawn in front of everything in the world */
+/* the lens flare: black where there is no light, so it is blended over the camera image as light (screen) */
+.packRevealFlare { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; opacity:0; mix-blend-mode:screen; }
 .packRevealWhite { position:absolute; left:-64px; top:-64px; right:-64px; bottom:-64px; background:#fff; opacity:0; pointer-events:none; z-index:3; }
-.packReveal .cameraRevealTop, .packReveal .cameraRevealBar, .packRevealHint, .packRevealTitle, .packReveal .holoCardHint { z-index:6; }
+.packReveal .cameraRevealTop, .packReveal .cameraRevealBar, .packRevealHint, .packReveal .holoCardHint { z-index:6; }
 /* In the opening the bottom holds the keep / sell-back buttons, so the turn hint sits under the top bar. */
 .packReveal .holoCardHint { bottom:auto; top:calc(max(14px, env(safe-area-inset-top)) + 58px); }
 
-/* Pack (own artwork): a pouch with zigzag seals, a geometric mark and a slow sheen. Size: --pkw, aspect .62 (see PACK in PackReveal.tsx). */
-.packRevealAura { position:absolute; left:50%; top:calc(var(--pack-top, 79%) + 6px); width:calc(var(--pkw) * 2.6); aspect-ratio:1; transform:translate(-50%, -50%) scale(var(--aura-s)); opacity:var(--aura); pointer-events:none;
+/* Capsule (original design, CSS only): lid in the brand acid colour, pearl-white lower half, a silver seam that leaks light. Diameter --ball, centre height --ball-floor.
+   Two layers share the same variables: .capsuleBack (shadow only) sits behind the card and .capsuleFront (lower half, seam light, shading) in front of it. */
+.packRevealAura { position:absolute; left:50%; top:var(--ball-floor); width:calc(var(--ball) * 2.4); aspect-ratio:1; transform:translate(-50%, -50%) scale(var(--aura-s)); opacity:var(--aura); pointer-events:none;
   background:radial-gradient(circle, rgba(var(--tc), .75) 0%, rgba(var(--tc), .3) 30%, rgba(var(--tc), 0) 62%); }
-.packRevealPack { position:absolute; left:50%; top:var(--pack-top, 79%); width:var(--pkw); aspect-ratio:.564; transform-origin:50% 0; transform:translate(-50%, 0) translate(var(--jx), calc(var(--fy) + var(--jy))) scale(calc((1 + var(--pop, 0) * .14) * var(--pack-sc, 1))); opacity:var(--pack-o, 1); filter:brightness(var(--pack-br, 1)); }
-.packReveal[data-phase="waiting"] .packRevealPack { filter:brightness(.55); }
+.capsule { position:absolute; left:0; top:calc(var(--ball-floor) - var(--ball) / 2); width:var(--ball); height:var(--ball); transform-origin:50% 100%; transform:translate(calc(var(--ball-x) - var(--ball) / 2), var(--ball-y)) scale(calc(var(--ball-s) * (2 - var(--ball-sq))), calc(var(--ball-s) * var(--ball-sq))); opacity:var(--ball-o); pointer-events:none; } /* scaled from its bottom: the point that touches the floor */
+.capsuleShadow { position:absolute; left:5%; top:90%; width:90%; height:14%; transform:translateY(var(--shadow-dy)) scale(var(--shadow-k)); opacity:var(--shadow-k); background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.35), rgba(0,0,0,0) 70%); }
+.capsuleBody { position:absolute; inset:0; transform:translateY(var(--ball-dy)) rotate(var(--ball-rot)); }
+/* Seen a little from above: the lower half is the whole disc, the lid is the part of the disc above a curved seam (a wide ellipse cut by the
+   disc). The lid tips back from the clasp: it flattens toward its hinge at the back. */
+.capsuleBase { position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%, rgba(var(--tc), .28), rgba(var(--tc), 0) 60%), linear-gradient(180deg, #fbfbfc, #e4e7ec 70%, #c6cbd5);
+  box-shadow:inset calc(var(--ball) * -.12) calc(var(--ball) * -.1) calc(var(--ball) * .2) rgba(20,26,40,.36); }
+.capsuleLid { position:absolute; inset:0; border-radius:50%; overflow:hidden; transform-origin:50% 42%; opacity:var(--lid-o);
+  transform:translateY(calc(var(--lid) * var(--ball) * -.14)) scaleY(calc(1 - var(--lid) * .74)); }
+.capsuleLid::before { content:""; position:absolute; left:-40%; top:-37%; width:180%; height:95%; box-sizing:border-box; border-radius:50%;
+  background:radial-gradient(ellipse at 42% 62%, rgba(255,255,255,.7), rgba(255,255,255,0) 22%), linear-gradient(165deg, #efff9a 30%, var(--acid) 62%, #a9cc24);
+  box-shadow:inset calc(var(--ball) * -.14) calc(var(--ball) * -.06) calc(var(--ball) * .22) rgba(40,50,0,.38); border-bottom:2px solid rgba(214,218,226,.95); }
+.capsuleGlow { position:absolute; left:-4%; top:45%; width:108%; height:22%; border-radius:50%; opacity:var(--seam);
+  background:radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.95) 0%, rgba(var(--tc), .75) 30%, rgba(var(--tc), 0) 70%); }
+/* the clasp on the seam (an original mark: a small silver bar, not a round button); the render loop slides it round the capsule while it rolls */
+.capsuleMark { position:absolute; left:50%; top:calc(50% + 8% * var(--mark-w)); width:22%; height:9%; border-radius:999px; transform:translate(-50%, -50%) translateX(calc(var(--mark-x) * var(--ball) * .42)) scaleX(var(--mark-w));
+  background:linear-gradient(180deg, #ffffff, #c9ced8 55%, #8f97a6); box-shadow:0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.7); }
+/* the shading of the sphere does not turn with the capsule: a highlight up left and a deep inner shadow down right */
+.capsuleShade { position:absolute; inset:0; border-radius:50%; transform:translateY(var(--ball-dy)); opacity:var(--shade);
+  background:radial-gradient(circle at 30% 24%, rgba(255,255,255,.6), rgba(255,255,255,0) 30%);
+  box-shadow:inset calc(var(--ball) * -.14) calc(var(--ball) * -.08) calc(var(--ball) * .26) rgba(0,0,0,.45); }
 
-/* Card glow: a halo behind, and a neon outline that follows the card's rounded shape (no blur filter). */
 /* --sold / --sold-s are written on .packReveal by the render loop; do not redeclare them here or the card never fades. */
 .packRevealCardSlot { position:absolute; left:50%; top:42%; transform:translate(-50%, -50%) translateY(var(--rise-y, 0px)) scale(calc(var(--rise-s, 1) * (1 - var(--sold-s, 0) * .15))); opacity:calc((1 - var(--sold, 0)) * var(--rise-o, 1)); }
 .packReveal .packRevealCardSlot .holoCard { --w:var(--cw); }
 
 .packRevealHint { position:absolute; left:0; right:0; bottom:calc(max(18px, env(safe-area-inset-bottom)) + 24px); margin:0; text-align:center; font:600 14px system-ui, sans-serif; color:#fff; text-shadow:0 1px 5px #000; pointer-events:none; }
-.packRevealHint p { margin:0 0 10px; }
+.packRevealHintWait { bottom:auto; top:calc(var(--ball-floor) - 24vw); font:500 11px "DM Mono", monospace; letter-spacing:.2em; text-transform:uppercase; }
 .packRevealClose { pointer-events:auto; }
 .holoCard[data-interactive="false"] { pointer-events:none; }
 
-
-/* hit-stop: the CSS animations stop together with the canvas */
-.packReveal[data-hitstop] * { animation-play-state:paused !important; }
-
-/* big lettering: TAP!, x2 / x3, the rarity label (gradient fill, dark outline, glowing shadow layer; no filter) */
-.metalWrap { position:relative; isolation:isolate; font:900 var(--mt-size, calc(var(--pkw) * var(--mt-k, .2)))/1 Impact, "Arial Black", "Helvetica Neue", system-ui, sans-serif; letter-spacing:.02em; white-space:nowrap; pointer-events:none; }
-.metalWrap::before { content:attr(data-text); position:absolute; inset:0; z-index:-1; color:#0a0618; -webkit-text-stroke:14px #0a0618; text-shadow:0 8px 0 #000, 0 0 22px rgba(var(--tc), .95), 0 0 50px rgba(var(--tc), .6); }
-.metalFill { position:relative; display:block; color:transparent; -webkit-text-stroke:2px rgba(10,6,24,.85);
-  background:linear-gradient(180deg, #fff 0%, rgb(var(--tc)) 38%, #1c1a2e 50%, rgb(var(--tc)) 60%, #fff 100%); -webkit-background-clip:text; background-clip:text; }
-.tapText { animation:packSlam .25s ease-out both, packBeat .8s ease-in-out .25s infinite; }
-@keyframes packSlam { 0% { transform:scale(2.2); opacity:0; } 35% { transform:scale(.88); opacity:1; } 65% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
-@keyframes packBeat { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.05); } }
-@keyframes packFade { from { opacity:0; } to { opacity:1; } }
-
-/* reduced motion: no slamming or punching; lettering fades in */
-@media (prefers-reduced-motion: reduce) {
-  .tapText, .comboText { animation:packFade .4s both; }
-}
-
-/* ---- Room layout: the camera image, the room's light (soft-light canvas) and the world (offset from the phone's direction) ---- */
+/* ---- Room layout: the camera image, the room's light (soft-light canvas) and the world ---- */
 .packRevealCam { position:absolute; inset:0; isolation:isolate; }
 .packRevealLight { position:absolute; left:-64px; top:-64px; width:calc(100% + 128px); height:calc(100% + 128px); pointer-events:none; mix-blend-mode:soft-light; }
-.packRevealWorld { position:absolute; inset:0; pointer-events:none; will-change:transform; }
 .packRevealWorld .holoCard[data-interactive="true"] { pointer-events:auto; }
-.packRevealArrow { position:absolute; left:0; top:0; z-index:6; width:0; height:0; margin:-12px 0 0 -11px; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:22px solid rgba(var(--tc), .95); opacity:0; pointer-events:none; }
-
-/* the mark on the pack is dimmed while TAP! is written over it */
-.packReveal[data-phase="armed"] .packRevealMark, .packReveal[data-phase="struck1"] .packRevealMark, .packReveal[data-phase="struck2"] .packRevealMark { opacity:.2; }
-.packRevealHintWait { bottom:auto; top:calc(var(--pack-top, 79%) - 34px); font-size:13px; }
-
-/* Open pack: a back wall behind the card and the front face in front of it (the card comes up between them). */
-
-/* ---- Foil pack from a picture (/lab/pack-foil.webp), cut into three parts with clip-path: the top band, the front face and a dark back wall ---- */
-.packPart { position:absolute; inset:0; background:var(--pack-img) center / 100% 100% no-repeat; pointer-events:none; }
-.packPartFront { }
-/* the stage colour as a faint sheen on the silver, kept inside the pack's shape by using the picture as a mask (normal blending) */
-.packPartGloss { background:linear-gradient(115deg, transparent 18%, rgba(var(--tc), .5) 42%, transparent 66%); background-size:260% 100%; background-position:var(--sheen) 0;
-  -webkit-mask-image:var(--pack-img); mask-image:var(--pack-img); -webkit-mask-size:100% 100%; mask-size:100% 100%; opacity:.55; }
-.packReveal[data-packimg="fallback"] .packPartFront, .packReveal[data-packimg="fallback"] .packPartBand, .packReveal[data-packimg="fallback"] .packPartBack { background:linear-gradient(160deg, #d3d8df, #8d94a0 50%, #cfd3da); border-radius:3%; }
-.packReveal[data-packimg="fallback"] .packPartGloss { -webkit-mask-image:none; mask-image:none; border-radius:3%; }
-
-/* slide-to-open guide on the cut line: a light running to the right, and arrows lighting in turn */
-/* where a finger can start: a strip along the cut line with room above and below (64px each) */
-/* readable over a bright room: a dark band at the bottom for the buttons and notes */
 
 /* ---- Facts under the face-down card: they come up one by one (delays are set inline), then fade away when the sheet takes over ---- */
 /* the edge of the card, once, when the emphasised row comes in */
 /* the face-down card sways very slowly while the facts appear */
-.packReveal[data-phase="facts"] .packRevealCardSlot { animation:factSway 4.5s ease-in-out infinite; }
-@keyframes factSway { 0%, 100% { rotate:-1.2deg; } 50% { rotate:1.2deg; } }
+.packReveal[data-phase="facts"] .packRevealCardSlot { animation:factSway 7s ease-in-out infinite; }
+@keyframes factSway { 0%, 100% { rotate:-.5deg; } 50% { rotate:.5deg; } }
 @media (prefers-reduced-motion: reduce) {
   .packReveal[data-phase="facts"] .packRevealCardSlot { animation:none; }
 }
@@ -535,30 +517,34 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 .packRevealTopBtns { display:flex; gap:8px; }
 .packRevealTopBtns .cameraRevealClose { pointer-events:auto; display:grid; place-items:center; padding:0; }
 .packRevealScrim { position:absolute; inset:0; pointer-events:auto; }
-.packRevealShade { position:absolute; left:0; right:0; bottom:0; height:38%; z-index:5; pointer-events:none; background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); opacity:0; transition:opacity var(--ui-ms, 280ms); }
+.packRevealShade { position:absolute; left:0; right:0; bottom:0; height:38%; z-index:5; pointer-events:none; background:linear-gradient(to top, rgba(0,0,0,.25), rgba(0,0,0,0)); opacity:0; transition:opacity var(--ui-ms, 280ms); }
 .packReveal[data-ui="open"] .packRevealShade { opacity:1; }
-.packRevealSheet { position:absolute; left:0; right:0; bottom:0; z-index:7; display:flex; flex-direction:column; max-height:62vh; padding-bottom:env(safe-area-inset-bottom); background:rgba(10,12,24,.82);
-  border-radius:16px 16px 0 0; color:#fff; transition:transform var(--ui-ms, 280ms) ease, opacity var(--ui-ms, 280ms) ease; transform:translateY(0); }
-.packReveal[data-ui="peek"] .packRevealSheet { transform:translateY(calc(100% - 48px - env(safe-area-inset-bottom))); background:rgba(10,12,24,.6); }
+.packRevealSheet { position:absolute; left:0; right:0; bottom:0; z-index:7; display:flex; flex-direction:column; max-height:62vh; padding-bottom:env(safe-area-inset-bottom); background:rgba(241,239,232,.92);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-top:1px solid rgba(24,25,21,.12);
+  border-radius:16px 16px 0 0; color:var(--ink); transition:transform var(--ui-ms, 280ms) ease, opacity var(--ui-ms, 280ms) ease; transform:translateY(0); }
+.packReveal[data-ui="peek"] .packRevealSheet { transform:translateY(calc(100% - 48px - env(safe-area-inset-bottom))); background:rgba(241,239,232,.8); }
 .packReveal[data-ui="hidden"] .packRevealSheet { transform:translateY(100%); opacity:0; pointer-events:none; }
 .packRevealSheetBar { position:relative; flex:none; height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 16px 0; background:none; border:0; color:inherit; cursor:pointer; text-align:left; }
-.packRevealGrab { position:absolute; top:6px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:rgba(255,255,255,.55); }
-.packRevealSheetName { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:600 14px system-ui, sans-serif; }
+.packRevealGrab { position:absolute; top:6px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:rgba(24,25,21,.28); }
+.packRevealSheetName { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 12px "DM Mono", monospace; letter-spacing:.1em; text-transform:uppercase; }
 .packRevealChevron { flex:none; transition:transform var(--ui-ms, 280ms); }
 .packReveal[data-ui="open"] .packRevealChevron { transform:rotate(180deg); }
 .packRevealSheetBody { flex:1; min-height:0; overflow-y:auto; padding:4px 16px 14px; display:flex; flex-direction:column; align-items:center; gap:10px; }
 .packReveal[data-ui="peek"] .packRevealSheetBody { visibility:hidden; transition:visibility 0s var(--ui-ms, 280ms); }
 .packRevealSheetTitle { margin:0; font:600 16px system-ui, sans-serif; text-align:center; }
 .packRevealSheetFacts { width:100%; max-width:360px; margin:0; display:flex; flex-direction:column; gap:6px; }
-.packRevealSheetFacts div { display:flex; justify-content:space-between; gap:16px; font:400 12px DM Mono; border-bottom:1px solid rgba(255,255,255,.15); padding-bottom:5px; }
-.packRevealSheetFacts dt { color:rgba(255,255,255,.65); } .packRevealSheetFacts dd { margin:0; text-align:right; word-break:break-word; }
+.packRevealSheetFacts div { display:flex; justify-content:space-between; gap:16px; font:400 12px DM Mono; border-bottom:1px solid rgba(24,25,21,.14); padding-bottom:5px; }
+.packRevealSheetFacts dt { color:rgba(24,25,21,.55); } .packRevealSheetFacts dd { margin:0; text-align:right; word-break:break-word; }
 .packRevealChoice { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
 .packRevealChoice .cameraRevealBtn { max-width:100%; }
+/* paper and ink buttons inside the sheet (.cameraRevealBtn itself is shared with CameraReveal) */
+.packReveal .packRevealSheet .cameraRevealBtn { border:1px solid var(--ink); background:transparent; color:var(--ink); }
+.packReveal .packRevealSheet .cameraRevealBtn.solid { background:var(--ink); color:var(--paper); }
 .packRevealChoice .cameraRevealBtn:disabled { opacity:.6; cursor:wait; }
-.packRevealChoiceNote { margin:0; max-width:340px; text-align:center; font:400 10px DM Mono; line-height:1.6; color:rgba(255,255,255,.8); }
+.packRevealChoiceNote { margin:0; max-width:340px; text-align:center; font:400 10px DM Mono; line-height:1.6; color:rgba(24,25,21,.7); }
 .packRevealOutcome { margin:0; font:600 15px system-ui, sans-serif; text-align:center; }
 .packRevealTextBar { display:flex; justify-content:center; gap:22px; }
-.packRevealTextBtn { background:none; border:0; color:rgba(255,255,255,.85); font:400 12px DM Mono; text-decoration:underline; cursor:pointer; padding:8px; }
+.packRevealTextBtn { background:none; border:0; color:rgba(24,25,21,.7); font:400 12px DM Mono; text-decoration:underline; cursor:pointer; padding:8px; }
 /* hidden: only the card, the room and a small badge remain */
 .packReveal[data-ui="hidden"] .packRevealClose, .packReveal[data-ui="hidden"] .packRevealHideUi, .packReveal[data-ui="hidden"] .holoCardHint { opacity:0; pointer-events:none; }
 .packReveal[data-ui="hidden"] .demoBadge { font-size:9px; opacity:.7; }
@@ -567,20 +553,22 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
   .packRevealChevron { transition:none; }
 }
 
-/* ---- Facts in huge type, one at a time over a dark navy veil (the face-down card shows faintly through it) ---- */
-.packRevealFactVeil { position:absolute; left:-64px; top:-64px; right:-64px; bottom:-64px; z-index:4; pointer-events:none; background:#12131c; opacity:0;
+/* ---- Facts as a quiet caption under the face-down card (label and value), over a faint dark veil ---- */
+.packRevealFactVeil { position:absolute; left:-64px; top:-64px; right:-64px; bottom:-64px; z-index:4; pointer-events:none; background:#0e0f11; opacity:0;
   animation:packVeilIn var(--veil-in, .35s) ease-out both, packVeilOut var(--veil-out, .3s) linear var(--veil-out-at, 3.9s) forwards; }
-@keyframes packVeilIn { from { opacity:0; } to { opacity:var(--veil, .86); } }
-@keyframes packVeilOut { from { opacity:var(--veil, .86); } to { opacity:0; } }
-.packRevealBigFacts { position:absolute; left:0; right:0; top:42%; z-index:5; height:0; display:flex; justify-content:center; pointer-events:none; }
+@keyframes packVeilIn { from { opacity:0; } to { opacity:var(--veil, .16); } }
+@keyframes packVeilOut { from { opacity:var(--veil, .16); } to { opacity:0; } }
+.packRevealBigFacts { position:absolute; left:0; right:0; top:min(calc(42% + var(--cw) * .84 + 54px), calc(100% - 96px - env(safe-area-inset-bottom))); z-index:5; height:0; display:flex; justify-content:center; pointer-events:none; }
 .packRevealBigFact { position:absolute; transform:translateY(-50%); max-width:84vw; white-space:nowrap; text-align:center; opacity:0;
-  font:700 min(17vw, calc(84vw / (var(--len, 4) * .6))) / 1 system-ui, -apple-system, "Helvetica Neue", sans-serif; letter-spacing:.01em; color:#e8edff;
-  animation:packBigFact 1.2s ease-out both; }
-@keyframes packBigFact { 0% { opacity:0; transform:translateY(calc(-50% + 6px)); } 20.8% { opacity:1; transform:translateY(-50%); } 83.3% { opacity:1; transform:translateY(-50%); } 100% { opacity:0; transform:translateY(-50%); } }
+  display:flex; flex-direction:column; align-items:center; gap:10px; animation:packBigFact 1.4s ease-out both; }
+.packRevealBigFact::before { content:""; width:28px; height:1px; background:rgba(255,255,255,.6); }
+.packRevealFactLabel { font:500 11px "DM Mono", monospace; letter-spacing:.32em; text-transform:uppercase; color:rgba(255,255,255,.72); text-shadow:0 1px 8px rgba(0,0,0,.6); }
+.packRevealFactValue { font-family:system-ui, -apple-system, "Helvetica Neue", sans-serif; font-weight:300; font-size:min(11vw, calc(84vw / (var(--len, 4) * .6))); line-height:1; letter-spacing:.04em; color:#f6f6f2; text-shadow:0 1px 14px rgba(0,0,0,.55); }
+@keyframes packBigFact { 0% { opacity:0; transform:translateY(calc(-50% + 6px)); } 28.6% { opacity:1; transform:translateY(-50%); } 78.6% { opacity:1; transform:translateY(-50%); } 100% { opacity:0; transform:translateY(-50%); } }
 @media (prefers-reduced-motion: reduce) {
   .packRevealBigFact { animation-name:packBigFactFade; }
 }
-@keyframes packBigFactFade { 0% { opacity:0; } 20.8% { opacity:1; } 83.3% { opacity:1; } 100% { opacity:0; } }
+@keyframes packBigFactFade { 0% { opacity:0; } 28.6% { opacity:1; } 78.6% { opacity:1; } 100% { opacity:0; } }
 .linkPage { max-width:520px; margin:0 auto; padding:64px 0; text-align:center; display:flex; flex-direction:column; align-items:center; gap:18px; }
 .linkPage h1 { font-size:clamp(36px,8vw,56px); line-height:.95; letter-spacing:-.06em; margin:0; font-weight:500; }
 .linkPage .primary { width:100%; display:block; box-sizing:border-box; padding:22px 20px; text-align:center; text-decoration:none; color:inherit; }

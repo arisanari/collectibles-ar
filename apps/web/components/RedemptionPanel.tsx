@@ -7,36 +7,32 @@ import { useI18n, type Localized } from "../lib/i18n";
 import type { RedemptionsState } from "../lib/redemptions/useRedemptions";
 
 const text = {
-  title: { en: "Redeem the physical item", ja: "引き取り手続き" },
+  title: { en: "Redeem the physical item" },
   note: {
     en: "This is a dry run of redeeming the physical item. Nothing is shipped and no delivery address is recorded. Stopping the circulating Asset (lock) needs your approval in Phantom. When receipt is confirmed the Asset is retired (burned) and a Passport is issued. The Twinfold (legacy demo) vault wallet pays the network fee.",
-    ja: "現物の引き取り（redeem）のdry runです。実配送は行わず、配送先も記録しません。流通Assetの停止（lock）はPhantomでの承認が必要で、受取確認でAssetが失効（burn）し、Passportが発行されます。送信手数料はTwinfold（旧デモ）のvault walletが負担します。",
   },
-  cancelledBase: { en: "Cancelled.", ja: "取り消されました。" },
+  cancelledBase: { en: "Cancelled." },
   cancelledReturned: {
     en: "The Asset was returned from escrow to your wallet.",
-    ja: "Assetはescrowからあなたのwalletへ返却されました。",
   },
-  cancelledUntouched: { en: "The Asset was not moved.", ja: "Assetは動かしていません。" },
-  stepperLabel: { en: "Redemption progress", ja: "引き取りの進み具合" },
-  exceptionPrefix: { en: "Stopped on exception:", ja: "例外停止:" },
-  exceptionDefault: { en: "operator review is needed", ja: "operatorの確認が必要です" },
+  cancelledUntouched: { en: "The Asset was not moved." },
+  stepperLabel: { en: "Redemption progress" },
+  exceptionPrefix: { en: "Stopped on exception:" },
+  exceptionDefault: { en: "operator review is needed" },
   exceptionSuffix: {
     en: "The Asset stays in escrow and nothing else has changed. Please wait for the operator.",
-    ja: "Assetはescrowに残り、これ以上は何も変わっていません。operatorの対応をお待ちください。",
   },
-  explorer: { en: "Explorer (devnet)", ja: "Explorer（devnet）" },
-  retiredLabel: { en: "Retired (burned)", ja: "失効（burn）" },
-  shippedNote: { en: "Shipping is a dry run (nothing is shipped).", ja: "発送はdry runです（実配送なし）。" },
+  explorer: { en: "Explorer (devnet)" },
+  retiredLabel: { en: "Retired (burned)" },
+  shippedNote: { en: "Shipping is a dry run (nothing is shipped)." },
   requestedNote: {
     en: "Sign in Phantom under \"Requests awaiting approval\" to stop the Asset.",
-    ja: "「承認待ちの依頼」でPhantom署名をするとAssetが止まります。",
   },
-  busy: { en: "Working…", ja: "処理中…" },
-  receive: { en: "Confirm receipt", ja: "受け取りを確認" },
-  cancel: { en: "Cancel", ja: "取消" },
-  viewPassport: { en: "View Redeemed Provenance Passport", ja: "Redeemed Provenance Passportを見る" },
-  noCancel: { en: "Cannot be cancelled after shipping.", ja: "発送後は取り消せません。" },
+  busy: { en: "Working…" },
+  receive: { en: "Confirm receipt" },
+  cancel: { en: "Cancel" },
+  viewPassport: { en: "View Redeemed Provenance Passport" },
+  noCancel: { en: "Cannot be cancelled after shipping." },
 } satisfies Record<string, Localized>;
 
 const sigOf = (r: Redemption, kind: "locked" | "retired" | "returned") => r.events.find((e) => e.kind === kind)?.signature;
