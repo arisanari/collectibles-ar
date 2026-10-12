@@ -19,8 +19,7 @@ function getApiKey(): string {
   const key = process.env.HELIUS_API_KEY;
   if (!key) {
     throw new Error(
-      "HELIUS_API_KEY is not set. Copy apps/web/.env.example to .env.local and fill in a real value " +
-        "(see .claude/skills/solana-devnet/SKILL.md)."
+      "HELIUS_API_KEY is not set. Copy apps/web/.env.example to .env.local and fill in a real value."
     );
   }
   return key;

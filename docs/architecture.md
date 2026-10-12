@@ -5,7 +5,7 @@
 >
 > beachhead変更履歴: アニメ原画（〜2026-09-11）→ 切手（2026-09-11〜2026-09-21）→ 棚に飾るコレクティブル（2026-09-21）→ 壁に掛ける浮世絵・版画（2026-09-21〜2026-10-06、10/05にOshiPin改名）→ **Collector Cryptの実物ポケカをARで出すCollectibles AR（2026-10-06にSlabARとして決定、2026-10-07に改名）**。浮世絵、自前Vault、Twinfold buyback offer、redeem escrow、こけしは履歴で、コードとfixtureは休眠として残る。
 
-この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準は [MVP Acceptance Criteria](./mvp.md)、実装順と日程は [Build Order](./build-order.md) を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。Collector Crypt APIの詳細は `.claude/skills/collector-crypt-gacha` を参照する。
+この文書は、MVPの責務境界、共通データ、同期、安全性の技術ベースラインを定義する。合格基準と実装順は内部文書（この公開リポジトリには含めていない）を正とする。共通型の実体は散文ではなくコード（`apps/web` 側の共有型定義）を正とし、この文書は形・不変条件・境界だけを示す。E2Eフローと契約の詳細を二重管理しないため、Development Plan からはこの文書を参照する。Collector Crypt APIの詳細は [公式ドキュメント](https://docs.collectorcrypt.com/gacha/api) を参照する。
 
 ## 1. 技術目標
 
@@ -231,7 +231,7 @@ openPackが成功しカード資産が共通モデルへ正規化される
 → 検出済みの平面（机・床・壁）へ鑑定ホルダーの実寸でAppear
 ```
 
-- 開封から5分以内にAppearする（mvp.md §5）。通知が届かない場合は、iPhone側のpull更新（polling）でも収束する。
+- 開封から5分以内にAppearする。通知が届かない場合は、iPhone側のpull更新（polling）でも収束する。
 - 署名や鍵操作はiPhoneで行わない。端末tokenでできるのは読み取りと依頼の作成まで。
 - 同じmemo・同じAssetで二重にAppearしない（冪等）。
 
@@ -334,7 +334,7 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 | Hero client | Apple Vision Pro + SwiftUI + RealityKit | P1 | 既存 `apps/visionos` prototypeを活用。Primary E2Eを遅らせない |
 | iOS distribution | Development BuildまたはTestFlight | 未決定 | Apple Developer Programを含めて判断 |
 
-「未選定」は実装済みを意味しない。サービス決定後は [外部サービス・アカウント台帳（Notion）](https://example.invalid/internal) とこの表を同時に更新する。
+「未選定」は実装済みを意味しない。サービス決定後はこの表を更新する。
 
 ## 3. 責務境界
 
@@ -444,7 +444,7 @@ type Entitlement = {
 
 `id` はTwinfold内部の安定ID、`address` は外部識別子とする。`ProvenanceEvent.source` は、onchain fact（`onchain`）、第三者の主張（PSA、Collector Cryptの記録。`offchain_evidence` に写し、出典を `metadata` に持つ）、Collectibles AR interpretation（`twinfold_interpretation`）の三区分に対応する。UIで混同しない。
 
-Collector Crypt由来のカードのattributes（`Grading Company`、`The Grade`、`Grading ID`、`Insured Value`、`Vault`、`Vault ID` など）から上の拡張fieldへ写す規則は `.claude/skills/collector-crypt-gacha` を参照する。欠けているattributeは推測で埋めない。カード画像はmetadataのURLから実行時に読み、repoに保存しない。
+Collector Crypt由来のカードのattributes（`Grading Company`、`The Grade`、`Grading ID`、`Insured Value`、`Vault`、`Vault ID` など）から上の拡張fieldへ写す規則は `apps/web/lib/gacha/normalize.ts` を参照する。欠けているattributeは推測で埋めない。カード画像はmetadataのURLから実行時に読み、repoに保存しない。
 
 ## 5. Asset ProviderとGachaProvider
 

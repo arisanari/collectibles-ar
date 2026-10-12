@@ -4,9 +4,6 @@ Devnet-only Metaplex Core mint/transfer tooling. Independent `package.json`
 from `apps/web` on purpose — this is a one-off pipeline for Operators, not
 part of the Web app's dependency tree.
 
-Full explanation of the pipeline, event normalization, and rules lives in the
-`solana-devnet` skill: `.claude/skills/solana-devnet/SKILL.md`.
-
 ## Setup
 
 ```bash
