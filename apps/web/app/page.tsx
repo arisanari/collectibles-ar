@@ -14,10 +14,10 @@ const GACHA_SITE_LABEL = "gacha.collectorcrypt.com";
 const PULL_OPEN = process.env.NEXT_PUBLIC_PULL_OPEN === "1";
 // Public install link for the iOS app (TestFlight or App Store). Unset: the iOS buttons scroll to the iPhone panel.
 const IOS_APP_URL = process.env.NEXT_PUBLIC_IOS_APP_URL || "";
-// Real-device recording for the hero. The file is not in git (it shows real card photos); when it cannot load, the 3D dummy card shows instead.
+// Real-device recording for the hero (committed as an exception to "no card images in the repo", AGENTS.md section 3). When it cannot load, the 3D dummy card shows instead.
 const HERO_VIDEO_URL = process.env.NEXT_PUBLIC_HERO_VIDEO_URL || "/lp/hero-demo.mp4";
 const HERO_POSTER_URL = process.env.NEXT_PUBLIC_HERO_VIDEO_URL ? undefined : "/lp/hero-demo.jpg";
-// Short clips cut from the same kind of recording, cropped to the camera view. Not in git either; a clip that cannot load is left out.
+// Short clips cut from the same kind of recording, cropped to the camera view. Not in git (the wall is off); a clip that cannot load is left out.
 // Off for now: turn on once clips shot by other people are in, and show each with its owner's name.
 const SHOW_SHARE_WALL = false;
 const LP_MEDIA_BASE = process.env.NEXT_PUBLIC_LP_MEDIA_BASE || "/lp";
@@ -39,7 +39,7 @@ const FLOATING_SLABS = [
   { hue: 262, no: "05" },
   { hue: 48, no: "06" },
 ];
-// Real-device clip for the iOS block (not in git; drawn slabs show when it cannot load).
+// Real-device clip for the iOS block (committed, same exception as the hero; drawn slabs show when it cannot load).
 const IOS_CLIP = "ios-demo.mp4";
 const WALL_HUES = [200, 262, 20, 150];
 

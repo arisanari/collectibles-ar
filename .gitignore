@@ -42,6 +42,11 @@ apps/web/tsconfig.tsbuildinfo
 .data/
 **/.data/
 
-# Landing hero: real-device recording that shows real card photos. Kept out of git (card images are not committed);
-# the page falls back to the 3D dummy card when the file is missing. Host it elsewhere and set NEXT_PUBLIC_HERO_VIDEO_URL to ship it.
-apps/web/public/lp/
+# Landing media. The two real-device recordings the landing shows (hero-demo, ios-demo) and their poster frames are
+# committed: an exception to "no card images in the repo", decided 2026-10-12 (see AGENTS.md section 3). Everything else
+# in this folder (unused clips, source footage) stays out. The page falls back to drawn placeholders when a file is missing.
+apps/web/public/lp/*
+!apps/web/public/lp/hero-demo.mp4
+!apps/web/public/lp/hero-demo.jpg
+!apps/web/public/lp/ios-demo.mp4
+!apps/web/public/lp/ios-demo.jpg
