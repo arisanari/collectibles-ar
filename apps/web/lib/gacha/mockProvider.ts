@@ -9,6 +9,7 @@ import type {
   BuybackAvailable,
   CcOpenPackWon,
   GachaMachine,
+  GachaPoolCard,
   GachaProvider,
   GeneratePackRequest,
   GeneratePackResult,
@@ -98,6 +99,11 @@ export class MockGachaProvider implements GachaProvider {
 
   async listMachines(): Promise<GachaMachine[]> {
     return [DEMO_MACHINE];
+  }
+
+  /** DEMO DATA has no pool images (no card image is kept in the repo); the UI shows its drawn placeholders instead. */
+  async listPoolCards(): Promise<GachaPoolCard[]> {
+    return [];
   }
 
   async generatePack(request: GeneratePackRequest): Promise<GeneratePackResult> {

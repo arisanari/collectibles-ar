@@ -95,6 +95,8 @@ export const pullUi = {
   buybackNote: {
     en: "Buyback is performed by Collector Crypt, within 72 hours; the rate is set per machine. Collectibles AR does not guarantee these figures.",
   },
+  soon: { en: "Opening soon" },
+  soonNote: { en: "Pulls are not open yet. You can look at the machines and their odds, or try the flow with DEMO DATA." },
   machinesLoading: { en: "Loading machines…" },
   machinesFailed: { en: "Could not load the machines. Please try again in a moment." },
   connect: { en: "Connect Phantom to pull" },

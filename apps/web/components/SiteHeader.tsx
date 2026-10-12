@@ -20,7 +20,7 @@ const copy = {
   signing: { en: "Sign in Phantom…" },
   retry: { en: "Retry" },
   connect: { en: "Connect Phantom" },
-  tagline: { en: "Pull a pack. It appears in your room." },
+  tagline: { en: "Your collectibles. Summon in AR." },
 } satisfies Record<string, Localized>;
 
 export function SiteHeader() {

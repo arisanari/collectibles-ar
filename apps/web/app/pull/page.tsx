@@ -14,6 +14,9 @@ import { useI18n } from "../../lib/i18n";
 import { explorerTxUrl, shortAddress } from "../../lib/labels";
 import { backPhotoUrl, effectTier, revealFacts } from "../../lib/reveal/pullReveal";
 
+// Starting a real Pull from this page is offered only when NEXT_PUBLIC_PULL_OPEN=1 (same switch as the landing).
+// DEMO DATA Pulls and the controls for an unfinished Pull stay available either way.
+const PULL_OPEN = process.env.NEXT_PUBLIC_PULL_OPEN === "1";
 const DEFAULT_MACHINE = "pokemon_25";
 const TIERS = ["common", "uncommon", "rare", "epic"] as const;
 
@@ -69,7 +72,10 @@ export default function PullPage() {
   const auth = useAuth();
   const authedWallet = auth.status === "authenticated" ? auth.wallet : null;
   const [demoOn, setDemoOn] = useState(false);
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  // `?machine=<code>` (from the landing's machine picker) preselects a machine; an unknown code falls back to the default.
+  const [selectedCode, setSelectedCode] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("machine"),
+  );
   const [result, setResult] = useState<MachinesResult | null>(null);
 
   const key = demoOn ? "demo" : "devnet";
@@ -135,154 +141,183 @@ export default function PullPage() {
   }
 
   return (
-    <main className="shell pullPage">
-      <div className="pullBadges">
-        {badge && <span className="demoBadge">{badge}</span>}
-        <span className="eyebrow" style={{ margin: 0 }}>{t(pullUi.eyebrow)}</span>
-      </div>
-      <h1>{t(pullUi.title)}</h1>
-      <p className="pullLead">{t(pullUi.lead)}</p>
-      <p className="pullLead">{isDemo ? t(pullUi.demoOn) : t(pullUi.network)}</p>
-      {isDemo ? (
-        demoOn && <button className="textButton" onClick={() => setDemoOn(false)}>{t(pullUi.demoOff)}</button>
-      ) : (
-        <button className="textButton" onClick={() => setDemoOn(true)}>{t(pullUi.demoTry)}</button>
-      )}
+    <main className="shell pxPage">
+      <header className="pxHead">
+        <div>
+          <div className="pullBadges">
+            {badge && <span className="demoBadge">{badge}</span>}
+            <span className="lpTag">{t(pullUi.eyebrow)}</span>
+          </div>
+          <h1>{t(pullUi.title)}</h1>
+        </div>
+        <div className="pxLead">
+          <p>{t(pullUi.lead)}</p>
+          <p>{isDemo ? t(pullUi.demoOn) : t(pullUi.network)}</p>
+          {isDemo ? (
+            demoOn && <button className="textButton" onClick={() => setDemoOn(false)}>{t(pullUi.demoOff)}</button>
+          ) : (
+            <button className="textButton" onClick={() => setDemoOn(true)}>{t(pullUi.demoTry)}</button>
+          )}
+        </div>
+      </header>
 
-      <div className="pullLayout">
-        <section className="machinePanel" aria-label={t(pullUi.machine)}>
-          <div className="eyebrow">{t(pullUi.machine)}</div>
+      <div className="pxGrid">
+        <aside className="pxList" aria-label={t(pullUi.machine)}>
+          <span className="lpTag">{t(pullUi.machine)}</span>
           {!current && <p className="pullNote">{t(pullUi.machinesLoading)}</p>}
           {current?.failed && <p className="pullError" role="alert">{t(pullUi.machinesFailed)}</p>}
-          {machine && (
-            <>
-              <div className="machineHead">
-                {machine.thumbnailUrl && <img className="machineThumb" src={machine.thumbnailUrl} alt="" />}
-                <div>
-                  <h2>{machine.name}</h2>
-                  {machines.length > 1 && (
-                    <select className="machineSelect" aria-label={t(pullUi.machine)} value={machine.code} onChange={(e) => setSelectedCode(e.target.value)} disabled={inProgress}>
-                      {machines.map((m) => (
-                        <option key={m.code} value={m.code}>{m.code} · {m.price} {t(pullUi.priceUnit)}</option>
-                      ))}
-                    </select>
+          {machines.map((m) => (
+            <button
+              key={m.code}
+              type="button"
+              className={m.code === machine?.code ? "on" : undefined}
+              aria-pressed={m.code === machine?.code}
+              disabled={inProgress}
+              onClick={() => setSelectedCode(m.code)}
+            >
+              {m.thumbnailUrl ? <img src={m.thumbnailUrl} alt="" /> : <i />}
+              <span><b>{m.name}</b><small>{m.price} {t(pullUi.priceUnit)}</small></span>
+            </button>
+          ))}
+        </aside>
+
+        <div className="pxCenter">
+          <section className="pxStage" aria-label={t(pullUi.machine)}>
+            {machine && (
+              <>
+                <div className="pxArt" key={machine.code}>
+                  {machine.thumbnailUrl ? <img src={machine.thumbnailUrl} alt="" /> : <div className="lpCapsule" aria-hidden="true"><i /><i /><i /></div>}
+                </div>
+                <h2>{machine.name}</h2>
+                <p className="pxPrice">{machine.price} {t(pullUi.priceUnit)}</p>
+                <div className="pullActions">
+                  {canPull && (isDemo || (PULL_OPEN && authedWallet)) && (
+                    <button className="lpBtn acid" onClick={() => pullNow(machine.code)}>
+                      {isDemo ? t(pullUi.pullDemo) : t(pullUi.pull)}
+                    </button>
+                  )}
+                  {canPull && PULL_OPEN && !isDemo && !authedWallet && auth.status !== "no_wallet" && (
+                    <button className="lpBtn acid" disabled={connecting} onClick={() => void auth.connect()}>
+                      {connecting ? t(pullUi.connecting) : t(pullUi.connect)}
+                    </button>
+                  )}
+                  {/* No Phantom in this browser (for example Safari on a phone): the same page opens inside the Phantom app, where it can sign. */}
+                  {canPull && PULL_OPEN && !isDemo && !authedWallet && auth.status === "no_wallet" && (
+                    <a className="lpBtn acid" href={phantomBrowseUrl()}>{t(pullUi.openInPhantom)}</a>
+                  )}
+                  {canPull && !PULL_OPEN && !isDemo && (
+                    <span className="lpBtn acid soon" aria-disabled="true">
+                      <i className="lpMiniCap" aria-hidden="true" />
+                      {t(pullUi.pull)}
+                      <em className="lpBtnTag">{t(pullUi.soon)}</em>
+                    </span>
+                  )}
+                  {inProgress && <button className="lpBtn acid" disabled>{t(pullUi.busy)}</button>}
+                  {expiredUnpaid && (
+                    <button className="lpBtn acid" onClick={() => pull.discardAndRestart(state.packType ?? machine.code)}>
+                      {t(pullUi.recreate)}
+                    </button>
+                  )}
+                  {(state.unconfirmed || (state.resumable && (state.stage === "failed" || state.paused))) && (
+                    <button className={state.unconfirmed ? "lpBtn ghost" : "lpBtn acid"} onClick={pull.checkAgain}>{t(pullUi.checkAgain)}</button>
+                  )}
+                  {/* Always offered while a saved memo is unfinished (also while it is still polling), so a stuck memo never blocks a new Pull. */}
+                  {state.resumable && state.stage !== "opened" && state.stage !== "idle" && (
+                    <button className="lpBtn ghost" onClick={startNewPull}>{t(pullUi.newPull)}</button>
                   )}
                 </div>
+                {PULL_OPEN && !isDemo && !authedWallet && auth.status === "no_wallet" && <p className="pullNote">{t(pullUi.noPhantomNote)}</p>}
+                {!PULL_OPEN && !isDemo && <p className="pullNote">{t(pullUi.soonNote)}</p>}
+              </>
+            )}
+          </section>
+
+          {pull.status !== null && (
+            <section className="resultPanel pxResult" aria-live="polite" aria-label={t(pullUi.resultTitle)}>
+            <div className="eyebrow">{t(pullUi.resultTitle)}</div>
+            {pull.status !== null && (
+              <div className="pullStatus">
+                <span>{t(pullUi.statusLabel)}</span>
+                <span className={`statusTag ${pull.status}`}>{t(pullUi.status[pull.status])}</span>
+                {state.stage === "opening" && <span>{t(pullUi.attempts)} {state.attempts}</span>}
               </div>
-              <dl className="machineFacts">
-                <div><dt>{t(pullUi.price)}</dt><dd>{machine.price} {t(pullUi.priceUnit)}</dd></div>
-                <div>
-                  <dt>{t(pullUi.odds)}<small>{valueNote}</small></dt>
-                  <dd>{TIERS.map((tier) => `${t(pullUi.tier[tier])} ${formatOdds(machine.odds[tier])}`).join(" · ")}</dd>
-                </div>
-                {machine.ev !== undefined && (
-                  <div><dt>{t(pullUi.ev)}<small>{valueNote}</small></dt><dd>{formatEv(machine.ev)}</dd></div>
+            )}
+            {state.resumed && state.stage !== "opened" && <p className="pullNote">{t(pullUi.stage.resumed)}</p>}
+            {state.stage === "opened" && pull.status === "pending" && <p className="pullNote">{t(pullUi.confirmingNote)}</p>}
+            {message && <p className="pullNote">{t(message)}</p>}
+            {state.error && (
+              <p className="pullError" role="alert">
+                {expiredUnpaid ? t(pullUi.expiredUnpaid) : t(pullUi.errors[state.error])}
+                {state.errorDetail ? ` (${state.errorDetail})` : ""}
+              </p>
+            )}
+            {state.stage === "failed" && state.lastError && (
+              <div className="pullNote" data-testid="pull-details">
+                <strong>{t(pullUi.detailsLabel)}</strong>: <code>{state.lastError.code}</code>
+                {state.lastError.httpStatus > 0 && ` (${t(pullUi.detailsHttp)} ${state.lastError.httpStatus})`}
+                {codeHint(state.lastError.code, t) && <div>{codeHint(state.lastError.code, t)}</div>}
+                {state.lastError.message && <div>{state.lastError.message}</div>}
+              </div>
+            )}
+            {state.memo && state.stage !== "opened" && <p className="pullMemo">memo: {state.memo}</p>}
+            {state.stage === "opened" && state.asset && (
+              <>
+                <CardAssetCard asset={state.asset} demo={isDemo} />
+                {state.rarity && <p className="pullNote">{t(pullUi.rarity)}: {state.rarity}</p>}
+                {isDemo ? (
+                  <p className="pullNote">{t(pullUi.demoResultNote)}</p>
+                ) : (
+                  state.transactionSignature && (
+                    <p className="pullNote">
+                      {t(pullUi.tx)}: <a href={explorerTxUrl(state.transactionSignature)} target="_blank" rel="noreferrer">{shortAddress(state.transactionSignature)}</a>
+                    </p>
+                  )
                 )}
-                {machine.stock && (
-                  <div>
-                    <dt>{t(pullUi.stock)}<small>{valueNote}</small></dt>
-                    <dd>{TIERS.map((tier) => `${t(pullUi.tier[tier])} ${formatStock(machine.stock?.[tier] ?? 0)}`).join(" · ")}</dd>
+                <div className="pullActions">
+                  <button className="secondary" onClick={() => { setRevealOutcome("none"); setRevealOpen(true); }}>{t(pullUi.replayOpening)}</button>
+                  <Link href="/collection" className="secondary linkButton">{t(pullUi.collectionLink)}</Link>
+                </div>
+                {/* The Phantom app's own browser cannot use the camera: the same opening can be played in Safari, which can. */}
+                {!isDemo && state.asset.address && (
+                  <div className="pullNote">
+                    <p style={{ margin: "12px 0 6px" }}>{t(pullUi.revealElsewhereNote)}</p>
+                    <div className="pullActions">
+                      <a className="secondary linkButton" href={revealUrls(state.asset.address, state.rarity).safari}>{t(pullUi.revealInSafari)}</a>
+                      <button className="secondary" onClick={() => { const url = revealUrls(state.asset?.address ?? "", state.rarity).https; void navigator.clipboard?.writeText(url).then(() => setCopied(true), () => setCopied(false)); }}>
+                        {copied ? t(pullUi.revealCopied) : t(pullUi.revealCopy)}
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div><dt>{t(pullUi.buyback)}<small>{valueNote}</small></dt><dd>{machine.instantBuyback}%</dd></div>
+              </>
+            )}
+            </section>
+          )}
+        </div>
+
+        <aside className="pxRates">
+          {machine && (
+            <>
+              <span className="lpTag">{t(pullUi.odds)}</span>
+              <ul>
+                {[...TIERS].reverse().map((tier) => (
+                  <li key={tier} className={tier}>
+                    <b>{formatOdds(machine.odds[tier])}</b>
+                    <span>{t(pullUi.tier[tier])}</span>
+                    {machine.stock && <small>{t(pullUi.stock)} {formatStock(machine.stock[tier] ?? 0)}</small>}
+                  </li>
+                ))}
+              </ul>
+              <dl>
+                {machine.ev !== undefined && <div><dt>{t(pullUi.ev)}</dt><dd>{formatEv(machine.ev)}</dd></div>}
+                <div><dt>{t(pullUi.buyback)}</dt><dd>{machine.instantBuyback}%</dd></div>
               </dl>
+              <p className="pullNote">{valueNote}</p>
               <p className="pullNote">{t(pullUi.buybackNote)}</p>
               {current?.fetchedAt && <p className="pullNote">{t(pullUi.fetchedAt)}: {current.fetchedAt}</p>}
-
-              <div className="pullActions">
-                {canPull && (isDemo || authedWallet) && (
-                  <button className="primary" onClick={() => pullNow(machine.code)}>
-                    {isDemo ? t(pullUi.pullDemo) : t(pullUi.pull)}
-                  </button>
-                )}
-                {canPull && !isDemo && !authedWallet && auth.status !== "no_wallet" && (
-                  <button className="primary" disabled={connecting} onClick={() => void auth.connect()}>
-                    {connecting ? t(pullUi.connecting) : t(pullUi.connect)}
-                  </button>
-                )}
-                {/* No Phantom in this browser (for example Safari on a phone): the same page opens inside the Phantom app, where it can sign. */}
-                {canPull && !isDemo && !authedWallet && auth.status === "no_wallet" && (
-                  <a className="primary linkButton" href={phantomBrowseUrl()}>{t(pullUi.openInPhantom)}</a>
-                )}
-                {inProgress && <button className="primary" disabled>{t(pullUi.busy)}</button>}
-                {expiredUnpaid && (
-                  <button className="primary" onClick={() => pull.discardAndRestart(state.packType ?? machine.code)}>
-                    {t(pullUi.recreate)}
-                  </button>
-                )}
-                {(state.unconfirmed || (state.resumable && (state.stage === "failed" || state.paused))) && (
-                  <button className={state.unconfirmed ? "secondary" : "primary"} onClick={pull.checkAgain}>{t(pullUi.checkAgain)}</button>
-                )}
-                {/* Always offered while a saved memo is unfinished (also while it is still polling), so a stuck memo never blocks a new Pull. */}
-                {state.resumable && state.stage !== "opened" && state.stage !== "idle" && (
-                  <button className="secondary" onClick={startNewPull}>{t(pullUi.newPull)}</button>
-                )}
-              </div>
-              {!isDemo && !authedWallet && auth.status === "no_wallet" && <p className="pullNote">{t(pullUi.noPhantomNote)}</p>}
             </>
           )}
-        </section>
-
-        <section className="resultPanel" aria-live="polite" aria-label={t(pullUi.resultTitle)}>
-          <div className="eyebrow">{t(pullUi.resultTitle)}</div>
-          {pull.status === null && <p className="pullNote">—</p>}
-          {pull.status !== null && (
-            <div className="pullStatus">
-              <span>{t(pullUi.statusLabel)}</span>
-              <span className={`statusTag ${pull.status}`}>{t(pullUi.status[pull.status])}</span>
-              {state.stage === "opening" && <span>{t(pullUi.attempts)} {state.attempts}</span>}
-            </div>
-          )}
-          {state.resumed && state.stage !== "opened" && <p className="pullNote">{t(pullUi.stage.resumed)}</p>}
-          {state.stage === "opened" && pull.status === "pending" && <p className="pullNote">{t(pullUi.confirmingNote)}</p>}
-          {message && <p className="pullNote">{t(message)}</p>}
-          {state.error && (
-            <p className="pullError" role="alert">
-              {expiredUnpaid ? t(pullUi.expiredUnpaid) : t(pullUi.errors[state.error])}
-              {state.errorDetail ? ` (${state.errorDetail})` : ""}
-            </p>
-          )}
-          {state.stage === "failed" && state.lastError && (
-            <div className="pullNote" data-testid="pull-details">
-              <strong>{t(pullUi.detailsLabel)}</strong>: <code>{state.lastError.code}</code>
-              {state.lastError.httpStatus > 0 && ` (${t(pullUi.detailsHttp)} ${state.lastError.httpStatus})`}
-              {codeHint(state.lastError.code, t) && <div>{codeHint(state.lastError.code, t)}</div>}
-              {state.lastError.message && <div>{state.lastError.message}</div>}
-            </div>
-          )}
-          {state.memo && state.stage !== "opened" && <p className="pullMemo">memo: {state.memo}</p>}
-          {state.stage === "opened" && state.asset && (
-            <>
-              <CardAssetCard asset={state.asset} demo={isDemo} />
-              {state.rarity && <p className="pullNote">{t(pullUi.rarity)}: {state.rarity}</p>}
-              {isDemo ? (
-                <p className="pullNote">{t(pullUi.demoResultNote)}</p>
-              ) : (
-                state.transactionSignature && (
-                  <p className="pullNote">
-                    {t(pullUi.tx)}: <a href={explorerTxUrl(state.transactionSignature)} target="_blank" rel="noreferrer">{shortAddress(state.transactionSignature)}</a>
-                  </p>
-                )
-              )}
-              <div className="pullActions">
-                <button className="secondary" onClick={() => { setRevealOutcome("none"); setRevealOpen(true); }}>{t(pullUi.replayOpening)}</button>
-                <Link href="/collection" className="secondary linkButton">{t(pullUi.collectionLink)}</Link>
-              </div>
-              {/* The Phantom app's own browser cannot use the camera: the same opening can be played in Safari, which can. */}
-              {!isDemo && state.asset.address && (
-                <div className="pullNote">
-                  <p style={{ margin: "12px 0 6px" }}>{t(pullUi.revealElsewhereNote)}</p>
-                  <div className="pullActions">
-                    <a className="secondary linkButton" href={revealUrls(state.asset.address, state.rarity).safari}>{t(pullUi.revealInSafari)}</a>
-                    <button className="secondary" onClick={() => { const url = revealUrls(state.asset?.address ?? "", state.rarity).https; void navigator.clipboard?.writeText(url).then(() => setCopied(true), () => setCopied(false)); }}>
-                      {copied ? t(pullUi.revealCopied) : t(pullUi.revealCopy)}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+        </aside>
       </div>
 
       {revealOpen && state.stage === "opened" && state.asset && (

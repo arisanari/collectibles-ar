@@ -4,8 +4,8 @@ import { AuthProvider } from "../components/AuthProvider";
 import { SiteFooter, SiteHeader } from "../components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Collectibles AR — Pull a pack. It appears in your room.",
-  description: "Pull a pack on Solana. The graded card you win appears life-size in AR on your iPhone. The card stays in the vault.",
+  title: "Collectibles AR — Your collectibles. Summon in AR.",
+  description: "Real graded cards on Solana, in AR, wherever you are. Bring the cards in your wallet or pull a new one, and see them in AR. The card stays in the vault.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

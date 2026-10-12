@@ -14,9 +14,11 @@ import type {
   BuybackAvailable,
   CcOpenPackWon,
   GachaMachine,
+  GachaPoolCard,
   GachaProvider,
   GeneratePackRequest,
   GeneratePackResult,
+  ListPoolCardsRequest,
   OpenPackOutcome,
   OpenPackRequest,
   SubmitSignedRequest,
@@ -115,6 +117,21 @@ export class CollectorCryptGachaProvider implements GachaProvider {
 
   private absoluteUrl(value: string | undefined): string | undefined {
     return value?.startsWith("/") && !value.startsWith("//") ? `${this.baseUrl}${value}` : value;
+  }
+
+  async listPoolCards(request: ListPoolCardsRequest): Promise<GachaPoolCard[]> {
+    const query = new URLSearchParams({ code: request.code, rarity: request.rarity, limit: String(request.limit) });
+    const { status, body } = await this.call(`/api/getNfts?${query}`);
+    if (status < 200 || status >= 300 || !Array.isArray(body.nfts)) this.fail(status || 502, body, "Could not load the pool");
+    const cards: GachaPoolCard[] = [];
+    for (const nft of body.nfts as { nft_address?: unknown; name?: unknown; image?: unknown }[]) {
+      const nftAddress = asString(nft.nft_address);
+      const name = asString(nft.name);
+      // Loaded in the browser: https only (same rule as the card images).
+      const image = httpsOnly(asString(nft.image));
+      if (nftAddress && name && image) cards.push({ nftAddress, name, rarity: request.rarity, image });
+    }
+    return cards.slice(0, request.limit);
   }
 
   async listMachines(): Promise<GachaMachine[]> {

@@ -21,6 +21,10 @@ export type GachaMachine = {
   thumbnailUrl?: string; // made absolute by the provider
 };
 
+/** One card in a machine's pool, as GET /api/getNfts lists it (only the fields the UI reads). The image is Collector Crypt's URL, loaded at run time. */
+export type GachaPoolCard = { nftAddress: string; name: string; rarity: keyof GachaOdds; image: string };
+export type ListPoolCardsRequest = { code: string; rarity: keyof GachaOdds; limit: number };
+
 export type GeneratePackRequest = { playerAddress: string; packType: string };
 export type GeneratePackResult = {
   memo: string; // idempotency key for the whole Pull
@@ -66,6 +70,7 @@ export interface GachaProvider {
   readonly isDemoData: boolean;
   readonly network: GachaNetwork;
   listMachines(): Promise<GachaMachine[]>;
+  listPoolCards(request: ListPoolCardsRequest): Promise<GachaPoolCard[]>;
   generatePack(request: GeneratePackRequest): Promise<GeneratePackResult>;
   submitSigned(request: SubmitSignedRequest): Promise<SubmitSignedResult>;
   openPack(request: OpenPackRequest): Promise<OpenPackOutcome>;

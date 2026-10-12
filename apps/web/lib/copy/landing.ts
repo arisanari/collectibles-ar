@@ -8,96 +8,112 @@ import type { Localized } from "../i18n";
  */
 
 export const home = {
-  eyebrow: { en: "GRADED CARDS × SOLANA × AR" } satisfies Localized,
-  title: { en: "Pull a pack. It appears in your room." } satisfies Localized,
-  lead: {
-    en: "Real graded cards on Solana. Gacha runs on Collector Crypt's machines; the card you pull shows up life-size in AR on your iPhone. The card stays in the vault.",
+  heroEyebrow: { en: "Real graded cards on Solana, in AR" } satisfies Localized,
+  heroTitle1: { en: "Your collectibles." } satisfies Localized,
+  heroTitle2: { en: "Summon in AR." } satisfies Localized,
+  heroLead: {
+    en: "Connect your wallet. Your collectibles show up in AR, wherever you are.",
   } satisfies Localized,
-  ctaPull: { en: "Pull a pack (devnet)" } satisfies Localized,
-  ctaCollection: { en: "See my collection" } satisfies Localized,
-  artCaption: {
-    en: "Self-made dummy cards for illustration. Not real cards.",
+  ctaPull: { en: "Pull a pack" } satisfies Localized,
+  pullSoon: { en: "Opening soon" } satisfies Localized,
+  iosSoon: { en: "Beta test" } satisfies Localized,
+  ctaIos: { en: "Get the iOS app" } satisfies Localized,
+  heroTest: { en: "In testing" } satisfies Localized,
+  heroFine: { en: "Both are in testing. Packs use devnet test funds, and the iPhone app is an invite-only beta." } satisfies Localized,
+  linkedWith: { en: "Linked with Phantom" } satisfies Localized,
+  dragHint: { en: "Drag to spin" } satisfies Localized,
+  videoLabel: { en: "Screen recording of the iPhone app placing a graded card on a desk in AR" } satisfies Localized,
+  videoCaption: {
+    en: "Recorded on an iPhone. A real card from a linked mainnet wallet, shown read-only. The card stays in Collector Crypt's vault.",
   } satisfies Localized,
+  roomLabel: { en: "In your room" } satisfies Localized,
+  heroTags: [{ en: "Yours, onchain" }, { en: "Stays in the vault" }, { en: "Life-size on iPhone" }] satisfies Localized[],
+  artCaption: { en: "Self-made dummy cards for illustration. Not real cards." } satisfies Localized,
+  scrollHint: { en: "Scroll" } satisfies Localized,
+  marquee: [{ en: "Pull" }, { en: "Summon" }, { en: "Line up" }, { en: "Shoot" }, { en: "Share" }] satisfies Localized[],
 
-  stepsEyebrow: { en: "HOW IT WORKS" } satisfies Localized,
-  stepsTitle: { en: "Three steps" } satisfies Localized,
-  steps: [
-    {
-      name: { en: "Pull" },
-      body: {
-        en: "Pay once in USDC and sign in Phantom.",
-      },
-    },
-    {
-      name: { en: "Appear" },
-      body: {
-        en: "The card shows up in AR on your linked iPhone, life-size in its graded holder, within seconds.",
-      },
-    },
-    {
-      name: { en: "Keep, sell back or ship" },
-      body: {
-        en: "Collector Crypt buys it back within 72 hours at a rate set per machine. Shipping is also done by Collector Crypt.",
-      },
-    },
-  ],
+  shareEyebrow: { en: "SHOOT AND SHARE" } satisfies Localized,
+  shareTitle: { en: "Put it anywhere. Hit record." } satisfies Localized,
+  shareBody: { en: "On the desk, side by side, up close. The card is in your room, so the shot is yours to share." } satisfies Localized,
+  shareLabels: {
+    lineUp: { en: "Side by side" },
+    desk: { en: "On the desk" },
+    close: { en: "Up close" },
+    angle: { en: "From any angle" },
+    stand: { en: "Standing up" },
+    cardOnly: { en: "Out of the slab" },
+  } satisfies Record<string, Localized>,
+  shareNote: { en: "Every clip was recorded on an iPhone in the app, with real cards from a linked mainnet wallet." } satisfies Localized,
 
-  whyEyebrow: { en: "WHY SOLANA" } satisfies Localized,
-  whyTitle: { en: "Why Solana" } satisfies Localized,
-  whyMove: {
-    title: { en: "Ownership moves without shipping" },
-    body: {
-      en: "The card lands in your wallet the moment you pull it. Sell it back and it disappears from your room.",
-    },
-  },
-  whyVerify: {
-    title: { en: "Odds and pool can be verified (VRF)" },
-    // The bare /verify-selection path returns 404; the page needs a draw memo. The link goes to the gacha site.
-    pre: { en: "Each draw has a memo, and Collector Crypt's " },
-    linkText: { en: "/verify-selection page" },
-    post: { en: " shows how it was drawn." },
-  },
-  whyFees: {
-    title: { en: "Fees are small" },
-    body: {
-      en: "Network fees are small enough that a $25 card still makes sense.",
-    },
+  two: {
+    label: { en: "Two things you can do here" },
+    items: [
+      { href: "#pull", name: { en: "AR Gacha" }, body: { en: "Pull a pack and open it in AR." }, where: { en: "Web · devnet" } },
+      { href: "#ios", name: { en: "AR Collection" }, body: { en: "See the cards you own anywhere, in AR." }, where: { en: "iPhone app · beta" } },
+    ] satisfies { href: string; name: Localized; body: Localized; where: Localized }[],
   },
 
-  diffEyebrow: { en: "COMPARED" } satisfies Localized,
-  diffTitle: { en: "How this differs from other onchain gacha" } satisfies Localized,
-  diffBody: {
-    en: "Jupiter Gacha, Solflare Packs and Rarible Gacha Station are front ends that sit on top of Collector Crypt's inventory. After the pull, the flow ends at a list. Collectibles AR puts what you pulled into your room.",
-  } satisfies Localized,
-  diffColOthers: { en: "Other front ends" } satisfies Localized,
-  diffColUs: { en: "Collectibles AR" } satisfies Localized,
-  diffRows: [
-    { label: { en: "Pull a pack" }, others: true },
-    { label: { en: "View it in AR" }, others: false },
-    { label: { en: "Place it in your room" }, others: false },
-    { label: { en: "Capture and share" }, others: false },
-  ] satisfies { label: Localized; others: boolean }[],
-  diffYes: { en: "Yes" } satisfies Localized,
-  diffNo: { en: "Not offered" } satisfies Localized,
-  diffNote: {
-    en: "AR steps only, based on public information as of October 2026. Their features may change.",
-  } satisfies Localized,
+  pullShow: {
+    eyebrow: { en: "AR GACHA" },
+    title: { en: "Pull a pack in AR." },
+    body: { en: "The capsule opens through your camera, and the card you pulled shows up in AR. The real card stays in Collector Crypt's vault." },
+    note: { en: "Collector Crypt's machines, hosted here. Test funds only; odds are shown before you pull." },
+    poolNote: {
+      en: "The cards around the phone are in the Starter Pokémon machine's pool right now, one or two from each tier. Images are served by Collector Crypt. They are examples, not what a pull returns.",
+    },
+  },
 
-  noticeEyebrow: { en: "NOTICE" } satisfies Localized,
-  noticeTitle: { en: "Before you try it" } satisfies Localized,
-  notices: [
+  ios: {
+    eyebrow: { en: "AR COLLECTION" },
+    pill: { en: "iPhone app" },
+    beta: { en: "Beta test" },
+    title: { en: "See your cards anywhere, in AR." },
+    body: { en: "Link your wallet. At home, at your desk, at a café, outside. Life-size, wherever you are." },
+    places: [{ en: "At home" }, { en: "At your desk" }, { en: "At a café" }, { en: "Outside" }] satisfies Localized[],
+    cta: { en: "Get the iPhone app" },
+    videoLabel: { en: "Screen recording of the iPhone app showing a graded card on a desk in AR" },
+    soon: { en: "The beta is invite-only for now. A public test link is coming." },
+    note: { en: "Reads your wallet and never moves your cards or funds. The real cards stay in the vault." },
+  },
+
+  whatEyebrow: { en: "WHAT IT IS" } satisfies Localized,
+  whatTitle: { en: "The card stays in the vault. You get to see it." } satisfies Localized,
+  features: [
     {
-      en: "This is DEVNET. Test funds, test cards, no real shipment.",
+      title: { en: "See it life-size" },
+      body: { en: "Your card at its real size, in its graded slab, standing on whatever is in front of you. Walk up to it and look closer." },
     },
     {
-      en: "Odds, expected value, buyback rates and insured values are published by Collector Crypt and PSA. Collectibles AR does not vouch for them.",
+      title: { en: "Still tradable" },
+      body: { en: "Nothing ships. The card stays in the vault and the token stays in your wallet." },
     },
     {
-      en: "Buyback, shipping and refunds are the responsibility of Collector Crypt, not Collectibles AR.",
+      title: { en: "Line up and shoot" },
+      body: { en: "Put cards side by side, hit record, and share the shot." },
     },
-  ] satisfies Localized[],
+    {
+      title: { en: "Your wallet stays yours" },
+      body: { en: "The iPhone app only reads what your wallet holds. It never asks you to sign a transaction, and it cannot move your cards or funds." },
+    },
+  ] satisfies { title: Localized; body: Localized }[],
+
+  faqEyebrow: { en: "FAQ" } satisfies Localized,
+  faqTitle: { en: "Before you try it" } satisfies Localized,
+  faqs: [
+    {
+      q: { en: "Where is the physical card?" },
+      a: { en: "In Collector Crypt's vault. Buyback, shipping and refunds are Collector Crypt's responsibility, not Collectibles AR's." },
+    },
+    {
+      q: { en: "What does the iOS app do with my wallet?" },
+      a: { en: "It reads which cards your wallet holds. You approve a sign-in message in Phantom to link it. The app never asks you to sign a transaction, and it cannot pull, sell or send anything." },
+    },
+  ] satisfies { q: Localized; a: Localized }[],
   realPacksPre: { en: "Real packs can be pulled at " } satisfies Localized,
   realPacksPost: { en: "." } satisfies Localized,
+
+  closingTitle: { en: "Every token needs a place to be seen." } satisfies Localized,
+  closingBody: { en: "Pull one, or bring the ones you own, and see them anywhere." } satisfies Localized,
 };
 
 /** Onchain piece block and cards inside "Live on Solana" (landing only). */
