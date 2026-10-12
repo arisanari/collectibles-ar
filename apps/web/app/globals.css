@@ -515,8 +515,10 @@ body:has(main.lp, main.pxPage) footer { border-top-color:#ffffff1c; color:#a3a59
 .lpPhoneEmpty { position:relative; width:100%; height:100%; display:grid; place-items:center; background:radial-gradient(60% 40% at 50% 55%,#d9ff4333,#0b0b0d 75%); }
 .lpPhoneEmpty .lpCapsule { width:120px; height:120px; }
 .lpPhoneEmpty .lpCapsuleShadow { bottom:32%; width:110px; margin-left:-55px; }
-.lpFloater { position:absolute; left:50%; top:50%; width:var(--w,150px); margin:calc(var(--w,150px) * -.8) 0 0 calc(var(--w,150px) * -.5); transform:translate(var(--x),var(--y)) rotate(var(--r)); z-index:var(--z,1); filter:blur(var(--b,0px)); animation:lpHover 7s ease-in-out var(--delay,0s) infinite; }
-@keyframes lpHover { 0%,100% { transform:translate(var(--x),var(--y)) rotate(var(--r)); } 50% { transform:translate(var(--x),calc(var(--y) - 22px)) rotate(calc(var(--r) + 3deg)); } }
+.lpFloater { position:absolute; left:50%; top:50%; width:var(--w,150px); margin:calc(var(--w,150px) * -.8) 0 0 calc(var(--w,150px) * -.5); transform:translate(var(--x),var(--y)) rotate(var(--r)); z-index:var(--z,1); filter:blur(var(--b,0px)); }
+/* The float runs on the card inside, with fixed values: keyframes that read custom properties did not animate in iOS Safari. */
+.lpFloater > * { animation:lpBob 7s ease-in-out infinite; animation-delay:var(--delay,0s); }
+@keyframes lpBob { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-22px) rotate(3deg); } }
 .lpFloater.f1 { --w:190px; --x:-330px; --y:-70px; --r:-14deg; --z:3; }
 .lpFloater.f2 { --w:170px; --x:320px; --y:-110px; --r:12deg; --z:3; --delay:-2s; }
 .lpFloater.f3 { --w:150px; --x:-250px; --y:190px; --r:8deg; --z:3; --delay:-4s; }
@@ -546,6 +548,8 @@ body:has(main.lp, main.pxPage) footer { border-top-color:#ffffff1c; color:#a3a59
 .lpCapsule i:nth-child(1) { inset:-30%; height:auto; border-radius:50%; background:radial-gradient(circle,#fff 0,#d9ff43 22%,transparent 62%); opacity:0; transform:scale(.4); transition:opacity .5s, transform .6s cubic-bezier(.2,.7,.2,1); }
 .lpCapsule i:nth-child(2) { top:0; border-radius:170px 170px 0 0; background:radial-gradient(120% 140% at 30% 20%,#f7ffc2 0,var(--acid) 30%,#8fae00 100%); box-shadow:inset -14px -6px 26px #0005; transform-origin:50% 100%; transition:transform .7s cubic-bezier(.2,.7,.2,1); border-bottom:5px solid #11120e; }
 .lpCapsule i:nth-child(3) { bottom:0; border-radius:0 0 170px 170px; background:radial-gradient(120% 140% at 30% -30%,#ffffffe6 0,#ffffff59 45%,#ffffff26 100%); box-shadow:inset -14px -16px 30px #0006, inset 0 0 0 1px #ffffff80; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+@keyframes lpBounceSm { 0%,100% { transform:translateY(10px) rotate(-10deg) scale(1.06,.94); } 50% { transform:translateY(-14px) rotate(14deg) scale(1,1); } }
+@keyframes lpBobSm { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-10px) rotate(3deg); } }
 @keyframes lpBounce { 0%,100% { transform:translateY(34px) rotate(-10deg) scale(1.06,.94); } 50% { transform:translateY(-44px) rotate(14deg) scale(1,1); } }
 .lpCapsuleShadow { position:absolute; bottom:34px; left:50%; width:150px; height:22px; margin-left:-75px; border-radius:50%; background:#000; filter:blur(12px); animation:lpShadow 2.6s cubic-bezier(.3,0,.3,1) infinite; }
 @keyframes lpShadow { 0%,100% { transform:scale(1); opacity:.8; } 50% { transform:scale(.6); opacity:.35; } }
@@ -660,6 +664,86 @@ div.lpRoomCard { aspect-ratio:auto; background:none; }
   .lpFaq details p { padding-right:0; }
 }
 @media(max-width:520px){ .brand { white-space:nowrap; font-size:11px; letter-spacing:.02em; gap:6px; } .langSelect { max-width:68px; } .nav { column-gap:8px; } }
+/* Landing on a phone: the recording comes into the first screen, the two buttons sit side by side, and the blocks are shorter. */
+@media(max-width:900px){
+  /* Landing-only header (no wallet button): brand and Pull share one row. */
+  .nav:has(.navRight:empty) { grid-template-columns:1fr auto; padding-bottom:14px; }
+  .nav:has(.navRight:empty) nav { grid-column:auto; order:0; }
+  .nav:has(.navRight:empty) .navRight { display:none; }
+}
+@media(max-width:520px){
+  .lp { padding-bottom:64px; }
+  /* Hero on a phone: the headline, then the recording, both inside the first screen. Everything else follows below. */
+  body:has(main.lp) .nav nav { display:none; }
+  body:has(main.lp) .nav { padding-bottom:14px; border-bottom-color:transparent; }
+  .lpHeroIn { padding:14px 0 44px; gap:0; justify-items:center; text-align:center; }
+  .lpHeroText { display:contents; }
+  /* The headline is set left on black slabs, one per line; the second slab lies over the top of the phone. */
+  .lpHero h1 { position:relative; z-index:4; justify-self:start; text-align:left; font-size:clamp(34px,10.8vw,58px); line-height:1; margin:0 0 0 -4px; }
+  .lpHero h1 span { width:fit-content; background:#000; padding:.1em .16em .14em; }
+  .lpHero h1 span + span { margin-top:-.04em; }
+  .lpStage { order:1; height:auto; margin-top:-15vw; justify-self:stretch; }
+  .lpPhone, .lpIosStage .lpPhone { height:min(131vw,540px); }
+  .lpStage .lpPhone { height:clamp(340px,calc(100svh - 178px),min(112vw,470px)); }
+  .lpAurora i:nth-child(1) { width:130vw; height:130vw; left:-15vw; right:auto; top:14%; background:radial-gradient(circle,#d9ff4333 0,transparent 62%); }
+  /* "Linked with Phantom": in the hero it keeps its framed chip, a little under the headline on the right, lying over the phone.
+     In the iOS block it is a plain caption under the phone. */
+  .lpStage:has(.lpPhone) .lpArTag.lpLinked.t1 { top:calc(15vw + 16px); right:-4px; left:auto; animation:none; }
+  .lpIosStage .lpArTag.lpLinked { position:static; margin-top:14px; animation:none; gap:7px; padding:0; border:0; border-radius:0; background:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .lpIosStage .lpArTag.lpLinked .lpPhantom { width:18px; height:18px; border-radius:5px; }
+  .lpIosStage .lpArTag.lpLinked b { font:500 12px/1.2 Manrope, sans-serif; color:#c9cabf; }
+  /* Under the phone only one sentence and the two buttons stay. The pill, the recording note and the testing note are left out
+     here: the buttons carry their own status tags, and the DEVNET / MAINNET notes sit in the blocks below. */
+  .lpHeroTop, .lpStage .lpStageNote, .lpHeroText > p.lpFine { display:none; }
+  .lpHeroText > p { order:3; margin-top:26px; line-height:1.55; }
+  .lpHeroText .lpCtas { order:4; margin:20px 0 0; align-self:stretch; justify-self:stretch; }
+  /* The two buttons stack, full width, each on one line with its status tag. */
+  .lpCtas { flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:10px; }
+  .lpCtas .lpBtn { flex:none; padding:15px 14px; white-space:nowrap; }
+
+  .lpTwo { padding-top:8px; }
+  .lpTwoItem { column-gap:14px; padding-top:20px; }
+  .lpSection { padding-top:72px; }
+  .lpHead { margin-bottom:28px; }
+  .lpHead p { font-size:16px; line-height:1.6; margin-top:16px; }
+
+  /* Same arrangement as the wide layout, scaled to the screen: a small phone in the middle and the cards beside it, not over it. */
+  .lpPullStage { height:74vw; }
+  .lpPullStage .lpPhone { height:60vw; border-radius:5.5vw; border-width:4px; }
+  .lpPhoneEmpty .lpCapsule { width:15vw; height:15vw; animation-name:lpBounceSm; }
+  .lpPhoneEmpty .lpCapsule i:nth-child(2) { border-bottom-width:3px; }
+  .lpPhoneEmpty .lpCapsuleShadow { width:12vw; height:8px; margin-left:-6vw; filter:blur(6px); }
+  .lpFloater > * { animation-name:lpBobSm; }
+  .lpFloater.f1 { --w:17vw; --x:-27vw; --y:-15vw; } .lpFloater.f2 { --w:16vw; --x:28vw; --y:-19vw; }
+  .lpFloater.f3 { --w:15vw; --x:-25vw; --y:21vw; } .lpFloater.f4 { --w:16vw; --x:26vw; --y:17vw; }
+  .lpFloater.f5, .lpFloater.f6 { display:block; --w:11vw; --b:2px; } .lpFloater.f5 { --x:-43vw; --y:5vw; } .lpFloater.f6 { --x:43vw; --y:1vw; }
+  .lpPoolCard figcaption { font-size:8px; letter-spacing:.1em; padding:3px 6px; bottom:-8px; }
+  .lpPullCta { margin-top:18px; gap:12px; }
+  .lpPullCta .lpBtn { width:100%; min-width:0; padding:18px 20px; font-size:16px; flex-wrap:wrap; row-gap:8px; white-space:nowrap; }
+
+  /* Same arrangement as the wide layout, scaled to the screen: a small phone in the middle, two sketches on each side. */
+  .lpRoomStage { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:10px; align-items:center; }
+  .lpIosStage { grid-column:auto; order:0; }
+  .lpIosStage .lpPhone { height:84vw; border-radius:6vw; border-width:5px; }
+  .lpRoomCol { gap:30px; }
+  .lpRoom { gap:6px; }
+  .lpRoomArt svg { stroke-width:3; stroke-opacity:.6; }
+  .lpRoom .lpTag { font-size:8.5px; letter-spacing:.1em; text-align:center; }
+  .lpIos .lpPullCta { margin-top:30px; }
+
+  .lpFeatures { gap:10px; }
+  .lpFeatures article { padding:20px 20px 22px; border-radius:20px; }
+  .lpFeatures article > span { padding-bottom:12px; }
+  .lpFeatures h3 { font-size:21px; margin-bottom:6px; }
+  .lpFeatures p { line-height:1.6; }
+
+  .lpFaq summary { padding:20px 0; }
+  .lpFaq details p { font-size:15px; line-height:1.7; padding-bottom:22px; }
+
+  .lpClosing { margin-top:72px; padding:56px 16px 60px; gap:16px; }
+  .lpClosing p { font-size:16px; line-height:1.6; }
+  .lpClosing .lpCtas { align-self:stretch; margin-top:10px; }
+}
 
 /* Collectibles AR: /pull/lab camera reveal prototype */
 .cameraReveal { position:fixed; inset:0; z-index:100; background:#05060a; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
