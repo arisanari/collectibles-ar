@@ -29,11 +29,11 @@ packages/**/.build/
 # Cloudflare Wrangler local state (local D1 database, cache)
 .wrangler/
 
-# Rights-unverified third-party reference images (local only; see AGENTS.md)
+# Local-only reference images
 apps/images/
 apps/web/public/collection/
 
-# Next.js 16 `next dev` auto-generates these; the canonical guide is the repo-root AGENTS.md
+# Next.js 16 `next dev` auto-generates these
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
 apps/web/tsconfig.tsbuildinfo
@@ -43,7 +43,7 @@ apps/web/tsconfig.tsbuildinfo
 **/.data/
 
 # Landing media. The two real-device recordings the landing shows (hero-demo, ios-demo) and their poster frames are
-# committed: an exception to "no card images in the repo", decided 2026-10-12 (see AGENTS.md section 3). Everything else
+# committed: the one exception to "no card images in the repo". Everything else
 # in this folder (unused clips, source footage) stays out. The page falls back to drawn placeholders when a file is missing.
 apps/web/public/lp/*
 !apps/web/public/lp/hero-demo.mp4

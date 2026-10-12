@@ -12,9 +12,9 @@
     },
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-hokusai-manga13.png",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "作品（図柄）は著作権消滅（推定される刊行から100年以上経過）。画像はTwinfold（旧デモ）が撮影した実物の写真2枚（scan/IMG_6034.JPG、scan/IMG_6035.JPG）を傾き補正し、白いマットの上に左右に配置した合成画像。マットの寸法は推定。店の販売用ラベル（店札）は写っていない"
+      "rightsNote": "自作のプレースホルダー画像。実物の写真ではない（公開リポジトリには作品の画像を入れていない）"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -108,9 +108,9 @@
     },
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-hiroshige-mii.png",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "画像: 歌川広重「近江八景之内 三井晩鐘」（天保期頃、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/painting-utagawa-hiroshige-0080957/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
+      "rightsNote": "自作のプレースホルダー画像。実物の写真ではない（公開リポジトリには作品の画像を入れていない）"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -194,9 +194,9 @@
     },
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-hokusai-yatsuhashi.png",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "画像: 葛飾北斎「諸国名橋奇覧 三河の八ツ橋の古図」（天保4〜5年頃〈1833–34〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/katsushika-hokusai-0070448/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
+      "rightsNote": "自作のプレースホルダー画像。実物の写真ではない（公開リポジトリには作品の画像を入れていない）"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -280,9 +280,9 @@
     },
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-chikanobu-moso.png",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "画像: 楊洲周延「二十四孝見立画合 第二十三号 孟宗」（明治23年〈1890〉、著作権消滅）。パブリックドメインQ（https://publicdomainq.net/toyohara-chikanobu-0049601/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
+      "rightsNote": "自作のプレースホルダー画像。実物の写真ではない（公開リポジトリには作品の画像を入れていない）"
     },
     "spatialRepresentation": {
       "kind": "card"
@@ -366,9 +366,9 @@
     },
     "display": {
       "kind": "image",
-      "imageUrl": "/artworks/ukiyoe-shotei-sakura.png",
+      "imageUrl": "/artworks/ukiyoe-placeholder.png",
       "placeholder": true,
-      "rightsNote": "画像: 高橋松亭「根方の桜」（大正11年〈1922〉、新版画。松亭は1945年没で著作権消滅）。パブリックドメインQ（https://publicdomainq.net/takahashi-shotei-0048450/）から取得。同サイトの表記で商用利用・改変・再配布可、クレジット不要（2026-09-25確認）。Twinfold（旧デモ）が保有する実物の写真ではない"
+      "rightsNote": "自作のプレースホルダー画像。実物の写真ではない（公開リポジトリには作品の画像を入れていない）"
     },
     "spatialRepresentation": {
       "kind": "card"
