@@ -1,25 +1,25 @@
 # Twinfold Vision
 
-visionOS 2向けのSwiftUI + RealityKitプロトタイプです。Crypto World's Fair 2026のMVPでは**Hero／secondary client（P1）**であり、Primary ClientはiPhone AR（`apps/ios`、SwiftUI + RealityKit + ARKit）です。両者は `packages/TwinfoldCore` を共有します。iOSの必須E2Eを遅らせない範囲で、同じAssetを表示するHero Demo録画とfallbackに使います。
+A SwiftUI + RealityKit prototype for visionOS 2. In the Crypto World's Fair 2026 MVP it is the **hero / secondary client (P1)**. The primary client is iPhone AR (`apps/ios`, SwiftUI + RealityKit + ARKit). Both share `packages/TwinfoldCore`. It is used for a hero demo recording that shows the same assets, and as a fallback, without delaying the required end-to-end flow on iOS.
 
-役割は [Technical Architecture](../../docs/architecture.md) を正とします。
+Its role is defined in the [Technical Architecture](../../docs/architecture.md).
 
-目標とするコアインタラクションは共通です。
+The target core interactions are shared with the other clients.
 
-- `Place`: 所有Assetを自分の空間へ配置する
-- `Unfold`: Ownership・Provenance・Evidence・Physicalの層を展開する
-- `Pull the provenance`: Assetからmint・transfer等の履歴を引き出す
-- `Appear / Disappear`: 取得・transfer・redeemを出現・失効として体験する
+- `Place`: put an asset you own into your own space
+- `Unfold`: expand the Ownership, Provenance, Evidence and Physical layers
+- `Pull the provenance`: draw the mint and transfer history out of an asset
+- `Appear / Disappear`: experience acquisition, transfer and redeem as an asset appearing and its display right lapsing
 
-購入、売却、redeem申請、配送先入力、ウォレット秘密鍵の保存は行いません。これらはWebへ集約します。Webで署名認証したセッションを一回限りの連携コードで受け取り、表示権をAPI経由で確認する設計を目指します。
+It does no purchasing, selling, redeem requests, shipping address entry or wallet private key storage. Those belong to the Web. The intended design receives a session signed on the Web through a one-time link code and checks the display right through the API.
 
-## 現在の実装
+## Current implementation
 
-固定データ（DEMO DATA）を使った空間ギャラリーです。ウォレット、Solana Asset、Provenance Event、表示権失効は未接続です。fixtureは初期プロトタイプ時のアニメ原画・トレカのデモデータのままで、共通Package（TwinfoldCore）の浮世絵1点（主役、額装カード）＋こけし1点（棚の拡張例、USDZ twin）への差し替えは共通モデル固定後に行います。
+A spatial gallery on fixed data (DEMO DATA). Wallet, Solana assets, provenance events and display-right revocation are not connected. The fixtures are still the anime production art and trading card demo data of the first prototype, not the shared package's fixtures.
 
-## Xcodeプロジェクトの生成
+## Generating the Xcode project
 
-`project.yml` はXcodeGen用です。
+`project.yml` is for XcodeGen.
 
 ```bash
 brew install xcodegen
@@ -28,4 +28,4 @@ xcodegen generate
 open TwinfoldVision.xcodeproj
 ```
 
-Apple Vision Pro Simulatorを選び、Runしてください。
+Select the Apple Vision Pro simulator and run.

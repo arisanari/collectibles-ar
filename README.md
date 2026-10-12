@@ -77,7 +77,7 @@ Every screen says where its data comes from.
 
 iOS and visionOS share one Swift package (`packages/TwinfoldCore`) for the common model, the providers and the spatial entities.
 
-The UI never calls Solana RPC, DAS or the Collector Crypt API directly. It goes through `AssetProvider` (Mock / Solana) and `GachaProvider` (Mock / CollectorCrypt), and both implementations return the same model. See [docs/architecture.md](docs/architecture.md) (Japanese).
+The UI never calls Solana RPC, DAS or the Collector Crypt API directly. It goes through `AssetProvider` (Mock / Solana) and `GachaProvider` (Mock / CollectorCrypt), and both implementations return the same model. See [docs/architecture.md](docs/architecture.md).
 
 ## Collector Crypt and what we are responsible for
 
@@ -161,7 +161,7 @@ swift build
 
 ### Vision Pro
 
-See [apps/visionos/README.md](apps/visionos/README.md) (Japanese).
+See [apps/visionos/README.md](apps/visionos/README.md).
 
 ## Repository layout
 
@@ -174,14 +174,14 @@ packages/
   TwinfoldCore/  Shared model, providers and spatial entities for iOS and visionOS
 fixtures/    Demo data shared by the Web and the Swift package
 scripts/     Devnet mint/transfer tooling and fixture sync
-docs/        Architecture (Japanese)
+docs/        Architecture
 ```
 
 The product is called Collectibles AR. The Swift package and type names (`TwinfoldCore`, `TwinfoldAsset`), API paths, fixture ids and environment variables keep the earlier name, Twinfold.
 
 No private keys, API keys or personal data are stored in this repository. Card images are loaded at runtime from the URLs in each asset's metadata and are not committed. The one exception is the two screen recordings of the running app used on the landing page (`apps/web/public/lp/`).
 
-This is the public copy of a private working repository. Internal planning documents and the instructions for AI coding agents (`AGENTS.md`, `docs/mvp.md`, `docs/build-order.md`) were left out of it, including from the history, so some code comments point to files that are not here. `docs/architecture.md` is a working document written in Japanese during the build.
+This is the public copy of a private working repository. Internal planning documents and the instructions for AI coding agents (`AGENTS.md`, `docs/mvp.md`, `docs/build-order.md`) were left out of it, including from the history, so some code comments point to files that are not here.
 
 ## Prior work and the pivot
 
