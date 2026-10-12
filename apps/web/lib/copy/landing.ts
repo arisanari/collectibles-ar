@@ -18,7 +18,6 @@ export const home = {
   pullSoon: { en: "Opening soon" } satisfies Localized,
   iosSoon: { en: "Beta test" } satisfies Localized,
   ctaIos: { en: "Get the iOS app" } satisfies Localized,
-  heroTest: { en: "In testing" } satisfies Localized,
   heroFine: { en: "Both are in testing. Packs use devnet test funds, and the iPhone app is an invite-only beta." } satisfies Localized,
   linkedWith: { en: "Linked with Phantom" } satisfies Localized,
   dragHint: { en: "Drag to spin" } satisfies Localized,

@@ -204,7 +204,6 @@ export default function Home() {
           <div className="lpHeroText">
             <div className="lpHeroTop lpRise">
               <span className="lpPill">{t(home.heroEyebrow)}</span>
-              <span className="lpBetaTag">{t(home.heroTest)}</span>
             </div>
             <h1 className="lpRise" style={delay(0.08)}>
               <span>{t(home.heroTitle1)}</span>
