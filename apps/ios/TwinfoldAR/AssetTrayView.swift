@@ -108,7 +108,7 @@ struct AssetTrayView: View {
     /// acquisition sheet; the sheet explains when the Web wallet link is missing.
     private var vaultGroup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Twinfold (legacy demo)Acquire from Twinfold (legacy demo) (DEVNET, no payment)")
+            Text("Acquire from Twinfold (legacy demo) (DEVNET, no payment)")
                 .font(.footnote.bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)

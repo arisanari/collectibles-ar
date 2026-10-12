@@ -254,6 +254,7 @@ final class RoomController {
     private var previewSurfaceCandidate: Bool?
     private var previewSurfaceCandidateFrames = 0
     private var previewSurfaceSettled = false
+    private var previewSurfaceMissFrames = 0
     private static let previewSurfaceSwitchFrames = 8
     private var pendingPreviewCardHeight: Float = 0
     private var pendingPreviewSlabSurface: SlabSurface = .wall
@@ -977,6 +978,7 @@ final class RoomController {
         previewSurfaceCandidate = nil
         previewSurfaceCandidateFrames = 0
         previewSurfaceSettled = false
+        previewSurfaceMissFrames = 0
         // A twin's own mesh origin isn't guaranteed to be its base (see
         // `AssetRepresentationEntity.settleOnAnchor`); settle it here too,
         // before the anchor even has a real position, so the preview
@@ -1018,9 +1020,18 @@ final class RoomController {
             // A slab goes on whichever plane is under the screen center: hung flat on a wall, stood on a desk or floor.
             guard let (hit, isVertical) = slabRaycast(in: arView, at: point),
                   let cameraTransform = arView.session.currentFrame?.camera.transform else {
+                // A miss breaks the run of consecutive frames; once the surface has been lost for as long as a switch
+                // takes, the next hit is adopted immediately instead of waiting out the hysteresis again.
+                previewSurfaceCandidate = nil
+                previewSurfaceCandidateFrames = 0
+                previewSurfaceMissFrames += 1
+                if previewSurfaceMissFrames >= Self.previewSurfaceSwitchFrames {
+                    previewSurfaceSettled = false
+                }
                 isPreviewDetected = false
                 return
             }
+            previewSurfaceMissFrames = 0
             if !previewSurfaceSettled {
                 // First hit since holding started: adopt it immediately.
                 pendingPreviewIsWall = isVertical
@@ -1041,6 +1052,12 @@ final class RoomController {
                     pendingPreviewIsWall = isVertical
                     previewSurfaceCandidate = nil
                     previewSurfaceCandidateFrames = 0
+                } else {
+                    // The hit is on the other kind of surface but the switch is not adopted yet: keep the last pose.
+                    // Posing for the settled surface from this hit would stand a wall pose on a desk (or lay a
+                    // desk pose into a wall), and a tap in that window would place it that way.
+                    isPreviewDetected = pendingPreviewTransform != nil
+                    return
                 }
             }
             let useWall = pendingPreviewIsWall

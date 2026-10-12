@@ -519,7 +519,7 @@ struct RoomOverlayView: View {
                         .multilineTextAlignment(.center)
                 }
                 if !controller.canOperateOnActiveWallet {
-                    Text("\(RoomController.linkRequiredMessage)(Send and Sell work only in the linked \"Your wallet\" room. Owner A / B are view-only)")
+                    Text("\(RoomController.linkRequiredMessage) (Send and Sell work only in the linked \"Your wallet\" room. Owner A / B are view-only)")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
