@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOpenedPackByNft } from "../../../../lib/gacha/packStore";
+import { refuseMainnet } from "../../../../lib/network";
 import { takeSlot } from "../../../../lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ const LOOKUPS_PER_HOUR = 120;
  * the answer holds nothing else (no memo, no wallet, no signature). Read only; nothing is written and Collector Crypt is not called.
  */
 export async function GET(request: Request) {
+  const mainnet = await refuseMainnet(request);
+  if (mainnet) return mainnet;
   const nft = new URL(request.url).searchParams.get("nft") ?? "";
   if (!NFT_ADDRESS.test(nft)) return NextResponse.json({ error: "invalid_input", message: "nft is required" }, { status: 400 });
   if (!takeSlot("gacha_reveal", nft, LOOKUPS_PER_HOUR)) return NextResponse.json({ error: "rate_limited", message: "Too many requests. Please try again later." }, { status: 429 });
