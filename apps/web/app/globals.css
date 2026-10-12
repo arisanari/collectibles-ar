@@ -9,6 +9,7 @@ button { color:inherit; font:inherit; }
 .nav { height:84px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; border-bottom:1px solid var(--line); position:relative; z-index:5; }
 .brand { text-decoration:none; color:inherit; background:none; border:0; display:flex; align-items:center; gap:12px; font:600 16px/1 DM Mono; letter-spacing:.08em; cursor:pointer; padding:0; justify-self:start; }
 .brandMark { width:24px; height:30px; display:block; }
+.brandWordmark { height:15px; width:auto; display:block; }
 .nav nav { display:flex; align-items:center; gap:34px; }
 .nav nav a,.nav nav button { text-decoration:none; border:0; background:none; font:400 12px DM Mono; text-transform:uppercase; color:var(--muted); cursor:pointer; padding:10px 0; position:relative; }
 .nav nav a.active,.nav nav button.active { color:var(--ink); }
@@ -375,7 +376,6 @@ footer { border-top:1px solid var(--ink); padding:30px 0 50px; display:flex; jus
 /* The landing is dark edge to edge; the shared header and footer follow it on this page only. */
 body:has(main.lp, main.pxPage) { background:#07080a; color:#f3f1ea; }
 body:has(main.lp, main.pxPage) .nav { border-bottom-color:#ffffff1c; }
-body:has(main.lp, main.pxPage) .brandMark { filter:invert(1) hue-rotate(180deg); }
 body:has(main.lp, main.pxPage) .nav nav a { color:#a3a59b; }
 body:has(main.lp, main.pxPage) .nav nav a:hover { color:#fff; }
 body:has(main.lp, main.pxPage) .wallet { border-color:#ffffff66; color:#f3f1ea; }
