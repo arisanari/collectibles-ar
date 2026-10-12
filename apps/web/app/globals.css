@@ -665,12 +665,11 @@ div.lpRoomCard { aspect-ratio:auto; background:none; }
 }
 @media(max-width:520px){ .brand { white-space:nowrap; font-size:11px; letter-spacing:.02em; gap:6px; } .langSelect { max-width:68px; } .nav { column-gap:8px; } }
 /* Landing on a phone: the recording comes into the first screen, the two buttons sit side by side, and the blocks are shorter. */
-@media(max-width:900px){
-  /* Landing-only header (no wallet button): brand and Pull share one row. */
-  .nav:has(.navRight:empty) { grid-template-columns:1fr auto; padding-bottom:14px; }
-  .nav:has(.navRight:empty) nav { grid-column:auto; order:0; }
-  .nav:has(.navRight:empty) .navRight { display:none; }
-}
+/* Header items shown on the public landing deploy that cannot be used there. */
+.nav nav a.soon, .nav .wallet.soon { cursor:default; }
+.nav .wallet.soon { display:inline-block; white-space:nowrap; }
+.navSoonTag { display:inline-block; margin-left:8px; font:500 9px/1 DM Mono; font-style:normal; letter-spacing:.1em; text-transform:uppercase; border:1px solid currentColor; border-radius:999px; padding:3px 6px; opacity:.75; vertical-align:1px; }
+@media(max-width:520px){ .nav .wallet.soon .navSoonTag { display:none; } }
 @media(max-width:520px){
   .lp { padding-bottom:64px; }
   /* Hero on a phone: the headline, then the recording, both inside the first screen. Everything else follows below. */

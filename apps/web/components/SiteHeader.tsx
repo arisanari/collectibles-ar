@@ -21,11 +21,13 @@ const copy = {
   signing: { en: "Sign in Phantom…" },
   retry: { en: "Retry" },
   connect: { en: "Connect Phantom" },
+  soon: { en: "Opening soon" },
+  soonTag: { en: "Soon" },
   tagline: { en: "Your collectibles. Summon in AR." },
 } satisfies Record<string, Localized>;
 
-// Public landing deploy (NEXT_PUBLIC_LP_ONLY=1): the header keeps the brand and the Pull link only. Sign-in and My collection need
-// the server-side stores, which a serverless host does not keep, so they are not offered there.
+// Public landing deploy (NEXT_PUBLIC_LP_ONLY=1): Collection and Connect Phantom are shown but are not links or buttons. Sign-in and
+// My collection need the server-side stores, which a serverless host does not keep, so they cannot be used there.
 const LP_ONLY = process.env.NEXT_PUBLIC_LP_ONLY === "1";
 
 export function SiteHeader() {
@@ -60,9 +62,16 @@ export function SiteHeader() {
       </Link>
       <nav aria-label={t(copy.mainNav)}>
         <Link href="/pull" className={onPull ? "active" : ""} aria-current={onPull ? "page" : undefined}>{t(copy.pull)}</Link>
-        {!LP_ONLY && <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>}
+        {LP_ONLY ? (
+          <a className="soon" aria-disabled="true" title={t(copy.soon)}>{t(copy.collection)}<em className="navSoonTag">{t(copy.soonTag)}</em></a>
+        ) : (
+          <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
+        )}
       </nav>
       <div className="navRight">
+        {LP_ONLY && (
+          <span className="wallet soon" aria-disabled="true" title={t(copy.soon)}><span className="statusDot" />{t(copy.connect)}<em className="navSoonTag">{t(copy.soonTag)}</em></span>
+        )}
         {!LP_ONLY && (
         <div className="walletMenuWrap">
           {authedWallet ? (
