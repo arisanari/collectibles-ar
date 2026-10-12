@@ -3,7 +3,12 @@ import "./globals.css";
 import { AuthProvider } from "../components/AuthProvider";
 import { SiteFooter, SiteHeader } from "../components/SiteHeader";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://collectiblesar.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  openGraph: { type: "website", siteName: "Collectibles AR", url: "/" },
+  twitter: { card: "summary_large_image" },
   title: "Collectibles AR — Your collectibles. Summon in AR.",
   description: "Real graded cards on Solana, in AR, wherever you are. Bring the cards in your wallet or pull a new one, and see them in AR. The card stays in the vault.",
 };

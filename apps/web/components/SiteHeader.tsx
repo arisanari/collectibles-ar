@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandWordmark } from "./BrandWordmark";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,6 +23,10 @@ const copy = {
   connect: { en: "Connect Phantom" },
   tagline: { en: "Your collectibles. Summon in AR." },
 } satisfies Record<string, Localized>;
+
+// Public landing deploy (NEXT_PUBLIC_LP_ONLY=1): the header keeps the brand and the Pull link only. Sign-in and My collection need
+// the server-side stores, which a serverless host does not keep, so they are not offered there.
+const LP_ONLY = process.env.NEXT_PUBLIC_LP_ONLY === "1";
 
 export function SiteHeader() {
   const { t } = useI18n();
@@ -51,13 +56,14 @@ export function SiteHeader() {
     <header className="nav shell">
       <Link className="brand" href="/" aria-label={t(copy.home)}>
         <Image className="brandMark" src="/brand/collectibles-ar-mark.svg" alt="" width={24} height={30} priority />
-        COLLECTIBLES AR
+        <BrandWordmark className="brandWordmark" />
       </Link>
       <nav aria-label={t(copy.mainNav)}>
         <Link href="/pull" className={onPull ? "active" : ""} aria-current={onPull ? "page" : undefined}>{t(copy.pull)}</Link>
-        <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>
+        {!LP_ONLY && <Link href="/collection" className={onCollection ? "active" : ""} aria-current={onCollection ? "page" : undefined}>{t(copy.collection)}</Link>}
       </nav>
       <div className="navRight">
+        {!LP_ONLY && (
         <div className="walletMenuWrap">
           {authedWallet ? (
             <>
@@ -85,6 +91,7 @@ export function SiteHeader() {
             </button>
           )}
         </div>
+        )}
       </div>
     </header>
   );
