@@ -192,3 +192,7 @@ This repository contains work from before and during the hackathon.
 - **Oct 6**: pivoted to showing Collector Crypt's real graded cards in AR, first as SlabAR, renamed Collectibles AR on Oct 7
 
 The iPhone link, the wallet signing and the AR placement built for the print version are reused in the current product. The ukiyo-e and kokeshi fixtures, the redeem dry run and the earlier buyback and vault code remain in the repository but are dormant and are not part of Collectibles AR.
+
+## License
+
+© 2026 arisanari. All rights reserved. The code is published for review. No license is granted to use, copy, modify or distribute it.
