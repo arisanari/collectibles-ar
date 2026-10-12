@@ -25,11 +25,11 @@ struct LinkWalletSheet: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Webのwalletと連携")
+            .navigationTitle("Link wallet from Web")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { controller.showsLinkSheet = false }
+                    Button("Close") { controller.showsLinkSheet = false }
                 }
             }
             .onAppear { consumePendingCode() }
@@ -40,22 +40,22 @@ struct LinkWalletSheet: View {
 
     private var entrySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Webの My collection →「iPhoneと連携」で表示される8文字のコードを入力してください。コードは2分で失効し、一度しか使えません。")
+            Text("Enter the 8-character code shown in the Web app under My collection > Link iPhone. The code expires in 2 minutes and can be used only once.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            Text("秘密鍵やシードフレーズはこのiPhoneに入りません。連携しても、walletのアドレスだけでは送る・売るはできません。")
+            Text("Private keys and seed phrases never enter this iPhone. Linking a wallet address alone does not allow sending or selling.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
             Button {
                 if let url = Self.phantomBrowseURL(web: controller.webBaseURL) { openURL(url) }
             } label: {
-                Text("Phantomで連携")
+                Text("Link with Phantom")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .disabled(Self.phantomBrowseURL(web: controller.webBaseURL) == nil)
-            Text("Phantomアプリ内のブラウザでWebが開きます。サインインすると、コードが入力された状態でここに戻ります。戻らないときは画面の8文字を下に入力してください。")
+            Text("The Web app opens in the browser inside Phantom. After you sign in, you return here with the code filled in. If you do not return, enter the 8 characters shown on screen below.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -82,13 +82,13 @@ struct LinkWalletSheet: View {
                 if controller.isLinking {
                     ProgressView()
                 } else {
-                    Text("連携する")
+                    Text("Link")
                 }
             }
             .buttonStyle(.borderedProminent)
             .disabled(SessionLinkClient.normalizeCode(code).count != 8 || controller.isLinking)
 
-            Text("QRコードは、iPhoneの標準カメラで読み取るとこのアプリが開き、コードが入力されます。")
+            Text("If you scan the QR code with the iPhone camera, this app opens with the code filled in.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -97,16 +97,16 @@ struct LinkWalletSheet: View {
     private func linkedSection(wallet: String) -> some View {
         let short = wallet.count > 10 ? "\(wallet.prefix(4))...\(wallet.suffix(4))" : wallet
         return VStack(alignment: .leading, spacing: 12) {
-            Text("連携中: \(short)")
+            Text("Linked: \(short)")
                 .font(.headline)
-            Text("DEVNET。「あなたのwallet」の部屋でのみ、送る・Twinfold（旧デモ）に売るが使えます。Owner A / Owner Bの部屋は閲覧のみです。")
+            Text("DEVNET. Send and Sell to Twinfold (legacy demo) work only in the \"Your wallet\" room. The Owner A / Owner B rooms are view-only.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            Button("連携を解除", role: .destructive) {
+            Button("Unlink", role: .destructive) {
                 controller.unlink()
             }
             .buttonStyle(.bordered)
-            Text("この端末の連携だけを解除します。Webの「連携を解除」で、発行済みの端末すべてを無効にできます。")
+            Text("This unlinks this device only. Use Unlink in the Web app to invalidate every issued device.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

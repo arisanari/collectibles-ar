@@ -75,7 +75,7 @@ struct MyRoomView: View {
                     // explicit way back to the always-available fixture
                     // instead of leaving the room stuck on an error.
                     if controller.dataMode == .devnet {
-                        Button("Demo dataに戻る") { controller.switchDataMode(to: .demo) }
+                        Button("Back to Demo data") { controller.switchDataMode(to: .demo) }
                             .buttonStyle(.bordered)
                     }
                 }

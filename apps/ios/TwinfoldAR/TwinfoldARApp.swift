@@ -33,7 +33,7 @@ struct CollectionRootView: View {
             if let mockProvider {
                 MyRoomView(mockProvider: mockProvider, devnetProvider: devnetProvider, sessionLink: sessionLink, webBaseURL: Self.webBaseURL)
             } else if let loadError {
-                Text("fixtureの読み込みに失敗しました: \(loadError)")
+                Text("Failed to load fixtures: \(loadError)")
                     .multilineTextAlignment(.center)
                     .padding()
             } else {

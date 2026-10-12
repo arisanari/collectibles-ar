@@ -19,7 +19,7 @@ struct CollectionView: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("データソース", selection: Binding(get: { dataMode }, set: { onSelectMode($0) })) {
+                    Picker("Data source", selection: Binding(get: { dataMode }, set: { onSelectMode($0) })) {
                         Text("Demo").tag(DataMode.demo)
                         Text("Devnet").tag(DataMode.devnet)
                         Text("Mainnet (read-only)").tag(DataMode.mainnet)
@@ -28,10 +28,10 @@ struct CollectionView: View {
                 }
                 Section {
                     if needsWalletLink {
-                        Text("右上の「walletを連携」から連携すると、あなたのwalletのMainnetカードを表示します（読み取り専用）")
+                        Text("Link a wallet from the top right to show the Mainnet cards in your wallet (read-only)")
                             .foregroundStyle(.secondary)
                     } else if assets.isEmpty {
-                        Text("このwalletにAssetはありません")
+                        Text("This wallet has no assets")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(assets) { asset in
@@ -72,11 +72,11 @@ struct CollectionView: View {
                     }
                 }
                 if asset.sourceVerified == false {
-                    Text("Collector Cryptの発行かどうかを確認できていません。ARには置けません")
+                    Text("Not confirmed as issued by Collector Crypt. It cannot be placed in AR")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                Text(isPlaced(asset.id) ? "配置済み" : "未配置")
+                Text(isPlaced(asset.id) ? "Placed" : "Not placed")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }

@@ -18,7 +18,7 @@ struct DemoWallet: Identifiable, Hashable {
     /// Owner of the three self-made demo cards (`fixtures/demo/wallets.json` walletC). The default Demo room.
     static let cardCollectorDemo = DemoWallet(id: MockAssetProvider.cardCollectorWallet, label: "Card collector (demo)")
     /// Placeholder room for Mainnet (read-only) while no Web wallet is linked: there is nothing to read yet.
-    static let noWallet = DemoWallet(id: "", label: "未連携")
+    static let noWallet = DemoWallet(id: "", label: "Not linked")
     static let ownerA = DemoWallet(id: "DEMOwalletA1111111111111111111111111111111", label: "Owner A (demo)")
     static let ownerB = DemoWallet(id: "DEMOwalletB2222222222222222222222222222222", label: "Owner B (demo)")
     static let all: [DemoWallet] = [cardCollectorDemo, ownerA, ownerB]
@@ -39,7 +39,7 @@ struct DemoWallet: Identifiable, Hashable {
 
     static func label(forWallet wallet: String) -> String {
         if wallet == MockAssetProvider.vaultWallet || wallet == "vault" {
-            return "Twinfold Vault（旧デモ）"
+            return "Twinfold Vault (legacy demo)"
         }
         return (all + allDevnet).first(where: { $0.id == wallet })?.label ?? wallet
     }
@@ -249,6 +249,12 @@ final class RoomController {
     private var previewEntity: Entity?
     private var pendingPreviewTransform: simd_float4x4?
     private var pendingPreviewIsWall = false
+    /// Hysteresis for the slab preview's wall/horizontal decision: the raycast classification wobbles frame to frame
+    /// while the phone is held, so a change is adopted only after `previewSurfaceSwitchFrames` consecutive frames.
+    private var previewSurfaceCandidate: Bool?
+    private var previewSurfaceCandidateFrames = 0
+    private var previewSurfaceSettled = false
+    private static let previewSurfaceSwitchFrames = 8
     private var pendingPreviewCardHeight: Float = 0
     private var pendingPreviewSlabSurface: SlabSurface = .wall
 
@@ -280,8 +286,8 @@ final class RoomController {
     /// Code from a `twinfold://link` URL, consumed (prefilled, never auto-submitted) by the sheet.
     var pendingLinkCode: String?
 
-    static let linkRequiredMessage = "この操作にはWebでwallet連携が必要です"
-    private static let linkedRoomLabel = "あなたのwallet"
+    static let linkRequiredMessage = "This action requires linking your wallet on the Web"
+    private static let linkedRoomLabel = "Your wallet"
 
     /// Public URL of the Web app, opened by the 「Phantomで連携」 button (`TWINFOLD_WEB_URL`).
     let webBaseURL: URL
@@ -326,32 +332,32 @@ final class RoomController {
     /// 送る / Twinfoldに売る for the linked wallet: create a request, show 「Webで承認待ち」,
     /// poll every 3s; on confirmed, wait for the owner change as for any transfer, then Disappear.
     private func runApprovalFlow(assetId: String, asset: TwinfoldAsset, requestId: String, kind: TransferRequestKind, toWallet: String?) async {
-        let opLabel = kind == .buyback ? "Twinfold（旧デモ）への売却" : "送信"
+        let opLabel = kind == .buyback ? "Sale to Twinfold (legacy demo)" : "Send"
         let destination = kind == .buyback ? MockAssetProvider.vaultWallet : (toWallet ?? "")
-        approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
+        approvalMessages[assetId] = "Awaiting approval on Web / approve in My collection on the Web"
         defer { approvalMessages[assetId] = nil }
         do {
             var info = try await devnetProvider.createTransferRequest(requestId: requestId, assetId: assetId, kind: kind, toWallet: toWallet)
             while true {
                 switch info.status {
                 case .awaitingApproval, .unknown:
-                    approvalMessages[assetId] = "Webで承認待ち／WebのMy collectionで承認してください"
+                    approvalMessages[assetId] = "Awaiting approval on Web / approve in My collection on the Web"
                 case .submitted:
-                    approvalMessages[assetId] = "承認済み・devnetで確定待ち…"
+                    approvalMessages[assetId] = "Approved. Waiting for confirmation on devnet…"
                 case .confirmed:
                     break
                 case .rejected:
-                    failTransfer(assetId: assetId, message: "取り消されました（Webで拒否されました）。Retryで新しい依頼を作成できます")
+                    failTransfer(assetId: assetId, message: "Cancelled (rejected on the Web). Retry creates a new request")
                     return
                 case .expired:
-                    failTransfer(assetId: assetId, message: "期限切れです（10分）。Retryで新しい依頼を作成できます")
+                    failTransfer(assetId: assetId, message: "Expired (10 minutes). Retry creates a new request")
                     return
                 case .failed:
                     if info.retryable == true {
                         // Same as the Web: a retryable failure can be re-approved there, so keep polling.
-                        approvalMessages[assetId] = "承認が完了しませんでした（\(info.error ?? "再試行できます")）。Webで再承認できます"
+                        approvalMessages[assetId] = "Approval did not complete (\(info.error ?? "you can retry")). You can approve again on the Web"
                     } else {
-                        failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(info.error ?? "unknown error")")
+                        failTransfer(assetId: assetId, message: "\(opLabel) failed: \(info.error ?? "unknown error")")
                         return
                     }
                 }
@@ -366,7 +372,7 @@ final class RoomController {
             return
         }
 
-        approvalMessages[assetId] = "確定。所有者の反映を待っています…"
+        approvalMessages[assetId] = "Confirmed. Waiting for the owner update…"
         let owner = activeWallet.id
         let deadline = Date().addingTimeInterval(300)
         while Date() < deadline {
@@ -376,13 +382,13 @@ final class RoomController {
             }
             try? await Task.sleep(nanoseconds: 5_000_000_000)
         }
-        failTransfer(assetId: assetId, message: "\(opLabel)はdevnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。Retryで再確認します")
+        failTransfer(assetId: assetId, message: "\(opLabel) is confirmed on devnet, but the owner update is still pending (DAS indexing lag). Retry checks again")
     }
 
     /// Re-reads the Keychain-backed client; if the token expired locally, drops the link.
     private func refreshLinkState() {
         if linkedSession != nil, sessionLink.current == nil {
-            dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+            dropLink(notice: "The link was lost. You are now view-only. Link again on the Web")
         }
     }
 
@@ -394,7 +400,7 @@ final class RoomController {
             let session = try await sessionLink.validate()
             linkedSession = session
         } catch SessionLinkError.unauthorized {
-            dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
+            dropLink(notice: "The link was lost. You are now view-only. Link again on the Web")
         } catch {
             print("validateLink: \(error)")
         }
@@ -415,7 +421,7 @@ final class RoomController {
         } catch let error as SessionLinkError {
             linkErrorMessage = Self.message(for: error)
         } catch {
-            linkErrorMessage = "連携に失敗しました: \(error)"
+            linkErrorMessage = "Linking failed: \(error)"
         }
     }
 
@@ -474,16 +480,16 @@ final class RoomController {
 
     private static func message(for error: SessionLinkError) -> String {
         switch error {
-        case .invalidCode: return "コードの形式が正しくありません（8文字）"
-        case .unknownCode: return "このコードは見つかりません。Webで新しいコードを発行してください"
-        case .expired: return "コードの有効期限（2分）が切れています。Webで新しいコードを発行してください"
-        case .alreadyUsed: return "このコードは使用済みです。Webで新しいコードを発行してください"
+        case .invalidCode: return "The code format is invalid (8 characters)"
+        case .unknownCode: return "This code was not found. Issue a new code on the Web"
+        case .expired: return "This code has expired (2 minutes). Issue a new code on the Web"
+        case .alreadyUsed: return "This code has already been used. Issue a new code on the Web"
         case .rateLimited(let seconds):
-            return "試行回数が多すぎます。" + (seconds.map { "約\(max(1, $0 / 60))分後に" } ?? "しばらくしてから") + "もう一度お試しください"
-        case .unauthorized: return "連携が切れました"
-        case .network: return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
-        case .server(let status): return "サーバーエラー（\(status)）"
-        case .decoding: return "応答を読み取れませんでした"
+            return "Too many attempts. Try again " + (seconds.map { "in about \(max(1, $0 / 60)) min" } ?? "later") + "."
+        case .unauthorized: return "The link was lost"
+        case .network: return "Could not reach the Collectibles AR API. Check that you are on the same Wi-Fi"
+        case .server(let status): return "Server error (\(status))"
+        case .decoding: return "Could not read the response"
         }
     }
 
@@ -491,17 +497,17 @@ final class RoomController {
     private func transferFailureMessage(_ error: Error, opLabel: String) -> String {
         if case AssetProviderError.httpError(let status, _) = error {
             if status == 401 {
-                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
-                return "\(opLabel)に失敗しました: 連携が切れました"
+                dropLink(notice: "The link was lost. You are now view-only. Link again on the Web")
+                return "\(opLabel) failed: the link was lost"
             }
             if status == 403 {
                 let isTestWallet = DemoWallet.allDevnet.contains { $0.id == activeWallet.id }
-                return "\(opLabel)できません: " + (isTestWallet
-                    ? "このwalletはWebでログイン中のwalletと一致しません"
-                    : "このwalletの署名にはPhantomでの署名が必要です（未対応）")
+                return "Cannot complete \(opLabel): " + (isTestWallet
+                    ? "This wallet does not match the wallet signed in on the Web"
+                    : "Signing for this wallet requires Phantom (not supported yet)")
             }
         }
-        return "\(opLabel)に失敗しました: \(error)"
+        return "\(opLabel) failed: \(error)"
     }
 
     // MARK: - 現物を引き取る (Redeem Physical, dry run)
@@ -514,8 +520,8 @@ final class RoomController {
     private(set) var redeemToast: String?
     private var redeemPollTask: Task<Void, Never>?
     private var redeemRequestId = UUID().uuidString
-    static let redeemPendingMessage = "引き取り手続き中 — WebのMy collectionで承認"
-    static let redeemLockedToast = "流通を停止しました。引き取り手続きはWebで続けます"
+    static let redeemPendingMessage = "Redemption in progress — approve in My collection on the Web"
+    static let redeemLockedToast = "Circulation was stopped. Continue the redemption on the Web"
 
     /// True while a redemption is open for the asset (server overlay), so buyback / send are not offered.
     func isInRedemption(_ asset: TwinfoldAsset) -> Bool { asset.redemption?.open == true }
@@ -592,16 +598,16 @@ final class RoomController {
         if case AssetProviderError.httpError(let status, _) = error {
             switch status {
             case 401:
-                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
-                return "連携が切れました"
-            case 403: return "申請できません（所有者ではない、またはサーバー側で無効です）"
-            case 409: return "この作品はすでに引き取り手続き中か、対象外です"
-            case 429: return "申請の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（Collectibles AR側の設定）。時間をおいて再試行してください"
-            default: return "申請に失敗しました（\(status)）"
+                dropLink(notice: "The link was lost. You are now view-only. Link again on the Web")
+                return "The link was lost"
+            case 403: return "Cannot submit (you are not the owner, or it is disabled on the server)"
+            case 409: return "This item is already being redeemed or is not eligible"
+            case 429: return "The request limit was reached. Try again later"
+            case 503: return "Cannot process this right now (Collectibles AR configuration). Try again later"
+            default: return "Request failed (\(status))"
             }
         }
-        return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "Could not reach the Collectibles AR API. Check that you are on the same Wi-Fi"
     }
 
     // MARK: - Twinfoldから取得 (acquire, Issue #60)
@@ -613,7 +619,7 @@ final class RoomController {
         case failed(String)
     }
 
-    static let acquisitionLinkRequiredMessage = "取得にはWebでwallet連携が必要です"
+    static let acquisitionLinkRequiredMessage = "Acquiring requires linking your wallet on the Web"
 
     /// Assets Twinfold's vault wallet holds on devnet (Devnet mode only; empty in Demo mode, which is unchanged).
     private(set) var vaultAssets: [TwinfoldAsset] = []
@@ -676,7 +682,7 @@ final class RoomController {
         }
         lastAcquiredAsset = vaultAssets.first { $0.id == assetId }
         let requestId = acquisitionRequestId
-        acquisitionPhase = .working("送信中…")
+        acquisitionPhase = .working("Sending…")
         acquisitionTask = Task {
             do {
                 var info = try await devnetProvider.acquire(requestId: requestId, assetId: assetId)
@@ -687,12 +693,12 @@ final class RoomController {
                     case .failed:
                         // A server-side `failed` is final for this id: the next attempt must use a NEW requestId.
                         acquisitionRequestId = UUID().uuidString
-                        acquisitionPhase = .failed(info.error ?? "取得に失敗しました")
+                        acquisitionPhase = .failed(info.error ?? "Acquisition failed")
                         return
                     case .submitted:
-                        acquisitionPhase = .working("送信済み・devnetで確定待ち…")
+                        acquisitionPhase = .working("Sent. Waiting for confirmation on devnet…")
                     case .pending, .unknown, .confirmed:
-                        acquisitionPhase = .working("送信中…")
+                        acquisitionPhase = .working("Sending…")
                     }
                     try? await Task.sleep(nanoseconds: 3_000_000_000)
                     if Task.isCancelled { return }
@@ -704,7 +710,7 @@ final class RoomController {
                         if case AssetProviderError.httpError(let status, _) = error, status == 401 { throw error }
                         pollErrors += 1
                         if pollErrors > 40 { throw error }
-                        acquisitionPhase = .working("確認中…")
+                        acquisitionPhase = .working("Checking…")
                     }
                 }
             } catch {
@@ -715,7 +721,7 @@ final class RoomController {
             }
 
             // The status is never proof of ownership: wait for the on-chain owner to equal the linked wallet.
-            acquisitionPhase = .working("確定。所有者の反映を待っています…")
+            acquisitionPhase = .working("Confirmed. Waiting for the owner update…")
             let deadline = Date().addingTimeInterval(180)
             while Date() < deadline, !Task.isCancelled {
                 if let refreshed = try? await devnetProvider.getAsset(assetId: assetId), refreshed.owner == linked.wallet {
@@ -730,7 +736,7 @@ final class RoomController {
                 }
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
             }
-            acquisitionPhase = .failed("devnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。しばらくしてからコレクションを開き直してください")
+            acquisitionPhase = .failed("Confirmed on devnet, but the owner update is still pending (DAS indexing lag). Reopen the collection in a moment")
         }
     }
 
@@ -738,17 +744,17 @@ final class RoomController {
         if case AssetProviderError.httpError(let status, _) = error {
             switch status {
             case 401:
-                dropLink(notice: "連携が切れました。閲覧のみになります。Webでもう一度連携してください")
-                return "連携が切れました"
-            case 403: return "サーバー側で取得が無効です（dev設定）"
-            case 404: return "取得の記録が見つかりません。もう一度お試しください"
-            case 409: return "この作品は現在取得できません"
-            case 429: return "取得の回数が上限に達しました。しばらくしてから再試行してください"
-            case 503: return "いまは処理できません（Collectibles AR側のdevnet SOL残高など）。時間をおいて再試行してください"
-            default: return "取得に失敗しました（\(status)）"
+                dropLink(notice: "The link was lost. You are now view-only. Link again on the Web")
+                return "The link was lost"
+            case 403: return "Acquisition is disabled on the server (dev setting)"
+            case 404: return "The acquisition record was not found. Try again"
+            case 409: return "This item cannot be acquired right now"
+            case 429: return "The acquisition limit was reached. Try again later"
+            case 503: return "Cannot process this right now (for example, Collectibles AR devnet SOL balance). Try again later"
+            default: return "Acquisition failed (\(status))"
             }
         }
-        return "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか確認してください"
+        return "Could not reach the Collectibles AR API. Check that you are on the same Wi-Fi"
     }
 
     // MARK: - Wallet / ownership
@@ -865,8 +871,8 @@ final class RoomController {
             // short enough to read (and to appear in a demo recording).
             print("loadOwnedAssets failed: \(error)")
             loadErrorMessage = dataMode == .demo
-                ? "作品を読み込めませんでした"
-                : "Collectibles AR APIに接続できませんでした。同じWi-Fiにつながっているか、設定の「ローカルネットワーク」でCollectibles ARが許可されているかを確認してください"
+                ? "Could not load the items"
+                : "Could not reach the Collectibles AR API. Check that you are on the same Wi-Fi and that Collectibles AR is allowed under Local Network in Settings"
         }
         syncEntities()
     }
@@ -968,6 +974,9 @@ final class RoomController {
         anchor.addChild(entity)
         previewEntity = entity
         pendingPreviewSlabSurface = .wall
+        previewSurfaceCandidate = nil
+        previewSurfaceCandidateFrames = 0
+        previewSurfaceSettled = false
         // A twin's own mesh origin isn't guaranteed to be its base (see
         // `AssetRepresentationEntity.settleOnAnchor`); settle it here too,
         // before the anchor even has a real position, so the preview
@@ -1012,14 +1021,36 @@ final class RoomController {
                 isPreviewDetected = false
                 return
             }
-            let transform = isVertical ? wallTransform(hit: hit) : floorTransform(hit: hit, cameraTransform: cameraTransform)
+            if !previewSurfaceSettled {
+                // First hit since holding started: adopt it immediately.
+                pendingPreviewIsWall = isVertical
+                previewSurfaceCandidate = nil
+                previewSurfaceCandidateFrames = 0
+                previewSurfaceSettled = true
+            } else if isVertical == pendingPreviewIsWall {
+                previewSurfaceCandidate = nil
+                previewSurfaceCandidateFrames = 0
+            } else {
+                if previewSurfaceCandidate == isVertical {
+                    previewSurfaceCandidateFrames += 1
+                } else {
+                    previewSurfaceCandidate = isVertical
+                    previewSurfaceCandidateFrames = 1
+                }
+                if previewSurfaceCandidateFrames >= Self.previewSurfaceSwitchFrames {
+                    pendingPreviewIsWall = isVertical
+                    previewSurfaceCandidate = nil
+                    previewSurfaceCandidateFrames = 0
+                }
+            }
+            let useWall = pendingPreviewIsWall
+            let transform = useWall ? wallTransform(hit: hit) : floorTransform(hit: hit, cameraTransform: cameraTransform)
             previewAnchor.transform = Transform(matrix: transform)
             if let previewEntity {
-                GradedSlabEntity.pose(previewEntity, on: isVertical ? .wall : .horizontal)
+                GradedSlabEntity.pose(previewEntity, on: useWall ? .wall : .horizontal)
             }
             pendingPreviewTransform = transform
-            pendingPreviewIsWall = isVertical
-            pendingPreviewSlabSurface = isVertical ? .wall : .horizontal
+            pendingPreviewSlabSurface = useWall ? .wall : .horizontal
             pendingPreviewCardHeight = GradedSlabDimensions.psaStandard.height
             isPreviewDetected = true
         } else if isTwin {
@@ -1327,7 +1358,7 @@ final class RoomController {
                 }
             } catch {
                 await MainActor.run {
-                    self.buybackQuoteError = "オファーを取得できませんでした: \(error)"
+                    self.buybackQuoteError = "Could not fetch the offer: \(error)"
                     self.buybackQuoteLoading = false
                 }
             }
@@ -1383,20 +1414,20 @@ final class RoomController {
         do {
             _ = try await mock.simulateTransfer(assetId: assetId, to: MockAssetProvider.vaultWallet, requestId: requestId)
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "Twinfold（旧デモ）への売却に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Sale to Twinfold (legacy demo) failed: \(error)") }
             return
         }
         do {
             let entitlement = try await provider.refreshOwnership(assetId: assetId)
             await MainActor.run {
                 if entitlement.canDisplay {
-                    self.failTransfer(assetId: assetId, message: "confirmedですが、このwalletはentitlementを維持しています: \(entitlement.reason)")
+                    self.failTransfer(assetId: assetId, message: "Confirmed, but this wallet still holds the entitlement: \(entitlement.reason)")
                 } else {
                     self.confirmTransfer(assetId: assetId, asset: asset, destination: MockAssetProvider.vaultWallet)
                 }
             }
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "entitlement確認に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Entitlement check failed: \(error)") }
         }
     }
 
@@ -1409,7 +1440,7 @@ final class RoomController {
         toLabel: String, destinationWalletId: String, quoteId: String?
     ) async {
         guard let solana = provider as? SolanaAssetProvider else { return }
-        let opLabel = toLabel == "vault" ? "Twinfold（旧デモ）への売却" : "送信"
+        let opLabel = toLabel == "vault" ? "Sale to Twinfold (legacy demo)" : "Send"
         do {
             // Test rooms only (server-signed, insecure dev flag): never attach the linked wallet's token.
             let result = try await solana.devnetTransfer(
@@ -1417,7 +1448,7 @@ final class RoomController {
                 useSessionToken: false
             )
             if result.status == .failed {
-                await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel)に失敗しました: \(result.error ?? "unknown error")") }
+                await MainActor.run { self.failTransfer(assetId: assetId, message: "\(opLabel) failed: \(result.error ?? "unknown error")") }
                 return
             }
         } catch {
@@ -1436,7 +1467,7 @@ final class RoomController {
         await MainActor.run {
             self.failTransfer(
                 assetId: assetId,
-                message: "\(opLabel)はdevnet上ではconfirmedですが、所有者情報の反映待ちです（DAS indexing lag）。Retryで再確認します"
+                message: "\(opLabel) is confirmed on devnet, but the owner update is still pending (DAS indexing lag). Retry checks again"
             )
         }
     }
@@ -1451,7 +1482,7 @@ final class RoomController {
         AssetCardEntity.apply(state: .pending, to: live.cardEntity)
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "transfer failed。Retryしてください") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Transfer failed. Press Retry") }
         }
     }
 
@@ -1471,13 +1502,13 @@ final class RoomController {
             let entitlement = try await provider.refreshOwnership(assetId: assetId)
             await MainActor.run {
                 if entitlement.canDisplay {
-                    self.failTransfer(assetId: assetId, message: "transfer confirmedですが、このwalletはentitlementを維持しています: \(entitlement.reason)")
+                    self.failTransfer(assetId: assetId, message: "Transfer confirmed, but this wallet still holds the entitlement: \(entitlement.reason)")
                 } else {
                     self.confirmTransfer(assetId: assetId, asset: asset, destination: destination)
                 }
             }
         } catch {
-            await MainActor.run { self.failTransfer(assetId: assetId, message: "entitlement確認に失敗しました: \(error)") }
+            await MainActor.run { self.failTransfer(assetId: assetId, message: "Entitlement check failed: \(error)") }
         }
     }
 
@@ -1743,36 +1774,36 @@ final class RoomController {
 
     var hintText: String {
         if let selectedAssetId, transferState(for: selectedAssetId) == .pending {
-            return "送信中… 確定を待っています"
+            return "Sending… waiting for confirmation"
         }
         if let selectedAssetId, transferState(for: selectedAssetId) == .failed {
-            return "送信に失敗。Retryを押す"
+            return "Send failed. Press Retry"
         }
         if let holdingAssetId {
             guard isARSupported else {
-                return "AR非対応のため、タップすると固定位置に置きます"
+                return "AR is not supported here. Tap to place at a fixed position"
             }
             let heldAsset = ownedAssets.first(where: { $0.id == holdingAssetId })
             if heldAsset.map(AssetRepresentationEntity.isSlab) == true {
-                return isPreviewDetected ? "タップして置く（壁は掛ける、机・床は立てる）" : "壁・机・床に向けてください"
+                return isPreviewDetected ? "Tap to place (hangs on walls, stands on desks and floors)" : "Point at a wall, desk, or floor"
             }
             let isTwin = heldAsset.map(AssetRepresentationEntity.isTwin) ?? false
             if isTwin {
-                return isPreviewDetected ? "タップして机や床に置く" : "机や床に向けてください"
+                return isPreviewDetected ? "Tap to place on a desk or floor" : "Point at a desk or floor"
             } else {
-                return isPreviewDetected ? "タップして壁に掛ける" : "壁に向けてください"
+                return isPreviewDetected ? "Tap to hang on the wall" : "Point at a wall"
             }
         }
         if mainnetNeedsLink {
-            return "Mainnet (read-only)：右上の「walletを連携」から連携すると、あなたのwalletのカードが表示されます（読み取り専用）"
+            return "Mainnet (read-only): link a wallet from the top right to show the cards in your wallet (read-only)"
         }
         if selectedAssetId != nil {
-            return isReadOnlyMode ? "カードをタップするとPassportが出ます" : "作品をタップすると来歴や送るが出ます"
+            return isReadOnlyMode ? "Tap a card to open its Passport" : "Tap an item to see its provenance and send options"
         }
         if unplacedCount == 0 {
-            return "作品をタップすると来歴が見られます"
+            return "Tap an item to see its provenance"
         }
-        return "下から作品を選んで、壁・机・床に向ける"
+        return "Pick an item below, then point at a wall, desk, or floor"
     }
 
     // MARK: - Placement math

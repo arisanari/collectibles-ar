@@ -39,7 +39,7 @@ struct RoomOverlayView: View {
                 if let message = controller.redeemToast {
                     VStack(spacing: 8) {
                         Text(message).font(.footnote).multilineTextAlignment(.center).foregroundStyle(.white)
-                        Button("閉じる") { controller.dismissRedeemToast() }.buttonStyle(.bordered)
+                        Button("Close") { controller.dismissRedeemToast() }.buttonStyle(.bordered)
                     }
                     .padding(12)
                     .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14))
@@ -48,7 +48,7 @@ struct RoomOverlayView: View {
                     toastView(toast)
                 } else if controller.holdingAssetId != nil {
                     hintBar
-                    Button("キャンセル") { controller.cancelHolding() }
+                    Button("Cancel") { controller.cancelHolding() }
                         .buttonStyle(.bordered)
                 } else if let selectedAssetId = controller.selectedAssetId,
                           let asset = controller.ownedAssets.first(where: { $0.id == selectedAssetId }) {
@@ -113,7 +113,7 @@ struct RoomOverlayView: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 4)
-            Button("閉じる") { controller.dismissLinkNotice() }
+            Button("Close") { controller.dismissLinkNotice() }
                 .font(.footnote)
                 .buttonStyle(.bordered)
                 .tint(.white)
@@ -136,28 +136,28 @@ struct RoomOverlayView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 if controller.buybackQuoteLoading {
-                    ProgressView("オファーを取得中…")
+                    ProgressView("Fetching offer…")
                 } else if let error = controller.buybackQuoteError {
                     Text(error).foregroundStyle(.red).multilineTextAlignment(.center)
                 } else if let quote = controller.buybackQuote {
                     Text((asset?.displayTitle() ?? "") + (asset?.rehearsal == true ? " [REHEARSAL]" : ""))
                         .font(.headline)
                         .multilineTextAlignment(.center)
-                    Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET — devnetでの実際のtransfer。支払いはありません")
+                    Text(controller.provider.isDemoData ? "DEMO DATA" : "DEVNET — a real transfer on devnet. No payment")
                         .font(.caption.bold())
                         .foregroundStyle(.orange)
                     if quote.eligible {
                         VStack(spacing: 4) {
-                            Text("Twinfold販売価格の\(Int(quote.rate * 100))%")
+                            Text("\(Int(quote.rate * 100))% of Twinfold list price")
                                 .font(.subheadline)
                             Text("\(Int(quote.offerAmount).formatted(.number.grouping(.automatic))) \(quote.currency)")
                                 .font(.system(size: 34, weight: .bold))
-                            Text("Twinfold販売価格 \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) の\(Int(quote.rate * 100))%（Twinfoldの買取オファー。表示のみ）")
+                            Text("\(Int(quote.rate * 100))% of Twinfold list price \(Int(quote.basis.amount).formatted(.number.grouping(.automatic))) \(quote.basis.currency) (Twinfold buyback offer, display only)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                         }
-                        Button("Twinfoldに売る") { controller.confirmBuyback() }
+                        Button("Sell to Twinfold") { controller.confirmBuyback() }
                             .buttonStyle(.borderedProminent)
                     } else {
                         Text(quote.reason)
@@ -169,10 +169,10 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Twinfold（旧デモ）に売る")
+            .navigationTitle("Sell to Twinfold (legacy demo)")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { controller.dismissBuybackOffer() }
+                    Button("Close") { controller.dismissBuybackOffer() }
                 }
             }
         }
@@ -199,10 +199,10 @@ struct RoomOverlayView: View {
                     .font(.caption.bold())
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("・流通するAssetは止まります。Webで承認すると壁から消え、受取確認後にAssetは失効します。")
-                    Text("・再流通には再確認とTwinfold（旧デモ）Vaultへのre-vaultが必要です。")
-                    Text("・このデモでは実配送はせず、配送先も記録しません。")
-                    Text("・承認と受取確認はWebのMy collectionで行います（Passportの閲覧もWebです）。")
+                    Text("• The circulating Asset is stopped. Once you approve on the Web it disappears from your wall, and the Asset is retired after you confirm receipt.")
+                    Text("• Re-circulating it requires re-verification and a re-vault into the Twinfold (legacy demo) Vault.")
+                    Text("• This demo does not ship anything and does not record a delivery address.")
+                    Text("• Approval and receipt confirmation are done in My collection on the Web (the Passport is also viewed on the Web).")
                 }
                 .font(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -210,19 +210,19 @@ struct RoomOverlayView: View {
                     Text(error).font(.subheadline).foregroundStyle(.red).multilineTextAlignment(.center)
                 }
                 if controller.redeemWorking {
-                    ProgressView("申請中…")
+                    ProgressView("Submitting…")
                 } else {
-                    Button("申請する（dry run）") { controller.confirmRedeem() }
+                    Button("Submit request (dry run)") { controller.confirmRedeem() }
                         .buttonStyle(.borderedProminent)
                 }
                 Spacer()
             }
             .padding()
-            .navigationTitle("現物を引き取る")
+            .navigationTitle("Redeem physical item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { controller.dismissRedeem() }.disabled(controller.redeemWorking)
+                    Button("Close") { controller.dismissRedeem() }.disabled(controller.redeemWorking)
                 }
             }
         }
@@ -253,29 +253,29 @@ struct RoomOverlayView: View {
                 if let price = asset?.commerce?.twinfoldPrice {
                     Text("\(Int(price.amount).formatted(.number.grouping(.automatic))) \(price.currency)")
                         .font(.system(size: 30, weight: .bold))
-                    Text("表示価格（Twinfoldの表示値・デモ用の仮の値）")
+                    Text("List price (Twinfold display value, placeholder for the demo)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("・devnet上の取得であり、支払いは行われません。")
-                    Text("・価格は表示のみです（デモ用の仮の値）。")
-                    Text("・現物はTwinfoldのVaultに保管されたままです。")
+                    Text("• This is an acquisition on devnet; no payment is made.")
+                    Text("• The price is for display only (placeholder for the demo).")
+                    Text("• The physical item stays in the Twinfold Vault.")
                 }
                 .font(.footnote)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 switch controller.acquisitionPhase {
                 case .idle:
-                    Button("取得する") { controller.confirmAcquisition() }
+                    Button("Acquire") { controller.confirmAcquisition() }
                         .buttonStyle(.borderedProminent)
                 case .working(let message):
                     ProgressView(message)
                 case .done:
-                    Text("取得しました。あなたのコレクションに追加されました。トレイから選んで壁に配置できます")
+                    Text("Acquired. It was added to your collection. Pick it from the tray to place it on a wall")
                         .font(.subheadline.bold())
                         .multilineTextAlignment(.center)
-                    Button("閉じる") { controller.dismissAcquisition() }
+                    Button("Close") { controller.dismissAcquisition() }
                         .buttonStyle(.borderedProminent)
                 case .failed(let message):
                     Text(message)
@@ -283,10 +283,10 @@ struct RoomOverlayView: View {
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                     if controller.isAcquisitionLinked {
-                        Button("もう一度取得する") { controller.confirmAcquisition() }
+                        Button("Acquire again") { controller.confirmAcquisition() }
                             .buttonStyle(.bordered)
                     } else {
-                        Button("Webのwalletと連携") {
+                        Button("Link wallet from Web") {
                             controller.dismissAcquisition()
                             controller.showsLinkSheet = true
                         }
@@ -296,11 +296,11 @@ struct RoomOverlayView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Twinfold（旧デモ）から取得")
+            .navigationTitle("Acquire from Twinfold (legacy demo)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { controller.dismissAcquisition() }
+                    Button("Close") { controller.dismissAcquisition() }
                         .disabled(working)
                 }
             }
@@ -334,7 +334,7 @@ struct RoomOverlayView: View {
     /// shown — otherwise there's no on-screen way to tell Owner A's room
     /// from Owner B's after switching.
     private var walletChip: some View {
-        Text("\(controller.activeWallet.label)の部屋")
+        Text("Room: \(controller.activeWallet.label)")
             .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
@@ -367,7 +367,7 @@ struct RoomOverlayView: View {
             Button {
                 controller.showsLinkSheet = true
             } label: {
-                Label("walletを連携", systemImage: "link")
+                Label("Link wallet", systemImage: "link")
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
@@ -376,14 +376,14 @@ struct RoomOverlayView: View {
 
     private var overflowMenu: some View {
         Menu {
-            Menu("表示: \(controller.dataMode.label)") {
+            Menu("View: \(controller.dataMode.label)") {
                 ForEach(DataMode.allCases) { mode in
                     Button(mode.label) { controller.switchDataMode(to: mode) }
                 }
             }
 
             if controller.walletOptions.count > 1 || controller.dataMode == .demo {
-                Menu("デモ・テスト") {
+                Menu("Demo / Test") {
                     if controller.walletOptions.count > 1 {
                         Menu("Wallet: \(controller.activeWallet.label)") {
                             ForEach(controller.walletOptions) { wallet in
@@ -400,7 +400,7 @@ struct RoomOverlayView: View {
                             controller.simulateBuybackForSelected()
                         }
                         .disabled(controller.selectedAssetId == nil)
-                        Button("失敗をシミュレート (demo)") {
+                        Button("Simulate failure (demo)") {
                             controller.simulateFailureForSelected()
                         }
                         .disabled(controller.selectedAssetId == nil || controller.transferState(for: controller.selectedAssetId ?? "") == .pending)
@@ -409,10 +409,10 @@ struct RoomOverlayView: View {
             }
 
             if controller.linkedSession != nil {
-                Button("連携を解除", role: .destructive) { controller.unlink() }
+                Button("Unlink", role: .destructive) { controller.unlink() }
             }
 
-            Button("リセット") {
+            Button("Reset") {
                 controller.reset()
             }
             .disabled(controller.transferStatesContainPending)
@@ -448,7 +448,7 @@ struct RoomOverlayView: View {
                     }
                 }
                 if asset.sourceVerified == false {
-                    Text("Collector Cryptの発行かどうかを確認できていません")
+                    Text("Not confirmed as issued by Collector Crypt")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -461,24 +461,24 @@ struct RoomOverlayView: View {
                 HStack(spacing: 8) {
                     Button("Passport") { controller.presentPassportForSelected() }
                         .buttonStyle(.borderedProminent)
-                    Button("来歴") { controller.pullProvenanceForSelected() }
+                    Button("Provenance") { controller.pullProvenanceForSelected() }
                         .buttonStyle(.bordered)
-                    Button(controller.isCardOnly(asset.id) ? "ケースに戻す" : "ケースから出す") { controller.toggleCardOnlyForSelected() }
+                    Button(controller.isCardOnly(asset.id) ? "Put back in case" : "Take out of case") { controller.toggleCardOnlyForSelected() }
                         .buttonStyle(.bordered)
-                    Button("外す") { controller.removeSelected() }
+                    Button("Remove") { controller.removeSelected() }
                         .buttonStyle(.bordered)
                 }
                 Text(controller.isReadOnlyMode
-                     ? "Mainnet (read-only)：表示と配置だけです。操作はこのアプリでは行いません"
-                     : "売り戻しはCollector Cryptの買取で行います（72時間以内・率は台ごと）。操作はWebで")
+                     ? "Mainnet (read-only): display and placement only. Actions are not performed in this app"
+                     : "Selling back is done through Collector Crypt buyback (within 72 hours, rate varies by machine). Use the Web app")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
             case .idle:
                 HStack(spacing: 8) {
-                    Button("来歴") { controller.pullProvenanceForSelected() }
+                    Button("Provenance") { controller.pullProvenanceForSelected() }
                         .buttonStyle(.bordered)
-                    Button("外す") { controller.removeSelected() }
+                    Button("Remove") { controller.removeSelected() }
                         .buttonStyle(.bordered)
                     Spacer(minLength: 8)
                     // "送る"/"Twinfoldに売る" live in this secondary menu
@@ -490,17 +490,17 @@ struct RoomOverlayView: View {
                     // Devnet mode now (Issue #29).
                     Menu {
                         Button(controller.provider.isDemoData
-                               ? "\(controller.destinationLabelForSelected)へ送る (demo)"
-                               : "\(controller.destinationLabelForSelected)へ送る (devnet)") {
+                               ? "Send to \(controller.destinationLabelForSelected) (demo)"
+                               : "Send to \(controller.destinationLabelForSelected) (devnet)") {
                             controller.sendSelected()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
-                        Button("Twinfold（旧デモ）に売る") {
+                        Button("Sell to Twinfold (legacy demo)") {
                             controller.presentBuybackOffer()
                         }
                         .disabled(!controller.canOperateOnActiveWallet || controller.isInRedemption(asset))
                         if !controller.provider.isDemoData {
-                            Button("現物を引き取る") {
+                            Button("Redeem physical item") {
                                 controller.presentRedeem()
                             }
                             .disabled(!controller.isLinkedRoom || controller.isInRedemption(asset) || asset.physical?.custody.status != "vaulted")
@@ -519,7 +519,7 @@ struct RoomOverlayView: View {
                         .multilineTextAlignment(.center)
                 }
                 if !controller.canOperateOnActiveWallet {
-                    Text("\(RoomController.linkRequiredMessage)（連携中の「あなたのwallet」の部屋でのみ送る・売るが使えます。Owner A / Bは閲覧のみ）")
+                    Text("\(RoomController.linkRequiredMessage)(Send and Sell work only in the linked \"Your wallet\" room. Owner A / B are view-only)")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
@@ -531,7 +531,7 @@ struct RoomOverlayView: View {
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
                 }
-                Button(controller.approvalMessages[asset.id] == nil ? "送信中…" : "Webで承認待ち") {}
+                Button(controller.approvalMessages[asset.id] == nil ? "Sending…" : "Awaiting approval on Web") {}
                     .buttonStyle(.borderedProminent)
                     .disabled(true)
             case .failed:
@@ -553,11 +553,11 @@ struct RoomOverlayView: View {
 
     private func toastMessage(_ toast: TransferToast) -> String {
         guard toast.isVaultDestination else {
-            return "送信完了（confirmed）／「\(toast.assetTitle)」は\(toast.destinationLabel)の部屋に現れます。他の作品はそのまま"
+            return "Sent (confirmed). \"\(toast.assetTitle)\" now appears in the \(toast.destinationLabel) room. Your other items are unchanged"
         }
-        let offer = toast.buybackOfferText.map { "提示額 \($0)。" } ?? ""
-        let note = controller.provider.isDemoData ? "DEMO DATA：支払いなし" : "DEVNET：支払いなし"
-        return "売却完了（confirmed）／「\(toast.assetTitle)」をTwinfold（旧デモ）に売りました。\(offer)現物はVaultのまま、壁から消えました（\(note)）"
+        let offer = toast.buybackOfferText.map { "Offer \($0). " } ?? ""
+        let note = controller.provider.isDemoData ? "DEMO DATA: no payment" : "DEVNET: no payment"
+        return "Sold (confirmed). \"\(toast.assetTitle)\" was sold to Twinfold (legacy demo). \(offer)The physical item stays in the Vault and has disappeared from your wall (\(note))"
     }
 
     private func toastView(_ toast: TransferToast) -> some View {
@@ -568,10 +568,10 @@ struct RoomOverlayView: View {
                 .foregroundStyle(.white)
             HStack(spacing: 12) {
                 if !toast.isVaultDestination {
-                    Button("\(toast.destinationLabel)の部屋を見る") { controller.viewDestinationRoom() }
+                    Button("View \(toast.destinationLabel) room") { controller.viewDestinationRoom() }
                         .buttonStyle(.borderedProminent)
                 }
-                Button("閉じる") { controller.dismissToast() }
+                Button("Close") { controller.dismissToast() }
                     .buttonStyle(.bordered)
             }
         }

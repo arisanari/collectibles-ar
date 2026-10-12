@@ -37,11 +37,12 @@ public enum SlabStyle: Sendable, Equatable {
 /// - frame: hidden outline used for selection (blue) and failure (red)
 /// - shadow: soft contact shadow, enabled only on a wall (on a horizontal plane the grounding shadow does the job)
 ///
-/// `SlabStyle.cardOnly` builds the card alone at `GradedSlabDimensions.card` (63 x 88 mm, 0.6 mm thick) instead:
-/// - body (`bodyName`): thin matte box carrying the collision shape and input target
+/// `SlabStyle.cardOnly` builds the card alone at `GradedSlabDimensions.card` (63 x 88 mm, 1.6 mm thick: thicker than a real card so the
+/// edge reads at arm's length) instead:
+/// - body (`bodyName`): light gray matte box (visible as the card stock edge) carrying the collision shape and input target
 /// - photo (`cardName`): plane just in front of the body; the slab photo is cropped to the card with `SlabCardCrop`
-///   and fitted to 63 x 88 mm. No gloss layer
-/// - frame / shadow: as above, sized to the card (frame = card + 10 mm, halo margin 8 mm)
+///   and fitted to 63 x 88 mm. Unlit like the holder photo (see `pictureMaterial`). No gloss layer
+/// - frame / shadow: as above, sized to the card (frame = card + 10 mm, halo margin 2 mm, faint)
 /// - an empty marker entity (`cardOnlyMarkerName`) tells `pose(_:on:)` which layout applies (`isCardOnly`)
 ///
 /// Tagged with `AssetCardEntity.entityName` so callers that look up "the placed asset entity" by name keep working.
@@ -53,16 +54,19 @@ public enum GradedSlabEntity {
     static let cardOnlyMarkerName = "twinfold.gradedSlab.cardOnly"
 
     /// Gap between the slab's back face and the anchor plane on a wall (the anchor itself already sits
-    /// `AssetCardEntity.paperWallOffset` off the wall).
+    /// `AssetCardEntity.paperWallOffset` off the wall), so the back face sits 1 mm off the detected plane. It was
+    /// 2.5 mm for a while to escape the LiDAR scene mesh, which wobbles by several millimetres and ate the contact
+    /// shadow; since mesh occlusion is off (2026-10-09) a larger gap only made the card look as if it floated.
+    /// The same gap is used on horizontal surfaces.
     static let wallGap: Float = 0.0004
 
     private static let dimensions = GradedSlabDimensions.psaStandard
     /// How far the wall contact shadow extends beyond the slab on each side (meters).
-    private static let shadowMargin: Float = 0.018
+    private static let shadowMargin: Float = 0.007
     /// Card-only layout: thickness of the bare card, halo margin and halo peak opacity.
-    private static let cardOnlyDepth: Float = 0.0006
-    private static let cardOnlyShadowMargin: Float = 0.008
-    private static let cardOnlyShadowPeak: Float = 0.3
+    private static let cardOnlyDepth: Float = 0.0016
+    private static let cardOnlyShadowMargin: Float = 0.002
+    private static let cardOnlyShadowPeak: Float = 0.12
 
     public static func isSlab(_ entity: Entity) -> Bool {
         entity.findEntity(named: bodyName) != nil
@@ -101,17 +105,17 @@ public enum GradedSlabEntity {
         frame.isEnabled = false
         root.addChild(frame)
 
-        // Contact shadow on the wall: a soft dark halo around the whole slab (the slab stands 6.5 mm proud of the
-        // wall), shifted a little down and to the right as if lit from above-left, so the slab reads as resting on
-        // the wall rather than printed on it.
+        // Contact shadow on the wall: a tight dark rim around the slab (the slab stands only 6.5 mm proud of the
+        // wall, so the shadow must hug the outline: a wide soft halo reads as floating), shifted a touch down and
+        // right as if lit from above-left, so the slab reads as resting on the wall rather than printed on it.
         let shadow = ModelEntity(
             mesh: .generatePlane(width: width + 2 * shadowMargin, height: height + 2 * shadowMargin, cornerRadius: 0.006),
             materials: [makeShadowMaterial(
-                size: SIMD2<Float>(width, height), margin: shadowMargin, peak: 0.42
+                size: SIMD2<Float>(width, height), margin: shadowMargin, peak: 0.3
             )]
         )
         shadow.name = AssetCardEntity.shadowName
-        shadow.position = SIMD3<Float>(0.0015, -0.004, -depth / 2 - 0.0002)
+        shadow.position = SIMD3<Float>(0.0008, -0.002, -depth / 2 - 0.0002)
         shadow.isEnabled = false
         root.addChild(shadow)
 
@@ -174,7 +178,7 @@ public enum GradedSlabEntity {
         frame.isEnabled = false
         root.addChild(frame)
 
-        // Soft contact halo on a wall (the bare card is only 0.6 mm proud, so the halo is small and light).
+        // Soft contact halo on a wall (the bare card is only 1.6 mm proud, so the halo is small and light).
         let shadow = ModelEntity(
             mesh: .generatePlane(
                 width: width + 2 * cardOnlyShadowMargin, height: height + 2 * cardOnlyShadowMargin, cornerRadius: 0.004
@@ -189,8 +193,8 @@ public enum GradedSlabEntity {
         root.addChild(shadow)
 
         let body = ModelEntity(
-            mesh: .generateBox(width: width - 0.0016, height: height - 0.0016, depth: depth, cornerRadius: cardCornerRadius),
-            materials: [matte(.init(white: 0.6, alpha: 1))]
+            mesh: .generateBox(width: width - 0.0004, height: height - 0.0004, depth: depth, cornerRadius: cardCornerRadius),
+            materials: [matte(.init(white: 0.72, alpha: 1), roughness: 0.9)] // light gray card stock, visible as the edge
         )
         body.name = bodyName
         body.generateCollisionShapes(recursive: false)
@@ -229,19 +233,14 @@ public enum GradedSlabEntity {
         case .horizontal:
             // Lying flat on the desk or floor, photo up (the user chose this over a standing slab, 2026-10-09).
             root.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-            root.position = SIMD3<Float>(0, depth / 2 + 0.0002, 0)
+            root.position = SIMD3<Float>(0, depth / 2 + wallGap, 0)
         }
-        root.findEntity(named: AssetCardEntity.shadowName)?.isEnabled = (surface == .wall)
-        if #available(iOS 18.0, visionOS 2.0, macOS 15.0, *) {
-            let casts = (surface == .horizontal)
-            if let model = root.findEntity(named: bodyName) {
-                model.components.set(GroundingShadowComponent(castsShadow: casts))
-            }
-        }
+        // The shadow plane is a child of root, so it follows root's -90 degree rotation and lies under the card on a desk too.
+        root.findEntity(named: AssetCardEntity.shadowName)?.isEnabled = true
     }
 
     /// Card-only layout: on a wall the card lies flush (back face at `wallGap`); on a horizontal surface it lies flat
-    /// with its front towards +y (rotation of -90 degrees about x), its center 0.4 mm above the surface.
+    /// with its front towards +y (rotation of -90 degrees about x), its center `cardOnlyDepth / 2 + wallGap` above the surface.
     private static func poseCardOnly(_ root: Entity, on surface: SlabSurface) {
         switch surface {
         case .wall:
@@ -249,14 +248,9 @@ public enum GradedSlabEntity {
             root.position = SIMD3<Float>(0, 0, cardOnlyDepth / 2 + wallGap)
         case .horizontal:
             root.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-            root.position = SIMD3<Float>(0, 0.0004, 0)
+            root.position = SIMD3<Float>(0, cardOnlyDepth / 2 + wallGap, 0)
         }
-        root.findEntity(named: AssetCardEntity.shadowName)?.isEnabled = (surface == .wall)
-        if #available(iOS 18.0, visionOS 2.0, macOS 15.0, *) {
-            if let model = root.findEntity(named: bodyName) {
-                model.components.set(GroundingShadowComponent(castsShadow: surface == .horizontal))
-            }
-        }
+        root.findEntity(named: AssetCardEntity.shadowName)?.isEnabled = true
     }
 
     /// pending: faded, confirmed: solid, failed: solid with the red outline.
@@ -320,6 +314,15 @@ public enum GradedSlabEntity {
         material.clearcoat = .init(floatLiteral: 1)
         material.clearcoatRoughness = .init(floatLiteral: 0.05)
         material.blending = .transparent(opacity: .init(floatLiteral: 0.05))
+        return material
+    }
+
+    /// Material for the card photo: unlit in both layouts, so the picture keeps the studio brightness it was shot
+    /// with and is not dimmed by AR light estimation. A lit PBR variant for the bare card (semi-gloss + clearcoat +
+    /// the photo as low emissive) was tried on 2026-10-09 and washed the card out to near white on device.
+    private static func pictureMaterial(texture: TextureResource, style: SlabStyle) -> any Material {
+        var material = UnlitMaterial(color: .white)
+        material.color = .init(tint: .white, texture: .init(texture))
         return material
     }
 
@@ -435,16 +438,14 @@ public enum GradedSlabEntity {
                     width: size.x, height: size.y, cornerRadius: style == .cardOnly ? cardCornerRadius : 0.002
                 )
                 if style == .cardOnly, let body = card.parent?.findEntity(named: bodyName) as? ModelEntity {
-                    // Keep the backing board just inside the photo, so neither its sides nor the photo's rounded
-                    // corners reveal a dark rim around the card.
+                    // Keep the card stock a hair inside the photo so the rounded corners do not reveal a rim, but let
+                    // its white sides show: a bare card with no visible thickness reads as a pasted picture.
                     body.model?.mesh = .generateBox(
-                        width: max(0.001, size.x - 0.0016), height: max(0.001, size.y - 0.0016),
+                        width: max(0.001, size.x - 0.0004), height: max(0.001, size.y - 0.0004),
                         depth: cardOnlyDepth, cornerRadius: cardCornerRadius
                     )
                 }
-                var material = UnlitMaterial(color: .white)
-                material.color = .init(tint: .white, texture: .init(texture))
-                card.model?.materials = [material]
+                card.model?.materials = [pictureMaterial(texture: texture, style: style)]
             } catch {
                 print("[TwinfoldSpatial] \(asset.id): could not build slab picture texture: \(error)")
             }

@@ -30,7 +30,7 @@ struct ARContainerView: UIViewRepresentable {
 
             if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
                 configuration.sceneReconstruction = .mesh
-                arView.environment.sceneUnderstanding.options.insert(.occlusion)
+                // occlusion は外す（2026-10-09）。LiDAR mesh が壁や机の面から数 mm〜1 cm 揺れ、壁に貼った薄いカードや影の板を食って点滅した。手やモノによる遮蔽は失うが、デモの撮り方では困らない。
                 arView.environment.sceneUnderstanding.options.insert(.receivesLighting)
             }
 

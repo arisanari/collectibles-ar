@@ -32,7 +32,7 @@ struct PassportPanelView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる", action: onClose)
+                    Button("Close", action: onClose)
                 }
             }
         }
@@ -50,7 +50,7 @@ struct PassportPanelView: View {
                 }
             }
             if asset.sourceVerified == false {
-                Text("Collector Cryptが発行したカードかどうかを確認できていません（メタデータの形だけで一覧に出しています）。")
+                Text("Not confirmed as issued by Collector Crypt. It is listed only because its metadata has the shape of a graded card.")
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -60,23 +60,23 @@ struct PassportPanelView: View {
     // MARK: (a) Onchain fact
 
     private var onchainFact: some View {
-        block(title: "Onchain fact", subtitle: "チェーン上の事実", tint: .blue) {
+        block(title: "Onchain fact", subtitle: "Facts read from the chain", tint: .blue) {
             row("Mint address", asset.address, mono: true, link: PassportLinks.explorerAddress(asset.address, network: asset.network), linkTitle: "Solana Explorer")
             row("Owner", asset.owner.map(Self.shortAddress) ?? "—")
             if let event = asset.acquisitionEvent, let signature = event.transaction {
                 row(
-                    "取得のtransaction署名 (\(event.status.rawValue))",
+                    "Acquisition transaction signature (\(event.status.rawValue))",
                     Self.shortAddress(signature),
                     mono: true,
                     link: PassportLinks.explorerTransaction(signature, network: asset.network),
                     linkTitle: "Solana Explorer"
                 )
             } else {
-                row("取得のtransaction署名", "記録なし")
+                row("Acquisition transaction signature", "No record")
             }
             row("Network", asset.network == "mainnet" ? "mainnet (read-only)" : asset.network)
             if asset.isDemoChainData {
-                note("DEMO DATA：架空の値です。実際のチェーン上の記録ではありません（Explorerリンクはありません）。")
+                note("DEMO DATA: fictional values. This is not a real onchain record (there is no Explorer link).")
             }
         }
     }
@@ -84,33 +84,33 @@ struct PassportPanelView: View {
     // MARK: (b) Third-party claims
 
     private var thirdPartyClaims: some View {
-        block(title: "Third-party claims", subtitle: "第三者の主張（Collectibles ARは検証していません）", tint: .orange) {
-            Text("鑑定会社の主張").font(.subheadline.bold())
-            row("会社", asset.gradingCompany ?? "—")
-            row("グレード", asset.grade ?? "—")
+        block(title: "Third-party claims", subtitle: "Third-party claims (not verified by Collectibles AR)", tint: .orange) {
+            Text("Grading company claims").font(.subheadline.bold())
+            row("Company", asset.gradingCompany ?? "—")
+            row("Grade", asset.grade ?? "—")
             row(
-                "鑑定番号",
+                "Cert number",
                 asset.gradingId ?? "—",
                 mono: true,
                 link: PassportLinks.psaCert(company: asset.gradingCompany, gradingId: asset.gradingId),
                 linkTitle: "PSA cert verify"
             )
             Divider()
-            Text("Collector Cryptの主張").font(.subheadline.bold())
-            row("保険価値 (Insured Value)", asset.insuredValueDisplay ?? "—")
+            Text("Collector Crypt claims").font(.subheadline.bold())
+            row("Insured value", asset.insuredValueDisplay ?? "—")
             row("Vault", asset.vault ?? "—")
             row("Vault ID", asset.vaultId ?? "—", mono: true)
-            note("現物の保管・配送・買取の責任はCollector Cryptにあります。")
+            note("Custody, shipping, and buyback of the physical card are Collector Crypt's responsibility.")
         }
     }
 
     // MARK: (c) Collectibles AR interpretation
 
     private var interpretation: some View {
-        block(title: "Collectibles AR interpretation", subtitle: "Collectibles ARの整形", tint: .gray) {
+        block(title: "Collectibles AR interpretation", subtitle: "Formatted by Collectibles AR", tint: .gray) {
             let lines = GradedSlabDimensions.labelLines(for: asset, maxNameLength: 60)
-            row("表示用ラベル", [lines.headline, lines.name].filter { !$0.isEmpty }.joined(separator: " / "))
-            row("取得日時", fetchedAt.map(Self.timestamp) ?? "—")
+            row("Display label", [lines.headline, lines.name].filter { !$0.isEmpty }.joined(separator: " / "))
+            row("Fetched at", fetchedAt.map(Self.timestamp) ?? "—")
             if let memo = asset.gachaMemo {
                 row(
                     "Pull memo",
@@ -120,10 +120,10 @@ struct PassportPanelView: View {
                     linkTitle: "VRF verify (Collector Crypt)"
                 )
                 note(asset.isDemoChainData
-                     ? "DEMO DATA：架空のPullです。検証ページはありません。"
-                     : "選出の検証はCollector Cryptのページで行います。")
+                     ? "DEMO DATA: fictional pull. There is no verification page."
+                     : "Verify the selection on Collector Crypt's page.")
             }
-            Text("Collectibles ARはこれらを検証していません。上の表示は、チェーンとCollector Cryptのデータの写しです。")
+            Text("Collectibles AR does not verify these. The above is a copy of data from the chain and Collector Crypt.")
                 .font(.footnote.bold())
         }
     }

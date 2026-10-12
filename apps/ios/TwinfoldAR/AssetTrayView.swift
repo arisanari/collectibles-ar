@@ -43,7 +43,7 @@ struct AssetTrayView: View {
                     showsFullList = true
                 } label: {
                     HStack {
-                        Text("コレクション \(controller.ownedAssets.count)点・未配置 \(controller.unplacedCount)")
+                        Text("Collection \(controller.ownedAssets.count) · Not placed \(controller.unplacedCount)")
                             .font(.footnote.bold())
                         Image(systemName: "chevron.up")
                             .font(.caption2)
@@ -89,7 +89,7 @@ struct AssetTrayView: View {
                     .padding(.horizontal, 16)
                 }
                 if controller.mainnetNeedsLink {
-                    Text("Mainnet (read-only)：右上の「walletを連携」から連携すると、あなたのwalletのカードが表示されます（読み取り専用）")
+                    Text("Mainnet (read-only): link a wallet from the top right to show the cards in your wallet (read-only)")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.horizontal, 16)
@@ -108,7 +108,7 @@ struct AssetTrayView: View {
     /// acquisition sheet; the sheet explains when the Web wallet link is missing.
     private var vaultGroup: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Twinfold（旧デモ）から取得（DEVNET・支払いなし）")
+            Text("Twinfold (legacy demo)Acquire from Twinfold (legacy demo) (DEVNET, no payment)")
                 .font(.footnote.bold())
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
@@ -155,7 +155,7 @@ struct AssetTrayView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Text("コレクション")
+                Text("Collection")
                     .font(.caption.bold())
                 Image(systemName: "chevron.up")
                     .font(.caption2)
