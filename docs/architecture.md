@@ -343,7 +343,8 @@ cacheやWebhookは高速化のために使い、所有権判定の正にはし�
 - ウォレット署名認証と、Pull・買取transactionの署名（Phantom）
 - 台の表示、Pull、開封、My Collection、Passportの比較表示
 - iPhoneへの一回限りの端末連携
-- UI言語: 既定は英語。ヘッダーのプルダウンで日本語に切り替える（`apps/web/lib/i18n.tsx`、選択はブラウザに保存、言語の追加は `LANGUAGES` に1件足す）。Backendが返す文言（error、reason、Passportのlimitationsなど）とステータスのラベルは英語固定なので、日本語UIとiPhoneアプリにも英語のまま出る。fixtureやオンチェーンのデータに入っている文章は翻訳しない
+- UI言語（2026-10-10決定）: Web、iOS、visionOS、Landing、規約の全文言は英語のみ。日本語切り替えは置かず、`apps/web/lib/i18n.tsx` の `LANGUAGES` は `en` のみ。日本語でPullを宣伝しない。コメント・ログ・fixture・オンチェーンのデータに入っている文章は翻訳しない
+- 資金の流れ: Pull・買取の署名はユーザーのPhantomが行い、USDCはCollectibles ARのwalletを通らない。アプリ内swap、USDCやNFTの預かり、ユーザー資金の転送は作らない
 
 ### Spatial Experience（Swift Package）
 
