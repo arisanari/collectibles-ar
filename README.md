@@ -185,9 +185,9 @@ This is the public copy of a private working repository. Internal planning docum
 
 ## Prior work and the pivot
 
-This repository contains work from before and during the hackathon. The git history separates the periods.
+This repository contains work from before and during the hackathon.
 
-- **Before Sept 14, 2026**: business documents, a Web UI prototype and a visionOS prototype
+- **Before Sept 14, 2026**: business documents (not included in this repository), a Web UI prototype and a visionOS prototype. The two prototypes were first committed on Sept 18
 - **Sept 21 – Oct 6**: an AR collection for ukiyo-e woodblock prints hung on a wall (renamed OshiPin on Oct 5)
 - **Oct 6**: pivoted to showing Collector Crypt's real graded cards in AR, first as SlabAR, renamed Collectibles AR on Oct 7
 
